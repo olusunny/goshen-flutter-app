@@ -7,6 +7,7 @@ import '../models/GoshenRetreat.dart';
 import '../models/Userdata.dart';
 import '../prayers/prayer_api_client.dart';
 import '../testimonies/testimony_api_client.dart';
+import 'DynamicFormApi.dart';
 import 'GoshenExperienceApi.dart';
 import 'GoshenRetreatApi.dart';
 import 'GoshenWalletApi.dart';
@@ -125,6 +126,7 @@ class MoreMenuPreloadService {
         testimonyApi.fetchTestimonies().then((_) {}).catchError((_) {}),
       if (fundraisingEnabled)
         fundraisingApi.fetchActiveCampaign().then((_) {}).catchError((_) {}),
+      DynamicFormApi(dio: dio).fetchForms(user).then((_) {}).catchError((_) {}),
       PrayerApiClient(dio: dio)
           .fetchPrayerFeed(user: user)
           .then((_) {})

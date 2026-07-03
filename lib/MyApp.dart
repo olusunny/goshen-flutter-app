@@ -56,6 +56,7 @@ import './audio_player/player_page.dart';
 import './video_player/VideoPlayer.dart';
 import './livetvplayer/LivestreamsPlayer.dart';
 import './screens/Downloader.dart';
+import './screens/DynamicFormsScreen.dart';
 import './auth/LoginScreen.dart';
 import './audio_player/radio_player.dart';
 import './auth/RegisterScreen.dart';
@@ -579,6 +580,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             return MaterialPageRoute(
               builder: (context) {
                 return const DonationAccountsScreen();
+              },
+            );
+          }
+
+          if (settings.name == DynamicFormsScreen.routeName) {
+            return MaterialPageRoute(
+              builder: (context) {
+                return const DynamicFormsScreen();
               },
             );
           }

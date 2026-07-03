@@ -14,6 +14,7 @@ import '../screens/BookmarkScreen.dart';
 import '../screens/ContactUsScreen.dart';
 import '../screens/DonationAccountsScreen.dart';
 import '../screens/Downloader.dart';
+import '../screens/DynamicFormsScreen.dart';
 import '../screens/GalleryScreen.dart';
 import '../screens/GoshenExperienceScreen.dart';
 import '../screens/GoshenManagementHubScreen.dart';
@@ -140,6 +141,9 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
       _MoreMenuItem('Giving', Icons.volunteer_activism_outlined,
           () => Navigator.pushNamed(context, DonationAccountsScreen.routeName),
           accent: const Color(0xFFE1A63B)),
+      _MoreMenuItem('Goshen Forms', Icons.dynamic_form_rounded,
+          () => Navigator.pushNamed(context, DynamicFormsScreen.routeName),
+          accent: const Color(0xFF2C9B88)),
       if (_fundraisingEnabled)
         _MoreMenuItem('Fundraising', Icons.campaign_rounded,
             () => Navigator.pushNamed(context, FundraisingScreen.routeName),
