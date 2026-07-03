@@ -719,7 +719,7 @@ class HomeHeader extends StatelessWidget {
   }
 }
 
-class HeroMediaSlider extends StatelessWidget {
+class HeroMediaSlider extends StatefulWidget {
   const HeroMediaSlider({
     Key? key,
     required this.items,
@@ -736,24 +736,78 @@ class HeroMediaSlider extends StatelessWidget {
   final ValueChanged<Media> onTap;
 
   @override
+  State<HeroMediaSlider> createState() => _HeroMediaSliderState();
+}
+
+class _HeroMediaSliderState extends State<HeroMediaSlider> {
+  static const Duration _autoSlideInterval = Duration(seconds: 5);
+  static const Duration _autoSlideDuration = Duration(milliseconds: 520);
+
+  Timer? _autoSlideTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _restartAutoSlide();
+  }
+
+  @override
+  void didUpdateWidget(covariant HeroMediaSlider oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.items.length != widget.items.length ||
+        oldWidget.controller != widget.controller) {
+      _restartAutoSlide();
+    }
+  }
+
+  @override
+  void dispose() {
+    _autoSlideTimer?.cancel();
+    super.dispose();
+  }
+
+  void _restartAutoSlide() {
+    _autoSlideTimer?.cancel();
+
+    if (widget.items.length < 2) {
+      return;
+    }
+
+    _autoSlideTimer = Timer.periodic(_autoSlideInterval, (_) {
+      if (!mounted ||
+          !widget.controller.hasClients ||
+          widget.items.length < 2) {
+        return;
+      }
+
+      final nextIndex = (widget.currentIndex + 1) % widget.items.length;
+      widget.controller.animateToPage(
+        nextIndex,
+        duration: _autoSlideDuration,
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final totalItems = items.length;
+    final totalItems = widget.items.length;
 
     return Column(
       children: [
         SizedBox(
           height: 188,
           child: PageView.builder(
-            controller: controller,
+            controller: widget.controller,
             itemCount: totalItems,
-            onPageChanged: onChanged,
+            onPageChanged: widget.onChanged,
             itemBuilder: (context, index) {
-              final item = items[index];
+              final item = widget.items[index];
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(22),
-                  onTap: () => onTap(item),
+                  onTap: () => widget.onTap(item),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(22),
                     child: Stack(
@@ -816,10 +870,10 @@ class HeroMediaSlider extends StatelessWidget {
             (index) => AnimatedContainer(
               duration: const Duration(milliseconds: 220),
               margin: const EdgeInsets.symmetric(horizontal: 4),
-              width: currentIndex == index ? 18 : 7,
+              width: widget.currentIndex == index ? 18 : 7,
               height: 7,
               decoration: BoxDecoration(
-                color: currentIndex == index
+                color: widget.currentIndex == index
                     ? Colors.white
                     : Colors.white.withValues(alpha: 0.35),
                 borderRadius: BorderRadius.circular(99),
