@@ -1,0 +1,90 @@
+{
+  "project_info": {
+    "project_number": "1052546970254",
+    "project_id": "goshen-attendee",
+    "storage_bucket": "goshen-attendee.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1052546970254:android:a4be05c35a13f709bb4fdf",
+        "android_client_info": {
+          "package_name": "com.covenantofmercy.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1052546970254-7a8p3t5n845hpvgqfl6mmld45aip1a70.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.covenantofmercy.app",
+            "certificate_hash": "9c022f48c14903104207cb92825f3be167c54652"
+          }
+        },
+        {
+          "client_id": "1052546970254-t1ob0ihl8shpqk6ssd1bvtkihhsg9dfv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCquPEw2AZkRWyn3McAJpJOm5oC2AavULU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1052546970254-t1ob0ihl8shpqk6ssd1bvtkihhsg9dfv.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1052546970254-ab2ul437fr07kc1sjsr75d292d0iqdka.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.smartreports.pos"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1052546970254:android:e83e7ae28e3bef81bb4fdf",
+        "android_client_info": {
+          "package_name": "com.smartreports.pos"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1052546970254-t1ob0ihl8shpqk6ssd1bvtkihhsg9dfv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCquPEw2AZkRWyn3McAJpJOm5oC2AavULU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1052546970254-t1ob0ihl8shpqk6ssd1bvtkihhsg9dfv.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1052546970254-ab2ul437fr07kc1sjsr75d292d0iqdka.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.smartreports.pos"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>160642673140-urphgsshc2n4mvrn6236j811d5nipr2c.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyDikjAJ2xY70bIf6vWEZvjet7OiFfrtW1o</string>
+	<key>GCM_SENDER_ID</key>
+	<string>160642673140</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>apps.envisio</string>
+	<key>PROJECT_ID</key>
+	<string>mychurch-3a9c9</string>
+	<key>STORAGE_BUCKET</key>
+	<string>mychurch-3a9c9.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:160642673140:ios:5d0162052e7b55088771a1</string>
+	<key>DATABASE_URL</key>
+	<string>https://mychurch-3a9c9.firebaseio.com</string>
+</dict>
+</plist>

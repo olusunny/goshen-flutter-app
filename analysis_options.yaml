@@ -1,0 +1,5 @@
+analyzer:
+  exclude:
+    - migration-backups/**
+  errors:
+    deprecated_member_use: ignore
