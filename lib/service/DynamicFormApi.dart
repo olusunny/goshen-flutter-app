@@ -106,6 +106,108 @@ class DynamicFormApi {
     return DynamicFormSubmitResult.fromJson(data);
   }
 
+  Future<List<DynamicForm>> fetchManagementForms(Userdata user) async {
+    final response = await _dio.post(
+      ApiUrl.DYNAMIC_FORMS_MANAGEMENT,
+      options: _jsonOptions(user),
+      data: _managementPayload(user),
+    );
+
+    final data = _decodeMap(response.data);
+    if (data['status'] != 'ok') {
+      throw Exception(data['message'] ?? 'Unable to load dynamic forms.');
+    }
+
+    return ((data['data'] as List?) ?? const [])
+        .whereType<Map>()
+        .map((item) => DynamicForm.fromJson(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
+  Future<DynamicForm> createManagementForm({
+    required Userdata user,
+    required Map<String, dynamic> payload,
+  }) async {
+    final response = await _dio.post(
+      '${ApiUrl.DYNAMIC_FORMS_MANAGEMENT}/forms',
+      options: _jsonOptions(user),
+      data: _managementPayload(user, payload),
+    );
+
+    return _managedFormFromResponse(
+        response.data, 'Unable to create this form.');
+  }
+
+  Future<DynamicForm> updateManagementForm({
+    required Userdata user,
+    required DynamicForm form,
+    required Map<String, dynamic> payload,
+  }) async {
+    final response = await _dio.post(
+      ApiUrl.dynamicFormManagementSave(form.identifier),
+      options: _jsonOptions(user),
+      data: _managementPayload(user, payload),
+    );
+
+    return _managedFormFromResponse(
+        response.data, 'Unable to update this form.');
+  }
+
+  Future<DynamicForm> updateManagementStatus({
+    required Userdata user,
+    required DynamicForm form,
+    required bool isActive,
+  }) async {
+    final response = await _dio.post(
+      ApiUrl.dynamicFormManagementStatus(form.identifier),
+      options: _jsonOptions(user),
+      data: _managementPayload(user, {'is_active': isActive}),
+    );
+
+    return _managedFormFromResponse(
+        response.data, 'Unable to update this form.');
+  }
+
+  Future<void> deleteManagementForm({
+    required Userdata user,
+    required DynamicForm form,
+  }) async {
+    final response = await _dio.post(
+      ApiUrl.dynamicFormManagementDelete(form.identifier),
+      options: _jsonOptions(user),
+      data: _managementPayload(user),
+    );
+
+    final data = _decodeMap(response.data);
+    if (data['status'] != 'ok') {
+      throw Exception(data['message'] ?? 'Unable to delete this form.');
+    }
+  }
+
+  Future<List<DynamicFormSubmissionRecord>> fetchManagementSubmissions({
+    required Userdata user,
+    required DynamicForm form,
+  }) async {
+    final response = await _dio.post(
+      ApiUrl.dynamicFormManagementSubmissions(form.identifier),
+      options: _jsonOptions(user),
+      data: _managementPayload(user),
+    );
+
+    final data = _decodeMap(response.data);
+    if (data['status'] != 'ok') {
+      throw Exception(data['message'] ?? 'Unable to load submissions.');
+    }
+
+    final wrapper = _decodeNestedMap(data['data']);
+    return ((wrapper['submissions'] as List?) ?? const [])
+        .whereType<Map>()
+        .map((item) => DynamicFormSubmissionRecord.fromJson(
+              Map<String, dynamic>.from(item),
+            ))
+        .toList();
+  }
+
   Options _jsonOptions(Userdata? user, {bool multipart = false}) {
     final token = user?.apiToken?.trim() ?? '';
     return Options(
@@ -122,6 +224,38 @@ class DynamicFormApi {
     final decoded = decodeApiResponse(value);
     if (decoded is Map) return Map<String, dynamic>.from(decoded);
     return <String, dynamic>{};
+  }
+
+  Map<String, dynamic> _decodeNestedMap(dynamic value) {
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return <String, dynamic>{};
+  }
+
+  DynamicForm _managedFormFromResponse(dynamic response, String fallback) {
+    final data = _decodeMap(response);
+    if (data['status'] != 'ok') {
+      throw Exception(data['message'] ?? fallback);
+    }
+
+    final payload = data['data'];
+    if (payload is! Map) {
+      throw const FormatException('The form response was incomplete.');
+    }
+
+    return DynamicForm.fromJson(Map<String, dynamic>.from(payload));
+  }
+
+  Map<String, dynamic> _managementPayload(
+    Userdata user, [
+    Map<String, dynamic>? payload,
+  ]) {
+    final token = user.apiToken?.trim() ?? '';
+    return <String, dynamic>{
+      'data': {
+        if (token.isNotEmpty) 'api_token': token,
+        ...?payload,
+      },
+    };
   }
 
   String _cacheKey(Userdata? user) {

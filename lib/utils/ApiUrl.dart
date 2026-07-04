@@ -16,9 +16,22 @@ class ApiUrl {
       BASEURL + "api/giving/stripe/checkout";
   static const String GIVING_WALLET_PAY = BASEURL + "api/giving/wallet/pay";
   static const String DYNAMIC_FORMS = BASEURL + "api/dynamic-forms";
+  static const String DYNAMIC_FORMS_MANAGEMENT =
+      BASEURL + "api/dynamic-forms/management";
   static String dynamicForm(String form) =>
       BASEURL + "api/dynamic-forms/${Uri.encodeComponent(form)}";
   static String dynamicFormSubmit(String form) => "${dynamicForm(form)}/submit";
+  static String dynamicFormManagement(String form) =>
+      BASEURL +
+      "api/dynamic-forms/management/forms/${Uri.encodeComponent(form)}";
+  static String dynamicFormManagementSave(String form) =>
+      "${dynamicFormManagement(form)}/save";
+  static String dynamicFormManagementStatus(String form) =>
+      "${dynamicFormManagement(form)}/status";
+  static String dynamicFormManagementDelete(String form) =>
+      "${dynamicFormManagement(form)}/delete";
+  static String dynamicFormManagementSubmissions(String form) =>
+      "${dynamicFormManagement(form)}/submissions";
   static const String FUNDRAISING_ACTIVE_CAMPAIGN =
       BASEURL + "api/fundraising/campaigns/active";
   static const String FUNDRAISING_MANAGEMENT_SUMMARY =

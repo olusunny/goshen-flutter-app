@@ -105,6 +105,7 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
     final canViewSurveyStats = user?.canViewGoshenExperienceStats == true;
     final canManageWalletWithdrawals =
         user?.canManageWalletWithdrawalTools == true;
+    final canManageDynamicForms = user?.canManageDynamicFormTools == true;
     final canSendAdminMessages = user?.canSendAdminMessageTools == true;
     final canOpenGoshenManagement = user != null &&
         (_scannerManagerEnabled ||
@@ -115,6 +116,7 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
             canManageQuiz ||
             canViewSurveyStats ||
             canManageWalletWithdrawals ||
+            canManageDynamicForms ||
             canSendAdminMessages);
     final items = <_MoreMenuItem>[
       if (canOpenGoshenManagement)
@@ -132,6 +134,7 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
                       canManageVouchers: canManageGoshenVouchers,
                       canManageFundraising: canManageFundraising,
                       canManageWalletWithdrawals: canManageWalletWithdrawals,
+                      canManageDynamicForms: canManageDynamicForms,
                       canSendAdminMessages: canSendAdminMessages,
                     ),
                   ),

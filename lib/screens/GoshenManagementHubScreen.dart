@@ -18,6 +18,7 @@ import '../service/GoshenWalletApi.dart';
 import '../service/ControlHubMessagingApi.dart';
 import '../service/ControlHubUsersApi.dart';
 import '../wallet_security/wallet_security_guard.dart';
+import 'DynamicFormManagementScreen.dart';
 import 'GoshenRetreatScreen.dart';
 import 'GoshenScannerManagerScreen.dart';
 
@@ -31,6 +32,7 @@ class GoshenManagementHubScreen extends StatefulWidget {
     required this.canManageVouchers,
     required this.canManageFundraising,
     required this.canManageWalletWithdrawals,
+    required this.canManageDynamicForms,
     required this.canSendAdminMessages,
   });
 
@@ -41,6 +43,7 @@ class GoshenManagementHubScreen extends StatefulWidget {
   final bool canManageVouchers;
   final bool canManageFundraising;
   final bool canManageWalletWithdrawals;
+  final bool canManageDynamicForms;
   final bool canSendAdminMessages;
 
   @override
@@ -291,6 +294,24 @@ class _GoshenManagementHubScreenState extends State<GoshenManagementHubScreen> {
                       MaterialPageRoute(
                         builder: (_) =>
                             FundraisingManagementStatsScreen(user: widget.user),
+                      ),
+                    ),
+                  ),
+                ],
+                if (widget.canManageDynamicForms) ...[
+                  const SizedBox(height: 12),
+                  _HubActionCard(
+                    colors: colors,
+                    title: 'Forms management',
+                    subtitle:
+                        'Create, edit, activate, deactivate, delete unused forms, and view user submissions.',
+                    icon: Icons.dynamic_form_rounded,
+                    accent: colors.teal,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            DynamicFormManagementScreen(user: widget.user),
                       ),
                     ),
                   ),

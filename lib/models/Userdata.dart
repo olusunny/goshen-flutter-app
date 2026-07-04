@@ -32,6 +32,7 @@ class Userdata {
   bool canManageQuiz = false;
   bool canManageFundraising = false;
   bool canManageWalletWithdrawals = false;
+  bool canManageDynamicForms = false;
   bool canSendAdminMessages = false;
   bool following = false;
 
@@ -74,6 +75,7 @@ class Userdata {
     "canManageQuiz",
     "canManageFundraising",
     "canManageWalletWithdrawals",
+    "canManageDynamicForms",
     "canSendAdminMessages",
     "activated"
   ];
@@ -117,6 +119,7 @@ class Userdata {
     this.canManageQuiz = false,
     this.canManageFundraising = false,
     this.canManageWalletWithdrawals = false,
+    this.canManageDynamicForms = false,
     this.canSendAdminMessages = false,
     this.following = false,
   }) : roles = roles ?? [];
@@ -182,6 +185,9 @@ class Userdata {
           json['can_manage_wallet_withdrawals'] ??
               json['canManageWalletWithdrawals'],
         ),
+        canManageDynamicForms: _readBool(
+          json['can_manage_dynamic_forms'] ?? json['canManageDynamicForms'],
+        ),
         canSendAdminMessages: _readBool(
           json['can_send_admin_messages'] ?? json['canSendAdminMessages'],
         ),
@@ -242,6 +248,9 @@ class Userdata {
       canManageWalletWithdrawals: _readBool(
         json['can_manage_wallet_withdrawals'] ??
             json['canManageWalletWithdrawals'],
+      ),
+      canManageDynamicForms: _readBool(
+        json['can_manage_dynamic_forms'] ?? json['canManageDynamicForms'],
       ),
       canSendAdminMessages: _readBool(
         json['can_send_admin_messages'] ?? json['canSendAdminMessages'],
@@ -305,6 +314,9 @@ class Userdata {
           json['can_manage_wallet_withdrawals'] ??
               json['canManageWalletWithdrawals'],
         ),
+        canManageDynamicForms: _readBool(
+          json['can_manage_dynamic_forms'] ?? json['canManageDynamicForms'],
+        ),
         canSendAdminMessages: _readBool(
           json['can_send_admin_messages'] ?? json['canSendAdminMessages'],
         ),
@@ -365,6 +377,9 @@ class Userdata {
         json['can_manage_wallet_withdrawals'] ??
             json['canManageWalletWithdrawals'],
       ),
+      canManageDynamicForms: _readBool(
+        json['can_manage_dynamic_forms'] ?? json['canManageDynamicForms'],
+      ),
       canSendAdminMessages: _readBool(
         json['can_send_admin_messages'] ?? json['canSendAdminMessages'],
       ),
@@ -413,6 +428,7 @@ class Userdata {
       canManageQuiz: _readBool(data['canManageQuiz']),
       canManageFundraising: _readBool(data['canManageFundraising']),
       canManageWalletWithdrawals: _readBool(data['canManageWalletWithdrawals']),
+      canManageDynamicForms: _readBool(data['canManageDynamicForms']),
       canSendAdminMessages: _readBool(data['canSendAdminMessages']),
       activated: data['activated'],
     );
@@ -456,6 +472,7 @@ class Userdata {
         "canManageQuiz": canManageQuiz ? 1 : 0,
         "canManageFundraising": canManageFundraising ? 1 : 0,
         "canManageWalletWithdrawals": canManageWalletWithdrawals ? 1 : 0,
+        "canManageDynamicForms": canManageDynamicForms ? 1 : 0,
         "canSendAdminMessages": canSendAdminMessages ? 1 : 0,
         "activated": activated,
       };
@@ -523,6 +540,11 @@ class Userdata {
     return _hasRole(_isWalletWithdrawalManagerRoleName);
   }
 
+  bool get canManageDynamicFormTools {
+    if (canManageDynamicForms) return true;
+    return _hasRole(_isDynamicFormsManagerRoleName);
+  }
+
   bool get canSendAdminMessageTools {
     if (canSendAdminMessages) return true;
     return _hasRole(_isMessageManagerRoleName);
@@ -580,6 +602,13 @@ bool _isQuizManagerRoleName(String normalized) {
 bool _isWalletWithdrawalManagerRoleName(String normalized) {
   return normalized == 'walletmanager' ||
       normalized == 'goshenwalletmanager' ||
+      _isEventManagerRoleName(normalized);
+}
+
+bool _isDynamicFormsManagerRoleName(String normalized) {
+  return normalized == 'formsmanager' ||
+      normalized == 'dynamicformsmanager' ||
+      normalized == 'ondemandformsmanager' ||
       _isEventManagerRoleName(normalized);
 }
 

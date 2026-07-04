@@ -148,6 +148,10 @@ class DynamicFormDetailScreen extends StatefulWidget {
 class _DynamicFormDetailScreenState extends State<DynamicFormDetailScreen> {
   final _api = DynamicFormApi();
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
+  final _contactKey = GlobalKey();
+  final _paymentKey = GlobalKey();
+  final _fieldKeys = <String, GlobalKey>{};
   final _fieldControllers = <String, TextEditingController>{};
   final _answers = <String, dynamic>{};
   final _files = <String, PlatformFile>{};
@@ -179,6 +183,7 @@ class _DynamicFormDetailScreenState extends State<DynamicFormDetailScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -200,6 +205,7 @@ class _DynamicFormDetailScreenState extends State<DynamicFormDetailScreen> {
 
   void _ensureControllers(DynamicForm form) {
     for (final field in form.fields) {
+      _fieldKeys.putIfAbsent(field.key, () => GlobalKey());
       if (!field.isTextLike) continue;
       _fieldControllers.putIfAbsent(field.key, () => TextEditingController());
     }
@@ -212,11 +218,15 @@ class _DynamicFormDetailScreenState extends State<DynamicFormDetailScreen> {
       return;
     }
 
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      _scrollToFirstInvalid(form);
+      return;
+    }
 
     final user = Provider.of<AppStateManager>(context, listen: false).userdata;
     if (form.requiresPayment && _paymentMethod.isEmpty) {
       _showMessage('Please choose a payment method.');
+      _scrollToKey(_paymentKey);
       return;
     }
 
@@ -314,6 +324,64 @@ class _DynamicFormDetailScreenState extends State<DynamicFormDetailScreen> {
 
   List<DynamicFormField> _visibleFields(DynamicForm form) {
     return form.fields.where(_fieldIsVisible).toList();
+  }
+
+  void _scrollToFirstInvalid(DynamicForm form) {
+    final target = _firstInvalidKey(form);
+    if (target == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToKey(target));
+  }
+
+  GlobalKey? _firstInvalidKey(DynamicForm form) {
+    if (form.requiresPayment) {
+      final name = _nameController.text.trim();
+      final email = _emailController.text.trim();
+      if (name.isEmpty || email.isEmpty || !email.contains('@')) {
+        return _contactKey;
+      }
+      if (_paymentMethod.isEmpty) {
+        return _paymentKey;
+      }
+    }
+
+    for (final field in _visibleFields(form)) {
+      final value = field.type == 'file'
+          ? _files[field.key]
+          : (field.isTextLike
+              ? _fieldControllers[field.key]?.text.trim()
+              : _answers[field.key]);
+
+      if (field.isRequired &&
+          (field.type == 'checkbox' || field.type == 'consent')) {
+        if (value != true) return _fieldKeys[field.key];
+      } else if (field.isRequired && _isBlank(value)) {
+        return _fieldKeys[field.key];
+      }
+
+      if (field.type == 'email' &&
+          !_isBlank(value) &&
+          !('$value').contains('@')) {
+        return _fieldKeys[field.key];
+      }
+      if (field.type == 'number' &&
+          !_isBlank(value) &&
+          double.tryParse('$value') == null) {
+        return _fieldKeys[field.key];
+      }
+    }
+
+    return null;
+  }
+
+  void _scrollToKey(GlobalKey key) {
+    final context = key.currentContext;
+    if (context == null) return;
+    Scrollable.ensureVisible(
+      context,
+      duration: const Duration(milliseconds: 360),
+      curve: Curves.easeOutCubic,
+      alignment: 0.08,
+    );
   }
 
   bool _fieldIsVisible(DynamicFormField field) {
@@ -428,6 +496,7 @@ class _DynamicFormDetailScreenState extends State<DynamicFormDetailScreen> {
           return Form(
             key: _formKey,
             child: ListView(
+              controller: _scrollController,
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 34),
               children: [
                 if (snapshot.hasError)
@@ -453,6 +522,7 @@ class _DynamicFormDetailScreenState extends State<DynamicFormDetailScreen> {
                   ),
                 if (form.requiresPayment) ...[
                   _PaymentCard(
+                    key: _paymentKey,
                     form: form,
                     colors: colors,
                     selectedMethod: _paymentMethod,
@@ -464,6 +534,7 @@ class _DynamicFormDetailScreenState extends State<DynamicFormDetailScreen> {
                   ),
                   const SizedBox(height: 16),
                   _ContactCard(
+                    key: _contactKey,
                     colors: colors,
                     nameController: _nameController,
                     emailController: _emailController,
@@ -475,7 +546,11 @@ class _DynamicFormDetailScreenState extends State<DynamicFormDetailScreen> {
                   colors: colors,
                   children: [
                     for (final field in _visibleFields(form)) ...[
-                      _buildField(field, colors),
+                      KeyedSubtree(
+                        key: _fieldKeys.putIfAbsent(
+                            field.key, () => GlobalKey()),
+                        child: _buildField(field, colors),
+                      ),
                       const SizedBox(height: 16),
                     ],
                   ],
@@ -637,7 +712,11 @@ class _DynamicFormDetailScreenState extends State<DynamicFormDetailScreen> {
           colors: colors,
           file: _files[field.key],
           onPick: () async {
-            final result = await FilePicker.platform.pickFiles();
+            final allowed = field.allowedFileExtensions;
+            final result = await FilePicker.platform.pickFiles(
+              type: allowed.isEmpty ? FileType.any : FileType.custom,
+              allowedExtensions: allowed.isEmpty ? null : allowed,
+            );
             final file = result?.files.first;
             if (file != null) {
               setState(() => _files[field.key] = file);
@@ -876,6 +955,7 @@ class _FormHeaderCard extends StatelessWidget {
 
 class _PaymentCard extends StatelessWidget {
   const _PaymentCard({
+    super.key,
     required this.form,
     required this.colors,
     required this.selectedMethod,
@@ -1022,6 +1102,7 @@ class _PaymentTile extends StatelessWidget {
 
 class _ContactCard extends StatelessWidget {
   const _ContactCard({
+    super.key,
     required this.colors,
     required this.nameController,
     required this.emailController,
@@ -1617,57 +1698,97 @@ class _FileInput extends StatelessWidget {
         if (field.isRequired && file == null) {
           return 'Please upload: ${field.label}';
         }
+        final selectedFile = file;
+        if (selectedFile != null) {
+          final allowed = field.allowedFileExtensions;
+          final extension = _fileExtension(selectedFile);
+          if (allowed.isNotEmpty && !allowed.contains(extension)) {
+            return '${field.label} must be one of: ${allowed.join(', ')}.';
+          }
+          if (selectedFile.size > field.maxFileSizeKb * 1024) {
+            return '${field.label} must not be larger than ${field.maxFileSizeKb}KB.';
+          }
+        }
         return null;
       },
       builder: (state) => _LabeledField(
         field: field,
         colors: colors,
         errorText: state.errorText,
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: colors.softBackground,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: colors.line),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.attach_file_rounded, color: colors.primary),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  file?.name ?? 'Choose file',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: file == null ? colors.muted : colors.primary,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: colors.softBackground,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: colors.line),
               ),
-              if (file != null)
-                IconButton(
-                  onPressed: () {
-                    onClear();
-                    state.didChange(null);
-                  },
-                  icon: const Icon(Icons.close_rounded),
-                  color: colors.muted,
-                )
-              else
-                TextButton(
-                  onPressed: () async {
-                    final picked = await onPick();
-                    state.didChange(picked);
-                  },
-                  child: const Text('Browse'),
-                ),
-            ],
-          ),
+              child: Row(
+                children: [
+                  Icon(Icons.attach_file_rounded, color: colors.primary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      file?.name ?? 'Choose file',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: file == null ? colors.muted : colors.primary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  if (file != null)
+                    IconButton(
+                      onPressed: () {
+                        onClear();
+                        state.didChange(null);
+                      },
+                      icon: const Icon(Icons.close_rounded),
+                      color: colors.muted,
+                    )
+                  else
+                    TextButton(
+                      onPressed: () async {
+                        final picked = await onPick();
+                        state.didChange(picked);
+                      },
+                      child: const Text('Browse'),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              _fileRuleText(field),
+              style: TextStyle(
+                color: colors.muted,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
+
+String _fileExtension(PlatformFile file) {
+  final explicit = (file.extension ?? '').toLowerCase().replaceFirst('.', '');
+  if (explicit.isNotEmpty) return explicit;
+  final name = file.name;
+  final dot = name.lastIndexOf('.');
+  if (dot < 0 || dot == name.length - 1) return '';
+  return name.substring(dot + 1).toLowerCase();
+}
+
+String _fileRuleText(DynamicFormField field) {
+  final allowed = field.allowedFileExtensions;
+  final typeText = allowed.isEmpty ? 'any file type' : allowed.join(', ');
+  return 'Allowed: $typeText. Max: ${field.maxFileSizeKb}KB.';
 }
 
 class _OptionTile extends StatelessWidget {
