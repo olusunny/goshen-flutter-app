@@ -19,6 +19,7 @@ import '../service/ControlHubMessagingApi.dart';
 import '../service/ControlHubUsersApi.dart';
 import '../wallet_security/wallet_security_guard.dart';
 import '../prayers/prayer_point_management_screen.dart';
+import 'ChurchEventManagementScreen.dart';
 import 'DynamicFormManagementScreen.dart';
 import 'GoshenRetreatScreen.dart';
 import 'GoshenScannerManagerScreen.dart';
@@ -34,6 +35,7 @@ class GoshenManagementHubScreen extends StatefulWidget {
     required this.canManageFundraising,
     required this.canManageWalletWithdrawals,
     required this.canManageDynamicForms,
+    required this.canManageChurchEvents,
     required this.canSendAdminMessages,
   });
 
@@ -45,6 +47,7 @@ class GoshenManagementHubScreen extends StatefulWidget {
   final bool canManageFundraising;
   final bool canManageWalletWithdrawals;
   final bool canManageDynamicForms;
+  final bool canManageChurchEvents;
   final bool canSendAdminMessages;
 
   @override
@@ -143,6 +146,25 @@ class _GoshenManagementHubScreenState extends State<GoshenManagementHubScreen> {
                   ),
                 ],
                 const SizedBox(height: 18),
+                if (widget.canManageChurchEvents) ...[
+                  _HubActionCard(
+                    colors: colors,
+                    title: 'Church events',
+                    subtitle:
+                        'Create, edit, publish, unpublish, delete, and upload event feature images.',
+                    icon: Icons.event_available_outlined,
+                    accent: colors.gold,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChurchEventManagementScreen(
+                          user: widget.user,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 _HubActionCard(
                   colors: colors,
                   title: 'Registration stats',

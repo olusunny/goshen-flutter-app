@@ -190,6 +190,16 @@ class ApiUrl {
       BASEURL + "api/control-hub/mobile-users/search";
   static String controlHubMobileUser(String userId) =>
       BASEURL + "api/control-hub/mobile-users/$userId";
+  static const String CONTROL_HUB_CHURCH_EVENTS =
+      BASEURL + "api/control-hub/church-events";
+  static const String CONTROL_HUB_CHURCH_EVENTS_SEARCH =
+      BASEURL + "api/control-hub/church-events/search";
+  static String controlHubChurchEvent(String eventId) =>
+      BASEURL + "api/control-hub/church-events/$eventId";
+  static String controlHubChurchEventStatus(String eventId) =>
+      BASEURL + "api/control-hub/church-events/$eventId/status";
+  static String controlHubChurchEventDelete(String eventId) =>
+      BASEURL + "api/control-hub/church-events/$eventId/delete";
   static const String GOSHEN_EXPERIENCE =
       BASEURL + "api/goshen-retreat/experience";
   static String goshenExperienceSurvey(String surveyId) =>
