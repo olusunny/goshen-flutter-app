@@ -65,7 +65,10 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     _heroController = PageController(viewportFraction: 0.94);
-    Provider.of<HomeProvider>(context, listen: false).loadItems();
+    final appState = Provider.of<AppStateManager>(context, listen: false);
+    Provider.of<HomeProvider>(context, listen: false).loadItems(
+      user: appState.userdata,
+    );
     _inboxSubscription = eventBus.on<InboxNotificationsChanged>().listen((_) {
       if (!mounted) return;
       Provider.of<HomeProvider>(context, listen: false).fetchItems();

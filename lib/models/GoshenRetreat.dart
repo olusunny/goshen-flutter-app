@@ -2551,12 +2551,51 @@ List<GoshenRegistrationField> _registrationFieldsFromJson(
       .map((item) =>
           GoshenRegistrationField.fromJson(Map<String, dynamic>.from(item)))
       .where((field) => field.key.isNotEmpty && field.label.isNotEmpty)
-      .toList()
-    ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+      .toList();
 
-  if (fields.isNotEmpty) return fields;
+  final uniqueFields = _uniqueRegistrationFields(fields);
+  if (uniqueFields.isNotEmpty) return uniqueFields;
 
   return _defaultRegistrationFields();
+}
+
+List<GoshenRegistrationField> _uniqueRegistrationFields(
+  List<GoshenRegistrationField> fields,
+) {
+  final unique = <String, GoshenRegistrationField>{};
+  final orderedFields = [...fields]
+    ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+
+  for (final field in orderedFields) {
+    final key = _registrationFieldIdentity(field.key);
+    if (key.isEmpty) continue;
+    unique.putIfAbsent(key, () => field);
+  }
+
+  return unique.values.toList();
+}
+
+String _registrationFieldIdentity(String key) {
+  final normalized = key
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+      .replaceAll(RegExp(r'_+'), '_')
+      .replaceAll(RegExp(r'^_|_$'), '');
+  const aliases = {
+    'age': 'age_group',
+    'agegroup': 'age_group',
+    'free_bus': 'free_church_bus_interest',
+    'freechurchbus': 'free_church_bus_interest',
+    'free_church_bus': 'free_church_bus_interest',
+    'free_church_bus_consent': 'free_church_bus_interest',
+    'church_bus': 'free_church_bus_interest',
+    'bus_interest': 'free_church_bus_interest',
+    'volunteer': 'volunteer_department',
+    'volunteer_choice': 'volunteer_department',
+    'volunteer_department_choice': 'volunteer_department',
+  };
+  return aliases[normalized] ?? normalized;
 }
 
 List<GoshenRegistrationField> _defaultRegistrationFields() {

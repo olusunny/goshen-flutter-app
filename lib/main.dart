@@ -15,6 +15,7 @@ import './providers/AudioPlayerModel.dart';
 import './providers/HymnsBookmarksModel.dart';
 import './providers/DownloadsModel.dart';
 import './providers/NotesProvider.dart';
+import './providers/HomeProvider.dart';
 import './wallet_security/wallet_security_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import './screens/OnboardingPage.dart';
@@ -61,6 +62,7 @@ void main() async {
           ChangeNotifierProvider(create: (_) => HymnsBookmarksModel()),
           ChangeNotifierProvider(create: (_) => NotesProvider()),
           ChangeNotifierProvider(create: (_) => BibleModel()),
+          ChangeNotifierProvider(create: (_) => HomeProvider()),
           ChangeNotifierProvider(create: (_) => TranslateProvider()),
           ChangeNotifierProvider(create: (_) => WalletSecurityController()),
         ],

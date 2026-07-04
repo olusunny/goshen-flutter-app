@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import '../providers/AppStateManager.dart';
+import '../providers/HomeProvider.dart';
 import '../screens/HomePage.dart';
 import '../utils/my_colors.dart';
 import '../utils/TextStyles.dart';
@@ -24,6 +25,18 @@ class OnboarderPageState extends State<OnboardingPage> {
   );
   int page = 0;
   bool isLast = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _preloadHome());
+  }
+
+  @override
+  void dispose() {
+    pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -123,6 +136,14 @@ class OnboarderPageState extends State<OnboardingPage> {
     Provider.of<AppStateManager>(context, listen: false)
         .setUserSeenOnboardingPage(true);
     Navigator.pushReplacementNamed(context, HomePage.routeName);
+  }
+
+  void _preloadHome() {
+    if (!mounted) return;
+    final appState = Provider.of<AppStateManager>(context, listen: false);
+    Provider.of<HomeProvider>(context, listen: false).fetchItems(
+      user: appState.userdata,
+    );
   }
 
   void onPageViewChange(int _page) {

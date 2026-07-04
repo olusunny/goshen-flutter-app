@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../i18n/strings.g.dart';
 import '../providers/AudioPlayerModel.dart';
 import '../providers/AppStateManager.dart';
-import '../providers/HomeProvider.dart';
 import '../prayers/prayer_community_screen.dart';
 import '../prayers/prayer_guest_prompt.dart';
 import '../screens/DrawerScreen.dart';
@@ -35,31 +34,28 @@ class _HomePageState extends State<HomePage> {
           Navigator.of(context).pop();
         }
       },
-      child: ChangeNotifierProvider(
-        create: (_) => HomeProvider(),
-        child: Scaffold(
-          key: scaffoldKey,
-          body: MyHomePage(
-            onMenuTap: () => scaffoldKey.currentState?.openDrawer(),
-          ),
-          drawer: Container(
-            color: Colors.white,
-            width: 300,
-            child: Drawer(child: DrawerScreen()),
-          ),
-          bottomNavigationBar: CustomBottomNavBar(
-            onMenuTap: () =>
-                Navigator.pushNamed(context, MoreMenuScreen.routeName),
-            onPrayerTap: () {
-              final user =
-                  Provider.of<AppStateManager>(context, listen: false).userdata;
-              if (user == null) {
-                showPrayerGuestPrompt(context);
-                return;
-              }
-              Navigator.pushNamed(context, PrayerCommunityScreen.routeName);
-            },
-          ),
+      child: Scaffold(
+        key: scaffoldKey,
+        body: MyHomePage(
+          onMenuTap: () => scaffoldKey.currentState?.openDrawer(),
+        ),
+        drawer: Container(
+          color: Colors.white,
+          width: 300,
+          child: Drawer(child: DrawerScreen()),
+        ),
+        bottomNavigationBar: CustomBottomNavBar(
+          onMenuTap: () =>
+              Navigator.pushNamed(context, MoreMenuScreen.routeName),
+          onPrayerTap: () {
+            final user =
+                Provider.of<AppStateManager>(context, listen: false).userdata;
+            if (user == null) {
+              showPrayerGuestPrompt(context);
+              return;
+            }
+            Navigator.pushNamed(context, PrayerCommunityScreen.routeName);
+          },
         ),
       ),
     );

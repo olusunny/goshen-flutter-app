@@ -48,13 +48,31 @@ class HomeProvider with ChangeNotifier {
   bool isError = false;
   Userdata? userdata;
   bool isLoading = true;
+  Future<void>? _fetchFuture;
 
-  loadItems() {
+  void loadItems({Userdata? user}) {
     print("Initializing home fragment");
-    fetchItems();
+    fetchItems(user: user);
   }
 
-  Future<void> fetchItems() async {
+  Future<void> fetchItems({
+    Userdata? user,
+    bool force = false,
+  }) {
+    if (user != null) {
+      userdata = user;
+    }
+    if (!force && _fetchFuture != null) {
+      return _fetchFuture!;
+    }
+
+    _fetchFuture = _fetchItems().whenComplete(() {
+      _fetchFuture = null;
+    });
+    return _fetchFuture!;
+  }
+
+  Future<void> _fetchItems() async {
     try {
       final dio = Dio();
       // Adding an interceptor to enable caching.
