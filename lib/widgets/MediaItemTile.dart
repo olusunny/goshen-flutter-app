@@ -50,106 +50,106 @@ class _ItemTileState extends State<ItemTile> {
         }
       },
       child: Container(
-        height: 140,
         width: double.infinity,
-        padding: EdgeInsets.fromLTRB(15, 5, 10, 5),
+        constraints: const BoxConstraints(minHeight: 118),
+        padding: const EdgeInsets.fromLTRB(15, 8, 10, 8),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Expanded(
-              child: Row(
-                children: <Widget>[
-                  Card(
-                      margin: EdgeInsets.all(0),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Card(
+                    margin: EdgeInsets.all(0),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    clipBehavior: Clip.antiAliasWithSaveLayer,
+                    child: SizedBox(
+                      height: 80,
+                      width: 80,
+                      child: CachedNetworkImage(
+                        imageUrl: widget.object.coverPhoto!,
+                        imageBuilder: (context, imageProvider) => Container(
+                          decoration: BoxDecoration(
+                            image: DecorationImage(
+                                image: imageProvider,
+                                fit: BoxFit.cover,
+                                colorFilter: ColorFilter.mode(
+                                    Colors.black12, BlendMode.darken)),
+                          ),
+                        ),
+                        placeholder: (context, url) =>
+                            Center(child: CupertinoActivityIndicator()),
+                        errorWidget: (context, url, error) => Center(
+                            child: Icon(
+                          Icons.error,
+                          color: Colors.grey,
+                        )),
                       ),
-                      clipBehavior: Clip.antiAliasWithSaveLayer,
-                      child: Container(
-                        height: 80,
-                        width: 80,
-                        child: CachedNetworkImage(
-                          imageUrl: widget.object.coverPhoto!,
-                          imageBuilder: (context, imageProvider) => Container(
-                            decoration: BoxDecoration(
-                              image: DecorationImage(
-                                  image: imageProvider,
-                                  fit: BoxFit.cover,
-                                  colorFilter: ColorFilter.mode(
-                                      Colors.black12, BlendMode.darken)),
-                            ),
-                          ),
-                          placeholder: (context, url) =>
-                              Center(child: CupertinoActivityIndicator()),
-                          errorWidget: (context, url, error) => Center(
-                              child: Icon(
-                            Icons.error,
-                            color: Colors.grey,
-                          )),
-                        ),
-                      )),
-                  Container(width: 10),
-                  Expanded(
-                    child: Column(
-                      children: <Widget>[
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(5, 4, 0, 0),
-                          child: Row(
-                            children: <Widget>[
-                              Text(widget.object.category!,
-                                  style: TextStyles.caption(context)
-                                  //.copyWith(color: MyColors.grey_60),
-                                  ),
-                              Spacer(),
-                              Text(
-                                  TimUtil.timeFormatter(
-                                      widget.object.duration!),
-                                  style: TextStyles.caption(context)
-                                  //.copyWith(color: MyColors.grey_60),
-                                  ),
-                            ],
-                          ),
-                        ),
-                        Spacer(),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(5, 5, 10, 5),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(widget.object.title!,
-                                maxLines: 2,
-                                style: TextStyles.subhead(context).copyWith(
-                                    //color: MyColors.grey_80,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500)),
-                          ),
-                        ),
-                        Spacer(),
-                        Row(
+                    )),
+                Container(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(5, 2, 0, 0),
+                        child: Row(
                           children: <Widget>[
-                            widget.object.viewsCount == 0
-                                ? Container()
-                                : Text(
-                                    widget.object.viewsCount.toString() +
-                                        " view(s)",
-                                    style: TextStyles.caption(context)
-                                    //.copyWith(color: MyColors.grey_60),
-                                    ),
-                            Spacer(),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: MediaPopupMenu(widget.object),
+                            Expanded(
+                              child: Text(
+                                widget.object.category!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyles.caption(context),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              TimUtil.timeFormatter(widget.object.duration!),
+                              style: TextStyles.caption(context),
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  )
-                ],
-              ),
+                      ),
+                      const SizedBox(height: 6),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(5, 0, 10, 0),
+                        child: Text(
+                          widget.object.title!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyles.subhead(context).copyWith(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: widget.object.viewsCount == 0
+                                ? const SizedBox.shrink()
+                                : Text(
+                                    "${widget.object.viewsCount} view(s)",
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyles.caption(context),
+                                  ),
+                          ),
+                          MediaPopupMenu(widget.object, compact: true),
+                        ],
+                      ),
+                    ],
+                  ),
+                )
+              ],
             ),
-            Container(
-              height: 0,
-            ),
+            const SizedBox(height: 8),
             Divider(
               height: 0.1,
               //color: Colors.grey.shade800,

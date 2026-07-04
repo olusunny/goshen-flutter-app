@@ -25,9 +25,10 @@ class MenuList {
 }
 
 class MediaPopupMenu extends StatelessWidget {
-  MediaPopupMenu(this.media, {this.isDownloads});
+  MediaPopupMenu(this.media, {this.isDownloads, this.compact = false});
   final Media? media;
   final isDownloads;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +37,10 @@ class MediaPopupMenu extends StatelessWidget {
 
     return PopupMenuButton(
       elevation: 3.2,
+      padding: compact ? EdgeInsets.zero : const EdgeInsets.all(8.0),
+      iconSize: compact ? 20 : 24,
+      constraints:
+          compact ? const BoxConstraints(minWidth: 36, minHeight: 36) : null,
       //initialValue: choices[1],
       itemBuilder: (BuildContext context) {
         bool isBookmarked = bookmarksModel.isMediaBookmarked(media);
