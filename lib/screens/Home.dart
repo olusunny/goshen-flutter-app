@@ -1060,7 +1060,7 @@ class HomeActionButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final showProphetic =
-        user?.isVerified == true && user?.isGeneralOverseer == true;
+        user?.isVerified == true && user?.canManagePropheticDecree == true;
     if (!showProphetic) return const SizedBox.shrink();
 
     return Transform.translate(

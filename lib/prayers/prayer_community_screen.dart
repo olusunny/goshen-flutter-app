@@ -326,7 +326,7 @@ class _PrayerCommunityScreenState extends State<PrayerCommunityScreen> {
   }
 
   bool _canAddPropheticDecree(Userdata? user) {
-    return user != null && user.isVerified && user.isGeneralOverseer;
+    return user != null && user.isVerified && user.canManagePropheticDecree;
   }
 }
 
@@ -1175,9 +1175,9 @@ class _PropheticDecreeComposerScreenState
       _showProfileGate(context);
       return;
     }
-    if (!user.isGeneralOverseer) {
+    if (!user.canManagePropheticDecree) {
       Alerts.show(context, 'Restricted',
-          'Only verified users with the G.O role can add a daily prophet decree.');
+          'Only verified users with the G.O or Triumphant Main pastor role can add a daily prophet decree.');
       return;
     }
     final audioPath = _audioPath;

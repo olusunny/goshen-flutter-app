@@ -33,6 +33,7 @@ class Userdata {
   bool canManageFundraising = false;
   bool canManageWalletWithdrawals = false;
   bool canManageDynamicForms = false;
+  bool hasPropheticDecreePermission = false;
   bool canSendAdminMessages = false;
   bool following = false;
 
@@ -76,6 +77,7 @@ class Userdata {
     "canManageFundraising",
     "canManageWalletWithdrawals",
     "canManageDynamicForms",
+    "canManagePropheticDecree",
     "canSendAdminMessages",
     "activated"
   ];
@@ -120,6 +122,7 @@ class Userdata {
     this.canManageFundraising = false,
     this.canManageWalletWithdrawals = false,
     this.canManageDynamicForms = false,
+    this.hasPropheticDecreePermission = false,
     this.canSendAdminMessages = false,
     this.following = false,
   }) : roles = roles ?? [];
@@ -188,6 +191,10 @@ class Userdata {
         canManageDynamicForms: _readBool(
           json['can_manage_dynamic_forms'] ?? json['canManageDynamicForms'],
         ),
+        hasPropheticDecreePermission: _readBool(
+          json['can_manage_prophetic_decree'] ??
+              json['canManagePropheticDecree'],
+        ),
         canSendAdminMessages: _readBool(
           json['can_send_admin_messages'] ?? json['canSendAdminMessages'],
         ),
@@ -251,6 +258,9 @@ class Userdata {
       ),
       canManageDynamicForms: _readBool(
         json['can_manage_dynamic_forms'] ?? json['canManageDynamicForms'],
+      ),
+      hasPropheticDecreePermission: _readBool(
+        json['can_manage_prophetic_decree'] ?? json['canManagePropheticDecree'],
       ),
       canSendAdminMessages: _readBool(
         json['can_send_admin_messages'] ?? json['canSendAdminMessages'],
@@ -317,6 +327,10 @@ class Userdata {
         canManageDynamicForms: _readBool(
           json['can_manage_dynamic_forms'] ?? json['canManageDynamicForms'],
         ),
+        hasPropheticDecreePermission: _readBool(
+          json['can_manage_prophetic_decree'] ??
+              json['canManagePropheticDecree'],
+        ),
         canSendAdminMessages: _readBool(
           json['can_send_admin_messages'] ?? json['canSendAdminMessages'],
         ),
@@ -380,6 +394,9 @@ class Userdata {
       canManageDynamicForms: _readBool(
         json['can_manage_dynamic_forms'] ?? json['canManageDynamicForms'],
       ),
+      hasPropheticDecreePermission: _readBool(
+        json['can_manage_prophetic_decree'] ?? json['canManagePropheticDecree'],
+      ),
       canSendAdminMessages: _readBool(
         json['can_send_admin_messages'] ?? json['canSendAdminMessages'],
       ),
@@ -429,6 +446,7 @@ class Userdata {
       canManageFundraising: _readBool(data['canManageFundraising']),
       canManageWalletWithdrawals: _readBool(data['canManageWalletWithdrawals']),
       canManageDynamicForms: _readBool(data['canManageDynamicForms']),
+      hasPropheticDecreePermission: _readBool(data['canManagePropheticDecree']),
       canSendAdminMessages: _readBool(data['canSendAdminMessages']),
       activated: data['activated'],
     );
@@ -473,6 +491,7 @@ class Userdata {
         "canManageFundraising": canManageFundraising ? 1 : 0,
         "canManageWalletWithdrawals": canManageWalletWithdrawals ? 1 : 0,
         "canManageDynamicForms": canManageDynamicForms ? 1 : 0,
+        "canManagePropheticDecree": hasPropheticDecreePermission ? 1 : 0,
         "canSendAdminMessages": canSendAdminMessages ? 1 : 0,
         "activated": activated,
       };
@@ -489,6 +508,12 @@ class Userdata {
     final normalized =
         (role ?? '').toLowerCase().replaceAll(RegExp(r'[^a-z]'), '');
     return _isGoRoleName(normalized);
+  }
+
+  bool get canManagePropheticDecree {
+    if (hasPropheticDecreePermission) return true;
+    if (isGeneralOverseer) return true;
+    return _hasRole(_isPropheticDecreeManagerRoleName);
   }
 
   bool get canManageChurchGroups {
@@ -566,6 +591,10 @@ bool _isGoRoleName(String normalized) {
       normalized == 'generaloverseerrole' ||
       normalized == 'propheticdecreego' ||
       normalized == 'propheticdecreegorole';
+}
+
+bool _isPropheticDecreeManagerRoleName(String normalized) {
+  return _isGoRoleName(normalized) || normalized == 'triumphantmainpastor';
 }
 
 bool _isEventManagerRoleName(String normalized) {
