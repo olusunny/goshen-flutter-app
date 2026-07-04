@@ -24,7 +24,6 @@ import '../providers/AudioPlayerModel.dart';
 import '../providers/events.dart';
 import '../providers/HomeProvider.dart';
 import '../screens/AudioScreen.dart';
-import '../screens/BranchesScreen.dart';
 import '../screens/BibleScreen.dart';
 import '../screens/CategoriesScreen.dart';
 import '../screens/DonationAccountsScreen.dart';
@@ -35,7 +34,6 @@ import '../screens/GoshenRetreatScreen.dart';
 import '../screens/HymnsListScreen.dart';
 import '../screens/InboxListScreen.dart';
 import '../screens/NoitemScreen.dart';
-import '../screens/TransportationArrangementsScreen.dart';
 import '../screens/VideoScreen.dart';
 import '../socials/UserProfileScreen.dart';
 import '../utils/ApiUrl.dart';
@@ -164,8 +162,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 fundraisingEnabled: home.data['fundraising_enabled'] == true,
                 onEventsTap: () =>
                     Navigator.pushNamed(context, EventsListScreen.routeName),
-                onBranchesTap: () =>
-                    Navigator.pushNamed(context, BranchesScreen.routeName),
                 onNotesTap: () =>
                     Navigator.pushNamed(context, NotesListScreen.routeName),
                 onDonateTap: () => Navigator.pushNamed(
@@ -174,10 +170,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 onCategoriesTap: () =>
                     Navigator.pushNamed(context, CategoriesScreen.routeName),
-                onTransportationTap: () => Navigator.pushNamed(
-                  context,
-                  TransportationArrangementsScreen.routeName,
-                ),
                 onGalleryTap: () =>
                     Navigator.pushNamed(context, GalleryScreen.routeName),
                 onGoshenRetreatTap: () =>
@@ -1267,11 +1259,9 @@ class ActivityCenterSection extends StatelessWidget {
   const ActivityCenterSection({
     Key? key,
     required this.onEventsTap,
-    required this.onBranchesTap,
     required this.onNotesTap,
     required this.onDonateTap,
     required this.onCategoriesTap,
-    required this.onTransportationTap,
     required this.onGalleryTap,
     required this.onGoshenRetreatTap,
     required this.onFundraisingTap,
@@ -1280,11 +1270,9 @@ class ActivityCenterSection extends StatelessWidget {
   }) : super(key: key);
 
   final VoidCallback onEventsTap;
-  final VoidCallback onBranchesTap;
   final VoidCallback onNotesTap;
   final VoidCallback onDonateTap;
   final VoidCallback onCategoriesTap;
-  final VoidCallback onTransportationTap;
   final VoidCallback onGalleryTap;
   final VoidCallback onGoshenRetreatTap;
   final VoidCallback onFundraisingTap;
@@ -1302,13 +1290,6 @@ class ActivityCenterSection extends StatelessWidget {
         color: const Color(0xFFD85B72),
         onTap: onEventsTap,
       ),
-      ActivityCardData(
-        title: 'Our Branches',
-        subtitle: 'MFM Triumphant Church branches across the globe',
-        icon: Icons.location_on_outlined,
-        color: const Color(0xFF6C7CDB),
-        onTap: onBranchesTap,
-      ),
       if (goshenRetreatEnabled)
         ActivityCardData(
           title: 'Goshen Retreat',
@@ -1325,13 +1306,6 @@ class ActivityCenterSection extends StatelessWidget {
           color: const Color(0xFFE1A63B),
           onTap: onFundraisingTap,
         ),
-      ActivityCardData(
-        title: '72Hours Transport',
-        subtitle: 'Bus pickup points and contact details',
-        icon: Icons.directions_bus_filled_outlined,
-        color: const Color(0xFFB4682E),
-        onTap: onTransportationTap,
-      ),
       ActivityCardData(
         title: 'Categories',
         subtitle: 'Browse sermons and media by category',
