@@ -141,7 +141,7 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
       _MoreMenuItem('Giving', Icons.volunteer_activism_outlined,
           () => Navigator.pushNamed(context, DonationAccountsScreen.routeName),
           accent: const Color(0xFFE1A63B)),
-      _MoreMenuItem('Goshen Forms', Icons.dynamic_form_rounded,
+      _MoreMenuItem('Forms', Icons.dynamic_form_rounded,
           () => Navigator.pushNamed(context, DynamicFormsScreen.routeName),
           accent: const Color(0xFF2C9B88)),
       if (_fundraisingEnabled)

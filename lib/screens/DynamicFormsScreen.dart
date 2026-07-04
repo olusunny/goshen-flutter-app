@@ -78,7 +78,7 @@ class _DynamicFormsScreenState extends State<DynamicFormsScreen> {
 
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(title: const Text('Goshen Forms')),
+      appBar: AppBar(title: const Text('Active Forms')),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: FutureBuilder<List<DynamicForm>>(
@@ -695,7 +695,7 @@ class _FormsHero extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Goshen Forms',
+                  'Active Forms',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 28,
@@ -705,7 +705,7 @@ class _FormsHero extends StatelessWidget {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'Complete open church forms, requests, and paid submissions securely.',
+                  'Complete open church forms and requests.',
                   style: TextStyle(
                     color: Colors.white70,
                     fontSize: 16,
