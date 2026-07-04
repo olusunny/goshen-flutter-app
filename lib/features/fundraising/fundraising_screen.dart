@@ -182,11 +182,12 @@ class _FundraisingScreenState extends State<FundraisingScreen> {
 
     final campaign = _campaign;
     if (campaign == null) {
-      _showMessage('There is no active fundraising campaign right now.');
+      _showMessage('There is no active project support campaign right now.');
       return;
     }
     if (!campaign.canContribute) {
-      _showMessage('This fundraising campaign is not accepting contributions.');
+      _showMessage(
+          'This project support campaign is not accepting contributions.');
       return;
     }
 
@@ -274,11 +275,12 @@ class _FundraisingScreenState extends State<FundraisingScreen> {
 
     final campaign = _campaign;
     if (campaign == null) {
-      _showMessage('There is no active fundraising campaign right now.');
+      _showMessage('There is no active project support campaign right now.');
       return;
     }
     if (!campaign.canContribute) {
-      _showMessage('This fundraising campaign is not accepting contributions.');
+      _showMessage(
+          'This project support campaign is not accepting contributions.');
       return;
     }
 
@@ -433,7 +435,7 @@ class _FundraisingScreenState extends State<FundraisingScreen> {
     return Scaffold(
       backgroundColor: _page,
       appBar: AppBar(
-        title: const Text('Fundraising'),
+        title: const Text('Project support'),
         backgroundColor: _primary,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -470,7 +472,7 @@ class _FundraisingScreenState extends State<FundraisingScreen> {
     if (_error != null) {
       return _StateMessage(
         icon: Icons.cloud_off_outlined,
-        title: 'Unable to load fundraising',
+        title: 'Unable to load project support',
         message: _error!,
         actionLabel: 'Retry',
         onAction: _loadCampaign,
@@ -482,7 +484,7 @@ class _FundraisingScreenState extends State<FundraisingScreen> {
       return _StateMessage(
         icon: Icons.campaign_outlined,
         title: 'No active campaign',
-        message: 'There is no active fundraising campaign at the moment.',
+        message: 'There is no active project support campaign at the moment.',
         actionLabel: 'Refresh',
         onAction: _loadCampaign,
       );

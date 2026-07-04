@@ -27,7 +27,6 @@ import '../screens/ManageGroupsScreen.dart';
 import '../screens/PastorsScreen.dart';
 import '../screens/PlaylistsScreen.dart';
 import '../screens/SuggestionScreen.dart';
-import '../screens/TransportationArrangementsScreen.dart';
 import '../service/MoreMenuPreloadService.dart';
 import '../socials/Settings.dart';
 import '../socials/UpdateUserProfile.dart';
@@ -148,7 +147,7 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
           () => Navigator.pushNamed(context, DynamicFormsScreen.routeName),
           accent: const Color(0xFF2C9B88)),
       if (_fundraisingEnabled)
-        _MoreMenuItem('Fundraising', Icons.campaign_rounded,
+        _MoreMenuItem('Project support', Icons.campaign_rounded,
             () => Navigator.pushNamed(context, FundraisingScreen.routeName),
             accent: const Color(0xFFE1A63B)),
       if (_goshenRetreatEnabled)
@@ -212,11 +211,6 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
             accent: const Color(0xFF2C9B88)),
       _MoreMenuItem('Gallery', Icons.photo_library_outlined,
           () => Navigator.pushNamed(context, GalleryScreen.routeName)),
-      _MoreMenuItem(
-          '72Hours Transportation', Icons.directions_bus_filled_outlined, () {
-        Navigator.pushNamed(
-            context, TransportationArrangementsScreen.routeName);
-      }, accent: const Color(0xFFB4682E)),
       _MoreMenuItem('Downloads', Icons.download_for_offline_outlined,
           () => Navigator.pushNamed(context, Downloader.routeName)),
       _MoreMenuItem('Suggestions', Icons.lightbulb_outline_rounded,

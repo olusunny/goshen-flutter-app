@@ -11,7 +11,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../audio_player/miniPlayer.dart';
 import '../audio_player/player_page.dart';
 import '../auth/LoginScreen.dart';
-import '../features/fundraising/fundraising_screen.dart';
 import '../models/Events.dart';
 import '../models/Media.dart';
 import '../models/ScreenArguements.dart';
@@ -159,7 +158,6 @@ class _MyHomePageState extends State<MyHomePage> {
               ActivityCenterSection(
                 goshenRetreatEnabled:
                     home.data['goshen_retreat_enabled'] == true,
-                fundraisingEnabled: home.data['fundraising_enabled'] == true,
                 onEventsTap: () =>
                     Navigator.pushNamed(context, EventsListScreen.routeName),
                 onNotesTap: () =>
@@ -174,8 +172,6 @@ class _MyHomePageState extends State<MyHomePage> {
                     Navigator.pushNamed(context, GalleryScreen.routeName),
                 onGoshenRetreatTap: () =>
                     Navigator.pushNamed(context, GoshenRetreatScreen.routeName),
-                onFundraisingTap: () =>
-                    Navigator.pushNamed(context, FundraisingScreen.routeName),
               ),
               QuickAccessSection(
                 onVideosTap: () =>
@@ -1264,9 +1260,7 @@ class ActivityCenterSection extends StatelessWidget {
     required this.onCategoriesTap,
     required this.onGalleryTap,
     required this.onGoshenRetreatTap,
-    required this.onFundraisingTap,
     required this.goshenRetreatEnabled,
-    required this.fundraisingEnabled,
   }) : super(key: key);
 
   final VoidCallback onEventsTap;
@@ -1275,9 +1269,7 @@ class ActivityCenterSection extends StatelessWidget {
   final VoidCallback onCategoriesTap;
   final VoidCallback onGalleryTap;
   final VoidCallback onGoshenRetreatTap;
-  final VoidCallback onFundraisingTap;
   final bool goshenRetreatEnabled;
-  final bool fundraisingEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -1297,14 +1289,6 @@ class ActivityCenterSection extends StatelessWidget {
           icon: Icons.event_available_rounded,
           color: const Color(0xFF2C9B88),
           onTap: onGoshenRetreatTap,
-        ),
-      if (fundraisingEnabled)
-        ActivityCardData(
-          title: 'Fundraising',
-          subtitle: 'Support active church projects',
-          icon: Icons.campaign_rounded,
-          color: const Color(0xFFE1A63B),
-          onTap: onFundraisingTap,
         ),
       ActivityCardData(
         title: 'Categories',

@@ -30,7 +30,7 @@ class FundraisingApi {
 
     final data = _decodeMap(response.data);
     if (data['status'] != 'ok') {
-      throw Exception(data['message'] ?? 'Unable to load fundraising.');
+      throw Exception(data['message'] ?? 'Unable to load project support.');
     }
 
     final campaignResponse = FundraisingCampaignResponse.fromJson(data);
@@ -54,14 +54,14 @@ class FundraisingApi {
 
     final data = _decodeMap(response.data);
     if (data['status'] != 'ok') {
-      throw Exception(
-          data['message'] ?? 'Unable to load fundraising management summary.');
+      throw Exception(data['message'] ??
+          'Unable to load project support management summary.');
     }
 
     final payload = data['data'];
     if (payload is! Map) {
       throw const FormatException(
-          'Fundraising summary response did not include data.');
+          'Project support summary response did not include data.');
     }
 
     return FundraisingManagementSummary.fromJson(

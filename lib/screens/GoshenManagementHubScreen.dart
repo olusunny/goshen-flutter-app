@@ -312,7 +312,7 @@ class _GoshenManagementHubScreenState extends State<GoshenManagementHubScreen> {
                   const SizedBox(height: 12),
                   _HubActionCard(
                     colors: colors,
-                    title: 'Fundraising stats',
+                    title: 'Project support stats',
                     subtitle:
                         'Campaign totals, payment channels, contribution status, and recent supporter activity.',
                     icon: Icons.campaign_rounded,
@@ -5582,7 +5582,7 @@ const Map<String, String> _recipientModeLabels = {
   'goshen_paid_recent_days': 'Goshen edition: paid within recent days',
   'goshen_paid_week': 'Goshen edition: paid within selected week',
   'goshen_paid_month': 'Goshen edition: paid within selected month',
-  'fundraising_participants': 'Fundraising campaign participants',
+  'fundraising_participants': 'Project support campaign participants',
   'quiz_participants': 'Quiz participants',
 };
 
@@ -5692,7 +5692,7 @@ class _ControlHubMessageSenderScreenState
     }
     if (_recipientMode == 'fundraising_participants' &&
         _fundraisingCampaignId == null) {
-      _showSnack('Choose a fundraising campaign.');
+      _showSnack('Choose a project support campaign.');
       return;
     }
     if (_recipientMode == 'quiz_participants' && _goshenQuizId == null) {
@@ -6232,7 +6232,7 @@ class _FundraisingManagementStatsScreenState
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text('Fundraising Stats'),
+        title: const Text('Project support stats'),
         backgroundColor: colors.deep,
         foregroundColor: Colors.white,
       ),
@@ -6249,7 +6249,7 @@ class _FundraisingManagementStatsScreenState
                 children: [
                   _LoadingCard(
                     colors: colors,
-                    label: 'Loading fundraising stats...',
+                    label: 'Loading project support stats...',
                   ),
                 ],
               );
@@ -6262,7 +6262,7 @@ class _FundraisingManagementStatsScreenState
                   _MessageCard(
                     colors: colors,
                     icon: Icons.cloud_off_rounded,
-                    title: 'Unable to load fundraising stats',
+                    title: 'Unable to load project support stats',
                     message: snapshot.error
                         .toString()
                         .replaceFirst('Exception: ', ''),
@@ -6789,7 +6789,7 @@ class _RecipientOptions extends StatelessWidget {
     if (mode == 'fundraising_participants') {
       return _IdDropdown(
         colors: colors,
-        label: 'Fundraising campaign',
+        label: 'Project support campaign',
         options: options.fundraisingCampaigns,
         value: fundraisingCampaignId,
         onChanged: onFundraisingCampaignChanged,
@@ -7083,7 +7083,7 @@ class _FundraisingProgressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _Panel(
       colors: colors,
-      title: 'Fundraising progress',
+      title: 'Project support progress',
       trailing: Text(
         '${(totals.raisedProgress * 100).round()}%',
         style: TextStyle(

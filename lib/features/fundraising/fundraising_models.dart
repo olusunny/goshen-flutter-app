@@ -119,7 +119,7 @@ class FundraisingCampaign {
     return FundraisingCampaign(
       id: _readInt(json['id']),
       slug: '${json['slug'] ?? ''}',
-      title: '${json['title'] ?? 'Fundraising'}',
+      title: '${json['title'] ?? 'Project support'}',
       cause: '${json['cause'] ?? ''}',
       shortDescription: '${json['short_description'] ?? ''}',
       description: '${json['description'] ?? ''}',
@@ -590,7 +590,7 @@ class FundraisingManagementCampaignRow {
     return FundraisingManagementCampaignRow(
       id: _readInt(json['id']),
       slug: '${json['slug'] ?? ''}',
-      title: '${json['title'] ?? 'Fundraising'}',
+      title: '${json['title'] ?? 'Project support'}',
       cause: '${json['cause'] ?? ''}',
       statusCode: '${json['status'] ?? ''}'.trim(),
       statusLabel: '${json['status_label'] ?? json['status'] ?? 'Unknown'}',
@@ -608,7 +608,7 @@ class FundraisingManagementCampaignRow {
     );
   }
 
-  String get displayTitle => title.trim().isEmpty ? 'Fundraising' : title;
+  String get displayTitle => title.trim().isEmpty ? 'Project support' : title;
   String get status => statusLabel.trim().isEmpty ? statusCode : statusLabel;
   String get identifier => slug.trim().isNotEmpty ? slug.trim() : '$id';
   String money(double value) => '$currency ${_formatMoney(value)}'.trim();
@@ -644,7 +644,7 @@ class FundraisingManagementContributionRow {
   ) {
     return FundraisingManagementContributionRow(
       id: _readInt(json['id']),
-      campaignTitle: '${json['campaign_title'] ?? 'Fundraising campaign'}',
+      campaignTitle: '${json['campaign_title'] ?? 'Project support campaign'}',
       amount: _readDouble(json['amount']),
       currency: '${json['currency'] ?? 'GBP'}'.toUpperCase(),
       status: '${json['status_label'] ?? json['status'] ?? 'Unknown'}',
