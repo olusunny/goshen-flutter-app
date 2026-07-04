@@ -1967,7 +1967,7 @@ class _PlanTile extends StatelessWidget {
     final canManage = plan.status != 'cancelled' && plan.status != 'completed';
     final next = plan.nextChargeAt == null
         ? 'Next date pending'
-        : 'Next: ${DateFormat('MMM d, y').format(plan.nextChargeAt!)}';
+        : 'Next: ${_dateTimeLabel(plan.nextChargeAt)}';
 
     return Container(
       margin: const EdgeInsets.only(top: 10),
