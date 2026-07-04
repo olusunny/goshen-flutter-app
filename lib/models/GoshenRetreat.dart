@@ -291,18 +291,22 @@ class GoshenPayInFullDiscount {
 
 class GoshenRegistrationField {
   const GoshenRegistrationField({
+    required this.id,
     required this.key,
     required this.label,
     required this.type,
     required this.isRequired,
+    required this.isUnique,
     required this.options,
     required this.sortOrder,
   });
 
+  final int id;
   final String key;
   final String label;
   final String type;
   final bool isRequired;
+  final bool isUnique;
   final List<GoshenRegistrationFieldOption> options;
   final int sortOrder;
 
@@ -315,10 +319,12 @@ class GoshenRegistrationField {
   factory GoshenRegistrationField.fromJson(Map<String, dynamic> json) {
     final type = '${json['type'] ?? 'text'}'.trim().toLowerCase();
     return GoshenRegistrationField(
+      id: int.tryParse('${json['id'] ?? 0}') ?? 0,
       key: '${json['key'] ?? ''}'.trim(),
       label: '${json['label'] ?? json['key'] ?? ''}'.trim(),
       type: type.isEmpty ? 'text' : type,
       isRequired: _bool(json['is_required'] ?? json['required']),
+      isUnique: _bool(json['is_unique'] ?? json['unique']),
       options: ((json['options'] as List?) ?? const [])
           .whereType<Map>()
           .map((item) => GoshenRegistrationFieldOption.fromJson(
@@ -334,23 +340,28 @@ class GoshenRegistrationFieldOption {
   const GoshenRegistrationFieldOption({
     required this.label,
     required this.value,
+    required this.imagePath,
     required this.imageUrl,
     required this.colorHex,
     required this.fee,
+    required this.feeLabel,
     required this.currency,
   });
 
   final String label;
   final String value;
+  final String imagePath;
   final String imageUrl;
   final String colorHex;
   final double fee;
+  final String feeLabel;
   final String currency;
 
   factory GoshenRegistrationFieldOption.fromJson(Map<String, dynamic> json) {
     return GoshenRegistrationFieldOption(
       label: '${json['label'] ?? json['name'] ?? json['value'] ?? ''}'.trim(),
       value: '${json['value'] ?? ''}'.trim(),
+      imagePath: '${json['image_path'] ?? json['imagePath'] ?? ''}'.trim(),
       imageUrl:
           '${json['image_url'] ?? json['imageUrl'] ?? json['image_path'] ?? ''}'
               .trim(),
@@ -368,6 +379,7 @@ class GoshenRegistrationFieldOption {
         'price',
         'amount',
       ]),
+      feeLabel: '${json['fee_label'] ?? json['feeLabel'] ?? ''}'.trim(),
       currency: _stringValue(json, const ['currency', 'fee_currency']),
     );
   }
@@ -424,33 +436,42 @@ class GoshenRetreatSchedule {
 
 class GoshenTicketType {
   const GoshenTicketType({
+    required this.id,
     required this.publicId,
     required this.name,
+    required this.sku,
     required this.currency,
     required this.price,
     required this.capacity,
     required this.minPerBooking,
     required this.maxPerBooking,
+    required this.isActive,
   });
 
+  final int id;
   final String publicId;
   final String name;
+  final String sku;
   final String currency;
   final double price;
   final int? capacity;
   final int minPerBooking;
   final int maxPerBooking;
+  final bool isActive;
 
   factory GoshenTicketType.fromJson(Map<String, dynamic> json) {
     return GoshenTicketType(
+      id: int.tryParse('${json['id'] ?? 0}') ?? 0,
       publicId: '${json['public_id'] ?? ''}',
       name: '${json['name'] ?? ''}',
+      sku: '${json['sku'] ?? ''}',
       currency: '${json['currency'] ?? 'USD'}',
       price: double.tryParse('${json['price'] ?? 0}') ?? 0,
       capacity:
           json['capacity'] == null ? null : int.tryParse('${json['capacity']}'),
       minPerBooking: int.tryParse('${json['min_per_booking'] ?? 1}') ?? 1,
       maxPerBooking: int.tryParse('${json['max_per_booking'] ?? 10}') ?? 10,
+      isActive: _bool(json['is_active'] ?? true),
     );
   }
 }
@@ -2608,10 +2629,12 @@ List<GoshenRegistrationField> _defaultRegistrationFields() {
     List<GoshenRegistrationFieldOption> options,
   ) {
     return GoshenRegistrationField(
+      id: 0,
       key: key,
       label: label,
       type: type,
       isRequired: required,
+      isUnique: false,
       sortOrder: sortOrder,
       options: options,
     );
@@ -2621,9 +2644,11 @@ List<GoshenRegistrationField> _defaultRegistrationFields() {
       GoshenRegistrationFieldOption(
         label: label,
         value: value,
+        imagePath: '',
         imageUrl: '',
         colorHex: '',
         fee: 0,
+        feeLabel: '',
         currency: '',
       );
 

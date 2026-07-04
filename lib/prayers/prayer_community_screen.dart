@@ -36,6 +36,7 @@ class PrayerCommunityScreen extends StatefulWidget {
 class _PrayerCommunityScreenState extends State<PrayerCommunityScreen> {
   final PrayerApiClient _api = PrayerApiClient();
   List<PrayerRequest> _items = [];
+  List<PrayerPoint> _prayerPoints = [];
   PropheticDecree? _decree;
   PrayerSubmissionStatus _submissionStatus =
       const PrayerSubmissionStatus(canSubmit: true, cooldownSeconds: 0);
@@ -52,6 +53,7 @@ class _PrayerCommunityScreenState extends State<PrayerCommunityScreen> {
       _items = cachedFeed.requests;
       _submissionStatus = cachedFeed.submissionStatus;
       _decree = _api.cachedActivePropheticDecree;
+      _prayerPoints = _api.cachedPrayerPoints ?? const <PrayerPoint>[];
       _loading = false;
       WidgetsBinding.instance
           .addPostFrameCallback((_) => _loadPrayers(silent: true));
@@ -79,11 +81,13 @@ class _PrayerCommunityScreenState extends State<PrayerCommunityScreen> {
       final results = await Future.wait<dynamic>([
         _api.fetchPrayerFeed(user: user),
         _api.fetchActivePropheticDecree(),
+        _api.fetchPrayerPoints(),
       ]);
       final feed = results[0] as PrayerFeed;
       _items = feed.requests;
       _setSubmissionStatus(feed.submissionStatus);
       _decree = results[1] as PropheticDecree?;
+      _prayerPoints = results[2] as List<PrayerPoint>;
     } catch (e) {
       print(e);
       _error = true;
@@ -257,40 +261,36 @@ class _PrayerCommunityScreenState extends State<PrayerCommunityScreen> {
     final colors = _PrayerPalette.of(context);
     return RefreshIndicator(
       onRefresh: _loadPrayers,
-      child: ListView.builder(
+      child: ListView(
         padding: EdgeInsets.fromLTRB(18, 18, 18, 96),
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _PrayerIntroPanel(
-                  requestCount: _items.length,
-                  hasPropheticDecree: _decree != null,
-                  cooldownLabel: _submissionStatus.canSubmit
-                      ? null
-                      : 'Next prayer in ${_cooldownText()}',
-                ),
-                SizedBox(height: 16),
-                _PropheticDecreeCard(
-                  decree: _decree,
-                  canAdd: canAddDecree,
-                  onAdd: _openPropheticDecreeComposer,
-                ),
-              ],
-            );
-          }
-          if (index == 1 && _items.isEmpty) {
-            return _EmptyState(
+        children: [
+          _PrayerIntroPanel(
+            requestCount: _items.length,
+            hasPropheticDecree: _decree != null,
+            cooldownLabel: _submissionStatus.canSubmit
+                ? null
+                : 'Next prayer in ${_cooldownText()}',
+          ),
+          SizedBox(height: 16),
+          _PropheticDecreeCard(
+            decree: _decree,
+            canAdd: canAddDecree,
+            onAdd: _openPropheticDecreeComposer,
+          ),
+          if (_prayerPoints.isNotEmpty) ...[
+            SizedBox(height: 16),
+            _PrayerPointsSection(points: _prayerPoints),
+          ],
+          if (_items.isEmpty)
+            _EmptyState(
               icon: Icons.favorite_border,
               title: 'No interactive prayer requests on the wall yet',
               message:
                   'Be the first to share a request with the church community.',
               action: _openComposer,
-            );
-          }
-          if (index == 1) {
-            return Padding(
+            )
+          else ...[
+            Padding(
               padding: EdgeInsets.fromLTRB(2, 22, 2, 8),
               child: Text(
                 'Prayer Wall',
@@ -300,27 +300,27 @@ class _PrayerCommunityScreenState extends State<PrayerCommunityScreen> {
                   fontWeight: FontWeight.w900,
                 ),
               ),
-            );
-          }
-          if (_items.isEmpty) return SizedBox.shrink();
-          final item = _items[index - 2];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: _PrayerCard(
-              prayer: item,
-              onFlag: () => _flagPrayer(item),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => PrayerDetailScreen(api: _api, prayer: item),
-                  ),
-                );
-              },
             ),
-          );
-        },
-        itemCount: _items.length + 2,
+            ..._items.map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: _PrayerCard(
+                  prayer: item,
+                  onFlag: () => _flagPrayer(item),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            PrayerDetailScreen(api: _api, prayer: item),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -1278,6 +1278,168 @@ class _PropheticDecreeComposerScreenState
       ),
     );
   }
+}
+
+class _PrayerPointsSection extends StatelessWidget {
+  const _PrayerPointsSection({required this.points});
+
+  final List<PrayerPoint> points;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = _PrayerPalette.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(2, 2, 2, 10),
+          child: Row(
+            children: [
+              Icon(Icons.menu_book_rounded, color: colors.accent),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Prayer Points',
+                  style: TextStyle(
+                    color: colors.text,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        ...points.map(
+          (point) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _PrayerPointCard(point: point),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PrayerPointCard extends StatelessWidget {
+  const _PrayerPointCard({required this.point});
+
+  final PrayerPoint point;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = _PrayerPalette.of(context);
+    final plainContent = _plainPrayerPointContent(point.content);
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.card,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: colors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: colors.isDark ? 0.16 : 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (point.hasThumbnail)
+            AspectRatio(
+              aspectRatio: 16 / 8,
+              child: CachedNetworkImage(
+                imageUrl: point.thumbnailUrl,
+                fit: BoxFit.cover,
+                errorWidget: (_, __, ___) => Container(
+                  color: colors.softCard,
+                  alignment: Alignment.center,
+                  child: Icon(Icons.image_not_supported_outlined,
+                      color: colors.muted),
+                ),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: colors.accent.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(Icons.favorite_border_rounded,
+                          color: colors.accent),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            point.title,
+                            style: TextStyle(
+                              color: colors.text,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            _prayerPointMeta(point),
+                            style: TextStyle(
+                              color: colors.muted,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  plainContent,
+                  maxLines: 5,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.text.withValues(alpha: 0.88),
+                    height: 1.4,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _plainPrayerPointContent(String value) {
+  return value
+      .replaceAll(RegExp(r'<[^>]+>'), ' ')
+      .replaceAll('&nbsp;', ' ')
+      .replaceAll('&amp;', '&')
+      .replaceAll('&quot;', '"')
+      .replaceAll('&#039;', "'")
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+}
+
+String _prayerPointMeta(PrayerPoint point) {
+  final parts = <String>[];
+  if (point.author.trim().isNotEmpty) parts.add(point.author.trim());
+  if (point.date > 0) parts.add(TimUtil.formatFullDatestamp(point.date));
+  return parts.isEmpty ? 'Prayer point' : parts.join(' - ');
 }
 
 class _PrayerCard extends StatelessWidget {

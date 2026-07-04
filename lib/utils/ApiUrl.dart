@@ -61,6 +61,17 @@ class ApiUrl {
   static const String EVENTS = BASEURL + "fetch_events";
   static const String SUBMIT_PRAYER = BASEURL + "submitprayer";
   static const String PRAYERS = BASEURL + "fetch_prayerpoints";
+  static const String PRAYER_POINTS = BASEURL + "api/prayer-points";
+  static const String CONTROL_HUB_PRAYER_POINTS =
+      BASEURL + "api/control-hub/prayer-points";
+  static const String CONTROL_HUB_PRAYER_POINTS_SEARCH =
+      BASEURL + "api/control-hub/prayer-points/search";
+  static String controlHubPrayerPoint(String id) =>
+      BASEURL + "api/control-hub/prayer-points/$id";
+  static String controlHubPrayerPointStatus(String id) =>
+      "${controlHubPrayerPoint(id)}/status";
+  static String controlHubPrayerPointDelete(String id) =>
+      "${controlHubPrayerPoint(id)}/delete";
   static const String PRAYER_COMMUNITY = BASEURL + "prayer-community";
   static const String PROPHETIC_DECREE =
       BASEURL + "prayer-community/prophetic-decree";
@@ -101,6 +112,28 @@ class ApiUrl {
       BASEURL + "api/goshen-retreat/events/$eventId/registration-status";
   static String goshenRetreatManagementSummary(String eventId) =>
       BASEURL + "api/goshen-retreat/events/$eventId/management-summary";
+  static String goshenRetreatSetup(String eventId) =>
+      BASEURL + "api/goshen-retreat/events/$eventId/setup";
+  static String goshenRetreatSetupOverview(String eventId) =>
+      BASEURL + "api/goshen-retreat/events/$eventId/setup/overview";
+  static String goshenRetreatSetupSchedules(String eventId) =>
+      BASEURL + "api/goshen-retreat/events/$eventId/setup/schedules";
+  static String goshenRetreatSetupScheduleDelete(
+          String eventId, String scheduleId) =>
+      BASEURL +
+      "api/goshen-retreat/events/$eventId/setup/schedules/$scheduleId/delete";
+  static String goshenRetreatSetupTicketTypes(String eventId) =>
+      BASEURL + "api/goshen-retreat/events/$eventId/setup/ticket-types";
+  static String goshenRetreatSetupTicketTypeDelete(
+          String eventId, String ticketTypeId) =>
+      BASEURL +
+      "api/goshen-retreat/events/$eventId/setup/ticket-types/$ticketTypeId/delete";
+  static String goshenRetreatSetupRegistrationFields(String eventId) =>
+      BASEURL + "api/goshen-retreat/events/$eventId/setup/registration-fields";
+  static String goshenRetreatSetupRegistrationFieldDelete(
+          String eventId, String fieldId) =>
+      BASEURL +
+      "api/goshen-retreat/events/$eventId/setup/registration-fields/$fieldId/delete";
   static String goshenRetreatAccommodationManagement(String eventId) =>
       BASEURL + "api/goshen-retreat/events/$eventId/accommodation-management";
   static const String GOSHEN_ACCOMMODATION_ALLOCATIONS =

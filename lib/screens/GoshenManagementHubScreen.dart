@@ -18,6 +18,7 @@ import '../service/GoshenWalletApi.dart';
 import '../service/ControlHubMessagingApi.dart';
 import '../service/ControlHubUsersApi.dart';
 import '../wallet_security/wallet_security_guard.dart';
+import '../prayers/prayer_point_management_screen.dart';
 import 'DynamicFormManagementScreen.dart';
 import 'GoshenRetreatScreen.dart';
 import 'GoshenScannerManagerScreen.dart';
@@ -67,6 +68,32 @@ class _GoshenManagementHubScreenState extends State<GoshenManagementHubScreen> {
       _eventsFuture = future;
     });
     await future;
+  }
+
+  bool _canManagePrayerPoints(Userdata user) {
+    if (user.isGeneralOverseer ||
+        user.canSendAdminMessageTools ||
+        user.canManageDynamicFormTools) {
+      return true;
+    }
+
+    final normalizedRoles = [
+      ...user.roles,
+      if ((user.role ?? '').trim().isNotEmpty) user.role!,
+    ].map((role) => role.toLowerCase().replaceAll(RegExp(r'[^a-z]'), ''));
+
+    return normalizedRoles.any((role) => {
+          'admin',
+          'superadmin',
+          'contentmanager',
+          'prayermanager',
+          'prayerpointsmanager',
+          'prayerpointmanager',
+          'eventmanager',
+          'goshenmanager',
+          'generaloverseer',
+          'triumphantitmanager',
+        }.contains(role));
   }
 
   @override
@@ -155,6 +182,7 @@ class _GoshenManagementHubScreenState extends State<GoshenManagementHubScreen> {
                               context,
                               MaterialPageRoute(
                                 builder: (_) => GoshenRetreatSetupScreen(
+                                  user: widget.user,
                                   initialEvent: initialEvent,
                                   events: events,
                                 ),
@@ -316,6 +344,25 @@ class _GoshenManagementHubScreenState extends State<GoshenManagementHubScreen> {
                     ),
                   ),
                 ],
+                if (_canManagePrayerPoints(widget.user)) ...[
+                  const SizedBox(height: 12),
+                  _HubActionCard(
+                    colors: colors,
+                    title: 'Prayer points',
+                    subtitle:
+                        'Create, edit, publish, unpublish, or delete prayer points shown in the app.',
+                    icon: Icons.favorite_border_rounded,
+                    accent: colors.gold,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PrayerPointManagementScreen(
+                          user: widget.user,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
                 if (widget.canManageWalletWithdrawals) ...[
                   const SizedBox(height: 12),
                   _HubActionCard(
@@ -444,10 +491,12 @@ class _GoshenManagementHubScreenState extends State<GoshenManagementHubScreen> {
 class GoshenRetreatSetupScreen extends StatefulWidget {
   const GoshenRetreatSetupScreen({
     super.key,
+    required this.user,
     required this.initialEvent,
     required this.events,
   });
 
+  final Userdata user;
   final GoshenRetreatEvent initialEvent;
   final List<GoshenRetreatEvent> events;
 
@@ -460,7 +509,7 @@ class _GoshenRetreatSetupScreenState extends State<GoshenRetreatSetupScreen> {
   final _api = GoshenRetreatApi();
   late List<GoshenRetreatEvent> _events;
   late GoshenRetreatEvent _selectedEvent;
-  late Future<List<GoshenRetreatEvent>> _future;
+  late Future<GoshenRetreatEvent> _future;
 
   @override
   void initState() {
@@ -470,23 +519,58 @@ class _GoshenRetreatSetupScreenState extends State<GoshenRetreatSetupScreen> {
       (event) => event.publicId == widget.initialEvent.publicId,
       orElse: () => widget.initialEvent,
     );
-    _future = Future.value(_events);
+    _future = _loadSetup(_selectedEvent);
+  }
+
+  Future<GoshenRetreatEvent> _loadSetup(GoshenRetreatEvent event) async {
+    final updated = await _api.fetchRetreatSetup(
+      user: widget.user,
+      event: event,
+    );
+    if (mounted) {
+      setState(() => _replaceEvent(updated));
+    }
+    return updated;
   }
 
   Future<void> _refresh() async {
-    final future = _api.fetchEvents();
+    final future = _api.fetchRetreatSetup(
+      user: widget.user,
+      event: _selectedEvent,
+    );
     setState(() {
       _future = future;
     });
-    final events = await future;
-    if (!mounted || events.isEmpty) return;
+    try {
+      final updated = await future;
+      if (!mounted) return;
+      setState(() => _replaceEvent(updated));
+    } catch (_) {
+      // FutureBuilder renders the error state.
+    }
+  }
+
+  void _replaceEvent(GoshenRetreatEvent updated) {
+    final index =
+        _events.indexWhere((event) => event.publicId == updated.publicId);
+    if (index >= 0) {
+      _events = [
+        for (var i = 0; i < _events.length; i += 1)
+          if (i == index) updated else _events[i],
+      ];
+    } else {
+      _events = [updated, ..._events];
+    }
+    _selectedEvent = updated;
+  }
+
+  void _applyUpdatedEvent(GoshenRetreatEvent updated, String message) {
+    if (!mounted) return;
     setState(() {
-      _events = events;
-      _selectedEvent = events.firstWhere(
-        (event) => event.publicId == _selectedEvent.publicId,
-        orElse: () => events.first,
-      );
+      _replaceEvent(updated);
+      _future = Future.value(updated);
     });
+    _showSnack(message);
   }
 
   void _selectEvent(String? publicId) {
@@ -494,7 +578,811 @@ class _GoshenRetreatSetupScreenState extends State<GoshenRetreatSetupScreen> {
       (event) => event.publicId == publicId,
       orElse: () => _selectedEvent,
     );
-    setState(() => _selectedEvent = selected);
+    setState(() {
+      _selectedEvent = selected;
+      _future = _loadSetup(selected);
+    });
+  }
+
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> _openOverviewEditor() async {
+    final updated = await _showOverviewEditor(context, _selectedEvent);
+    if (updated != null) _applyUpdatedEvent(updated, 'Retreat setup saved.');
+  }
+
+  Future<void> _openScheduleEditor([GoshenRetreatSchedule? schedule]) async {
+    final updated =
+        await _showScheduleEditor(context, _selectedEvent, schedule);
+    if (updated != null) _applyUpdatedEvent(updated, 'Schedule saved.');
+  }
+
+  Future<void> _deleteSchedule(GoshenRetreatSchedule schedule) async {
+    if (schedule.id <= 0) return;
+    final confirmed = await _confirmDelete(
+      title: 'Delete schedule?',
+      message: 'This removes the schedule row from the retreat setup.',
+    );
+    if (!confirmed) return;
+    try {
+      final updated = await _api.deleteRetreatSetupSchedule(
+        user: widget.user,
+        event: _selectedEvent,
+        scheduleId: schedule.id,
+      );
+      _applyUpdatedEvent(updated, 'Schedule deleted.');
+    } catch (error) {
+      _showSnack(error.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  Future<void> _openTicketEditor([GoshenTicketType? ticket]) async {
+    final updated = await _showTicketEditor(context, _selectedEvent, ticket);
+    if (updated != null) _applyUpdatedEvent(updated, 'Ticket type saved.');
+  }
+
+  Future<void> _deleteTicket(GoshenTicketType ticket) async {
+    final ticketId =
+        ticket.publicId.isNotEmpty ? ticket.publicId : '${ticket.id}';
+    if (ticketId.trim().isEmpty || ticketId == '0') return;
+    final confirmed = await _confirmDelete(
+      title: 'Delete ticket type?',
+      message:
+          'Ticket types with registrations cannot be deleted. Deactivate them instead.',
+    );
+    if (!confirmed) return;
+    try {
+      final updated = await _api.deleteRetreatSetupTicketType(
+        user: widget.user,
+        event: _selectedEvent,
+        ticketTypeId: ticketId,
+      );
+      _applyUpdatedEvent(updated, 'Ticket type deleted.');
+    } catch (error) {
+      _showSnack(error.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  Future<void> _openRegistrationFieldEditor(
+      [GoshenRegistrationField? field]) async {
+    final updated = await _showRegistrationFieldEditor(
+      context,
+      _selectedEvent,
+      field,
+    );
+    if (updated != null) {
+      _applyUpdatedEvent(updated, 'Registration field saved.');
+    }
+  }
+
+  Future<void> _deleteRegistrationField(GoshenRegistrationField field) async {
+    if (field.id <= 0) return;
+    final confirmed = await _confirmDelete(
+      title: 'Delete registration field?',
+      message:
+          'Existing submitted answers remain in registration records, but the field will no longer appear on the form.',
+    );
+    if (!confirmed) return;
+    try {
+      final updated = await _api.deleteRetreatSetupRegistrationField(
+        user: widget.user,
+        event: _selectedEvent,
+        fieldId: field.id,
+      );
+      _applyUpdatedEvent(updated, 'Registration field deleted.');
+    } catch (error) {
+      _showSnack(error.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  Future<bool> _confirmDelete({
+    required String title,
+    required String message,
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    return result == true;
+  }
+
+  Future<void> _pickDateTimeInto(TextEditingController controller) async {
+    final parsed = DateTime.tryParse(controller.text.trim());
+    final now = DateTime.now();
+    final initial = parsed ?? now;
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(now.year - 2),
+      lastDate: DateTime(now.year + 5),
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+    );
+    if (time == null) return;
+    controller.text = _dateInput(DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    ));
+  }
+
+  Future<GoshenRetreatEvent?> _showOverviewEditor(
+    BuildContext context,
+    GoshenRetreatEvent event,
+  ) async {
+    final colors = _ManagementPalette.of(context);
+    final formKey = GlobalKey<FormState>();
+    final name = TextEditingController(text: event.name);
+    final slug = TextEditingController(text: event.slug);
+    final description = TextEditingController(text: event.description);
+    final timezone = TextEditingController(text: event.timezone);
+    final supportEmail = TextEditingController(text: event.supportEmail);
+    final inquiryPhone = TextEditingController(text: event.inquiryPhone);
+    final venueName = TextEditingController(text: event.venueName);
+    final venueAddress = TextEditingController(text: event.venueAddress);
+    final salesStart =
+        TextEditingController(text: _dateInput(event.salesStartAt));
+    final salesEnd = TextEditingController(text: _dateInput(event.salesEndAt));
+    final closeReason =
+        TextEditingController(text: event.registration.closedReason);
+    final discountLabel =
+        TextEditingController(text: event.payInFullDiscount.label);
+    final discountValue = TextEditingController(
+        text: _decimalInput(event.payInFullDiscount.value));
+    final discountStarts = TextEditingController(
+        text: _dateInput(event.payInFullDiscount.startsAt));
+    final discountEnds =
+        TextEditingController(text: _dateInput(event.payInFullDiscount.endsAt));
+    var registrationOverride =
+        ['auto', 'open', 'closed'].contains(event.registration.override)
+            ? event.registration.override
+            : 'auto';
+    var discountEnabled = event.payInFullDiscount.enabled;
+    var discountType =
+        ['percentage', 'fixed'].contains(event.payInFullDiscount.type)
+            ? event.payInFullDiscount.type
+            : 'percentage';
+    var saving = false;
+
+    final result = await showModalBottomSheet<GoshenRetreatEvent>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (sheetContext, setModalState) {
+            Future<void> save() async {
+              if (!(formKey.currentState?.validate() ?? false)) return;
+              setModalState(() => saving = true);
+              try {
+                final updated = await _api.saveRetreatSetupOverview(
+                  user: widget.user,
+                  event: event,
+                  payload: {
+                    'name': name.text.trim(),
+                    'slug': slug.text.trim(),
+                    'description': description.text.trim(),
+                    'timezone': timezone.text.trim(),
+                    'support_email': supportEmail.text.trim(),
+                    'inquiry_phone': inquiryPhone.text.trim(),
+                    'venue_name': venueName.text.trim(),
+                    'venue_address': venueAddress.text.trim(),
+                    'sales_start_at': _nullableTextValue(salesStart.text),
+                    'sales_end_at': _nullableTextValue(salesEnd.text),
+                    'registration_override': registrationOverride,
+                    'registration_close_reason': closeReason.text.trim(),
+                    'pay_in_full_discount': {
+                      'enabled': discountEnabled,
+                      'label': discountLabel.text.trim(),
+                      'type': discountType,
+                      'value': double.tryParse(discountValue.text.trim()) ?? 0,
+                      'starts_at': _nullableTextValue(discountStarts.text),
+                      'ends_at': _nullableTextValue(discountEnds.text),
+                    },
+                  },
+                );
+                if (sheetContext.mounted) Navigator.pop(sheetContext, updated);
+              } catch (error) {
+                _showSnack(error.toString().replaceFirst('Exception: ', ''));
+              } finally {
+                if (sheetContext.mounted) {
+                  setModalState(() => saving = false);
+                }
+              }
+            }
+
+            return _setupSheet(
+              context: sheetContext,
+              colors: colors,
+              title: 'Edit retreat setup',
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _setupTextField(
+                      colors: colors,
+                      controller: name,
+                      label: 'Edition name',
+                      validator: _requiredValidator,
+                    ),
+                    _setupTextField(
+                      colors: colors,
+                      controller: slug,
+                      label: 'Slug',
+                    ),
+                    _setupTextField(
+                      colors: colors,
+                      controller: description,
+                      label: 'Description',
+                      minLines: 3,
+                      maxLines: 5,
+                    ),
+                    _setupTextField(
+                      colors: colors,
+                      controller: timezone,
+                      label: 'Timezone',
+                      validator: _requiredValidator,
+                    ),
+                    _setupTextField(
+                      colors: colors,
+                      controller: supportEmail,
+                      label: 'Support email',
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    _setupTextField(
+                      colors: colors,
+                      controller: inquiryPhone,
+                      label: 'Inquiry phone',
+                      keyboardType: TextInputType.phone,
+                    ),
+                    _setupTextField(
+                      colors: colors,
+                      controller: venueName,
+                      label: 'Venue name',
+                    ),
+                    _setupTextField(
+                      colors: colors,
+                      controller: venueAddress,
+                      label: 'Venue address',
+                      minLines: 2,
+                      maxLines: 4,
+                    ),
+                    _setupTextField(
+                      colors: colors,
+                      controller: salesStart,
+                      label: 'Registration opens',
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.calendar_today_outlined),
+                        onPressed: () => _pickDateTimeInto(salesStart),
+                      ),
+                    ),
+                    _setupTextField(
+                      colors: colors,
+                      controller: salesEnd,
+                      label: 'Registration closes',
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.calendar_today_outlined),
+                        onPressed: () => _pickDateTimeInto(salesEnd),
+                      ),
+                    ),
+                    _setupDropdown(
+                      colors: colors,
+                      label: 'Manual registration status',
+                      value: registrationOverride,
+                      values: const {
+                        'auto': 'Use dates',
+                        'open': 'Force open',
+                        'closed': 'Force closed',
+                      },
+                      onChanged: (value) =>
+                          setModalState(() => registrationOverride = value),
+                    ),
+                    _setupTextField(
+                      colors: colors,
+                      controller: closeReason,
+                      label: 'Closed message',
+                      minLines: 2,
+                      maxLines: 3,
+                    ),
+                    SwitchListTile.adaptive(
+                      value: discountEnabled,
+                      onChanged: (value) =>
+                          setModalState(() => discountEnabled = value),
+                      title: const Text('Enable pay-in-full discount'),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    _setupTextField(
+                      colors: colors,
+                      controller: discountLabel,
+                      label: 'Discount label',
+                    ),
+                    _setupDropdown(
+                      colors: colors,
+                      label: 'Discount type',
+                      value: discountType,
+                      values: const {
+                        'percentage': 'Percentage',
+                        'fixed': 'Fixed amount',
+                      },
+                      onChanged: (value) =>
+                          setModalState(() => discountType = value),
+                    ),
+                    _setupTextField(
+                      colors: colors,
+                      controller: discountValue,
+                      label: 'Discount value',
+                      keyboardType: TextInputType.number,
+                    ),
+                    _setupTextField(
+                      colors: colors,
+                      controller: discountStarts,
+                      label: 'Discount starts',
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.calendar_today_outlined),
+                        onPressed: () => _pickDateTimeInto(discountStarts),
+                      ),
+                    ),
+                    _setupTextField(
+                      colors: colors,
+                      controller: discountEnds,
+                      label: 'Discount ends',
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.calendar_today_outlined),
+                        onPressed: () => _pickDateTimeInto(discountEnds),
+                      ),
+                    ),
+                    _setupSaveButton(
+                      colors: colors,
+                      saving: saving,
+                      label: 'Save setup',
+                      onPressed: save,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    for (final controller in [
+      name,
+      slug,
+      description,
+      timezone,
+      supportEmail,
+      inquiryPhone,
+      venueName,
+      venueAddress,
+      salesStart,
+      salesEnd,
+      closeReason,
+      discountLabel,
+      discountValue,
+      discountStarts,
+      discountEnds,
+    ]) {
+      controller.dispose();
+    }
+
+    return result;
+  }
+
+  Future<GoshenRetreatEvent?> _showScheduleEditor(
+    BuildContext context,
+    GoshenRetreatEvent event,
+    GoshenRetreatSchedule? schedule,
+  ) async {
+    final colors = _ManagementPalette.of(context);
+    final formKey = GlobalKey<FormState>();
+    final day = TextEditingController(text: '${schedule?.dayNumber ?? 1}');
+    final title = TextEditingController(text: schedule?.title ?? '');
+    final startsAt =
+        TextEditingController(text: _dateInput(schedule?.startsAt));
+    final endsAt = TextEditingController(text: _dateInput(schedule?.endsAt));
+    final capacity = TextEditingController(
+      text: schedule?.capacity == null ? '' : '${schedule!.capacity}',
+    );
+    var saving = false;
+
+    final result = await showModalBottomSheet<GoshenRetreatEvent>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setModalState) {
+          Future<void> save() async {
+            if (!(formKey.currentState?.validate() ?? false)) return;
+            setModalState(() => saving = true);
+            try {
+              final updated = await _api.saveRetreatSetupSchedule(
+                user: widget.user,
+                event: event,
+                payload: {
+                  if ((schedule?.id ?? 0) > 0) 'id': schedule!.id,
+                  'day_number': int.tryParse(day.text.trim()) ?? 1,
+                  'title': title.text.trim(),
+                  'starts_at': startsAt.text.trim(),
+                  'ends_at': _nullableTextValue(endsAt.text),
+                  'capacity': capacity.text.trim().isEmpty
+                      ? null
+                      : int.tryParse(capacity.text.trim()),
+                },
+              );
+              if (sheetContext.mounted) Navigator.pop(sheetContext, updated);
+            } catch (error) {
+              _showSnack(error.toString().replaceFirst('Exception: ', ''));
+            } finally {
+              if (sheetContext.mounted) setModalState(() => saving = false);
+            }
+          }
+
+          return _setupSheet(
+            context: sheetContext,
+            colors: colors,
+            title: schedule == null ? 'Add schedule' : 'Edit schedule',
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _setupTextField(
+                    colors: colors,
+                    controller: day,
+                    label: 'Day number',
+                    keyboardType: TextInputType.number,
+                    validator: _requiredValidator,
+                  ),
+                  _setupTextField(
+                    colors: colors,
+                    controller: title,
+                    label: 'Session title',
+                  ),
+                  _setupTextField(
+                    colors: colors,
+                    controller: startsAt,
+                    label: 'Starts at',
+                    validator: _requiredValidator,
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.calendar_today_outlined),
+                      onPressed: () => _pickDateTimeInto(startsAt),
+                    ),
+                  ),
+                  _setupTextField(
+                    colors: colors,
+                    controller: endsAt,
+                    label: 'Ends at',
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.calendar_today_outlined),
+                      onPressed: () => _pickDateTimeInto(endsAt),
+                    ),
+                  ),
+                  _setupTextField(
+                    colors: colors,
+                    controller: capacity,
+                    label: 'Capacity',
+                    keyboardType: TextInputType.number,
+                  ),
+                  _setupSaveButton(
+                    colors: colors,
+                    saving: saving,
+                    label: 'Save schedule',
+                    onPressed: save,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    for (final controller in [day, title, startsAt, endsAt, capacity]) {
+      controller.dispose();
+    }
+    return result;
+  }
+
+  Future<GoshenRetreatEvent?> _showTicketEditor(
+    BuildContext context,
+    GoshenRetreatEvent event,
+    GoshenTicketType? ticket,
+  ) async {
+    final colors = _ManagementPalette.of(context);
+    final formKey = GlobalKey<FormState>();
+    final name = TextEditingController(text: ticket?.name ?? '');
+    final sku = TextEditingController(text: ticket?.sku ?? '');
+    final currency = TextEditingController(text: ticket?.currency ?? 'GBP');
+    final price = TextEditingController(
+        text: ticket == null ? '' : _decimalInput(ticket.price));
+    final capacity = TextEditingController(
+      text: ticket?.capacity == null ? '' : '${ticket!.capacity}',
+    );
+    final minPerBooking =
+        TextEditingController(text: '${ticket?.minPerBooking ?? 1}');
+    final maxPerBooking =
+        TextEditingController(text: '${ticket?.maxPerBooking ?? 1}');
+    var active = ticket?.isActive ?? true;
+    var saving = false;
+
+    final result = await showModalBottomSheet<GoshenRetreatEvent>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setModalState) {
+          Future<void> save() async {
+            if (!(formKey.currentState?.validate() ?? false)) return;
+            setModalState(() => saving = true);
+            try {
+              final updated = await _api.saveRetreatSetupTicketType(
+                user: widget.user,
+                event: event,
+                payload: {
+                  if (ticket != null)
+                    'id': ticket.publicId.isNotEmpty
+                        ? ticket.publicId
+                        : '${ticket.id}',
+                  'name': name.text.trim(),
+                  'sku': sku.text.trim(),
+                  'currency': currency.text.trim().toUpperCase(),
+                  'price': double.tryParse(price.text.trim()) ?? 0,
+                  'capacity': capacity.text.trim().isEmpty
+                      ? null
+                      : int.tryParse(capacity.text.trim()),
+                  'min_per_booking':
+                      int.tryParse(minPerBooking.text.trim()) ?? 1,
+                  'max_per_booking':
+                      int.tryParse(maxPerBooking.text.trim()) ?? 1,
+                  'is_active': active,
+                },
+              );
+              if (sheetContext.mounted) Navigator.pop(sheetContext, updated);
+            } catch (error) {
+              _showSnack(error.toString().replaceFirst('Exception: ', ''));
+            } finally {
+              if (sheetContext.mounted) setModalState(() => saving = false);
+            }
+          }
+
+          return _setupSheet(
+            context: sheetContext,
+            colors: colors,
+            title: ticket == null ? 'Add ticket type' : 'Edit ticket type',
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _setupTextField(
+                    colors: colors,
+                    controller: name,
+                    label: 'Ticket name',
+                    validator: _requiredValidator,
+                  ),
+                  _setupTextField(
+                      colors: colors, controller: sku, label: 'SKU'),
+                  _setupTextField(
+                    colors: colors,
+                    controller: currency,
+                    label: 'Currency',
+                    validator: _requiredValidator,
+                  ),
+                  _setupTextField(
+                    colors: colors,
+                    controller: price,
+                    label: 'Price',
+                    keyboardType: TextInputType.number,
+                    validator: _requiredValidator,
+                  ),
+                  _setupTextField(
+                    colors: colors,
+                    controller: capacity,
+                    label: 'Capacity',
+                    keyboardType: TextInputType.number,
+                  ),
+                  _setupTextField(
+                    colors: colors,
+                    controller: minPerBooking,
+                    label: 'Minimum per booking',
+                    keyboardType: TextInputType.number,
+                  ),
+                  _setupTextField(
+                    colors: colors,
+                    controller: maxPerBooking,
+                    label: 'Maximum per booking',
+                    keyboardType: TextInputType.number,
+                  ),
+                  SwitchListTile.adaptive(
+                    value: active,
+                    onChanged: (value) => setModalState(() => active = value),
+                    title: const Text('Ticket active'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  _setupSaveButton(
+                    colors: colors,
+                    saving: saving,
+                    label: 'Save ticket',
+                    onPressed: save,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    for (final controller in [
+      name,
+      sku,
+      currency,
+      price,
+      capacity,
+      minPerBooking,
+      maxPerBooking,
+    ]) {
+      controller.dispose();
+    }
+    return result;
+  }
+
+  Future<GoshenRetreatEvent?> _showRegistrationFieldEditor(
+    BuildContext context,
+    GoshenRetreatEvent event,
+    GoshenRegistrationField? field,
+  ) async {
+    final colors = _ManagementPalette.of(context);
+    final formKey = GlobalKey<FormState>();
+    final key = TextEditingController(text: field?.key ?? '');
+    final label = TextEditingController(text: field?.label ?? '');
+    final sortOrder = TextEditingController(text: '${field?.sortOrder ?? 0}');
+    final options = TextEditingController(
+        text: _optionsToLines(field?.options ?? const []));
+    var type = _setupFieldTypes.contains(field?.type) ? field!.type : 'text';
+    var isRequired = field?.isRequired ?? false;
+    var unique = field?.isUnique ?? false;
+    var saving = false;
+
+    final result = await showModalBottomSheet<GoshenRetreatEvent>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setModalState) {
+          Future<void> save() async {
+            if (!(formKey.currentState?.validate() ?? false)) return;
+            setModalState(() => saving = true);
+            try {
+              final updated = await _api.saveRetreatSetupRegistrationField(
+                user: widget.user,
+                event: event,
+                payload: {
+                  if ((field?.id ?? 0) > 0) 'id': field!.id,
+                  'key': key.text.trim(),
+                  'label': label.text.trim(),
+                  'type': type,
+                  'is_required': isRequired,
+                  'is_unique': unique,
+                  'sort_order': int.tryParse(sortOrder.text.trim()) ?? 0,
+                  'options': _parseOptionsLines(options.text),
+                },
+              );
+              if (sheetContext.mounted) Navigator.pop(sheetContext, updated);
+            } catch (error) {
+              _showSnack(error.toString().replaceFirst('Exception: ', ''));
+            } finally {
+              if (sheetContext.mounted) setModalState(() => saving = false);
+            }
+          }
+
+          return _setupSheet(
+            context: sheetContext,
+            colors: colors,
+            title: field == null
+                ? 'Add registration field'
+                : 'Edit registration field',
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _setupTextField(
+                    colors: colors,
+                    controller: label,
+                    label: 'Field label',
+                    validator: _requiredValidator,
+                  ),
+                  _setupTextField(
+                    colors: colors,
+                    controller: key,
+                    label: 'Field key',
+                    validator: _requiredValidator,
+                  ),
+                  _setupDropdown(
+                    colors: colors,
+                    label: 'Field type',
+                    value: type,
+                    values: const {
+                      'text': 'Text',
+                      'textarea': 'Long text',
+                      'select': 'Dropdown',
+                      'image_select': 'Image choices',
+                      'color_select': 'Colour choices',
+                    },
+                    onChanged: (value) => setModalState(() => type = value),
+                  ),
+                  SwitchListTile.adaptive(
+                    value: isRequired,
+                    onChanged: (value) =>
+                        setModalState(() => isRequired = value),
+                    title: const Text('Required'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  SwitchListTile.adaptive(
+                    value: unique,
+                    onChanged: (value) => setModalState(() => unique = value),
+                    title: const Text('Unique per attendee'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  _setupTextField(
+                    colors: colors,
+                    controller: sortOrder,
+                    label: 'Sort order',
+                    keyboardType: TextInputType.number,
+                  ),
+                  _setupTextField(
+                    colors: colors,
+                    controller: options,
+                    label: 'Options',
+                    minLines: 4,
+                    maxLines: 8,
+                    helperText:
+                        'One per line: label|value|image path|#colour|fee|fee label',
+                  ),
+                  _setupSaveButton(
+                    colors: colors,
+                    saving: saving,
+                    label: 'Save field',
+                    onPressed: save,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    for (final controller in [key, label, sortOrder, options]) {
+      controller.dispose();
+    }
+    return result;
   }
 
   @override
@@ -510,7 +1398,7 @@ class _GoshenRetreatSetupScreenState extends State<GoshenRetreatSetupScreen> {
       body: RefreshIndicator(
         color: colors.gold,
         onRefresh: _refresh,
-        child: FutureBuilder<List<GoshenRetreatEvent>>(
+        child: FutureBuilder<GoshenRetreatEvent>(
           future: _future,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting &&
@@ -544,6 +1432,7 @@ class _GoshenRetreatSetupScreenState extends State<GoshenRetreatSetupScreen> {
               );
             }
 
+            final event = snapshot.data ?? _selectedEvent;
             return ListView(
               padding: EdgeInsets.fromLTRB(
                 18,
@@ -555,28 +1444,51 @@ class _GoshenRetreatSetupScreenState extends State<GoshenRetreatSetupScreen> {
                 _EventSelector(
                   colors: colors,
                   events: _events,
-                  selected: _selectedEvent,
+                  selected: event,
                   onChanged: _selectEvent,
                 ),
                 const SizedBox(height: 14),
                 _RetreatSetupOverviewCard(
                   colors: colors,
-                  event: _selectedEvent,
+                  event: event,
+                ),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: OutlinedButton.icon(
+                    onPressed: _openOverviewEditor,
+                    icon: const Icon(Icons.edit_outlined),
+                    label: const Text('Edit overview'),
+                  ),
                 ),
                 const SizedBox(height: 14),
                 _RetreatSetupMetricsGrid(
                   colors: colors,
-                  event: _selectedEvent,
+                  event: event,
                 ),
                 const SizedBox(height: 14),
-                _RetreatSetupSchedulesCard(
+                _RetreatSetupSchedulesManagerCard(
                   colors: colors,
-                  schedules: _selectedEvent.schedules,
+                  schedules: event.schedules,
+                  onAdd: () => _openScheduleEditor(),
+                  onEdit: _openScheduleEditor,
+                  onDelete: _deleteSchedule,
                 ),
                 const SizedBox(height: 14),
-                _RetreatSetupTicketTypesCard(
+                _RetreatSetupTicketTypesManagerCard(
                   colors: colors,
-                  ticketTypes: _selectedEvent.ticketTypes,
+                  ticketTypes: event.ticketTypes,
+                  onAdd: () => _openTicketEditor(),
+                  onEdit: _openTicketEditor,
+                  onDelete: _deleteTicket,
+                ),
+                const SizedBox(height: 14),
+                _RetreatSetupRegistrationFieldsCard(
+                  colors: colors,
+                  fields: event.registrationFields,
+                  onAdd: () => _openRegistrationFieldEditor(),
+                  onEdit: _openRegistrationFieldEditor,
+                  onDelete: _deleteRegistrationField,
                 ),
               ],
             );
@@ -3665,119 +4577,262 @@ class _RetreatSetupMetricsGrid extends StatelessWidget {
   }
 }
 
-class _RetreatSetupSchedulesCard extends StatelessWidget {
-  const _RetreatSetupSchedulesCard({
+class _RetreatSetupSchedulesManagerCard extends StatelessWidget {
+  const _RetreatSetupSchedulesManagerCard({
     required this.colors,
     required this.schedules,
+    required this.onAdd,
+    required this.onEdit,
+    required this.onDelete,
   });
 
   final _ManagementPalette colors;
   final List<GoshenRetreatSchedule> schedules;
+  final VoidCallback onAdd;
+  final ValueChanged<GoshenRetreatSchedule> onEdit;
+  final ValueChanged<GoshenRetreatSchedule> onDelete;
 
   @override
   Widget build(BuildContext context) {
     return _Panel(
       colors: colors,
       title: 'Schedules',
-      subtitle: 'Programme days and configured capacity',
+      subtitle: 'Add, edit, or remove programme sessions.',
+      trailing: IconButton(
+        tooltip: 'Add schedule',
+        onPressed: onAdd,
+        icon: const Icon(Icons.add_circle_outline_rounded),
+      ),
       child: schedules.isEmpty
-          ? _EmptyInline(
-              colors: colors, text: 'No schedule has been published.')
-          : SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                headingTextStyle: TextStyle(
-                  color: colors.text,
-                  fontWeight: FontWeight.w900,
-                ),
-                dataTextStyle: TextStyle(
-                  color: colors.muted,
-                  fontWeight: FontWeight.w700,
-                ),
-                columns: const [
-                  DataColumn(label: Text('Day')),
-                  DataColumn(label: Text('Title')),
-                  DataColumn(label: Text('Starts')),
-                  DataColumn(label: Text('Ends')),
-                  DataColumn(label: Text('Capacity')),
-                ],
-                rows: schedules.map((schedule) {
-                  return DataRow(
-                    cells: [
-                      DataCell(Text(_number(schedule.dayNumber))),
-                      DataCell(Text(schedule.title.trim().isEmpty
-                          ? 'Programme'
-                          : schedule.title)),
-                      DataCell(Text(schedule.startsAt == null
-                          ? 'Not set'
-                          : _dateTimeLabel(schedule.startsAt!))),
-                      DataCell(Text(schedule.endsAt == null
-                          ? 'Not set'
-                          : _dateTimeLabel(schedule.endsAt!))),
-                      DataCell(Text(schedule.capacity == null
-                          ? 'Unlimited'
-                          : _number(schedule.capacity!))),
-                    ],
-                  );
-                }).toList(),
-              ),
+          ? _EmptyInline(colors: colors, text: 'No schedule has been added.')
+          : Column(
+              children: schedules
+                  .map(
+                    (schedule) => _SetupListTile(
+                      colors: colors,
+                      icon: Icons.event_available_outlined,
+                      title: schedule.title.trim().isEmpty
+                          ? 'Day ${schedule.dayNumber}'
+                          : schedule.title,
+                      subtitle: [
+                        'Day ${schedule.dayNumber}',
+                        schedule.startsAt == null
+                            ? 'Start not set'
+                            : _dateTimeLabel(schedule.startsAt!),
+                        if (schedule.endsAt != null)
+                          'Ends ${_dateTimeLabel(schedule.endsAt!)}',
+                        if (schedule.capacity != null)
+                          'Capacity ${_number(schedule.capacity!)}',
+                      ].join(' • '),
+                      onEdit: () => onEdit(schedule),
+                      onDelete:
+                          schedule.id <= 0 ? null : () => onDelete(schedule),
+                    ),
+                  )
+                  .toList(),
             ),
     );
   }
 }
 
-class _RetreatSetupTicketTypesCard extends StatelessWidget {
-  const _RetreatSetupTicketTypesCard({
+class _RetreatSetupTicketTypesManagerCard extends StatelessWidget {
+  const _RetreatSetupTicketTypesManagerCard({
     required this.colors,
     required this.ticketTypes,
+    required this.onAdd,
+    required this.onEdit,
+    required this.onDelete,
   });
 
   final _ManagementPalette colors;
   final List<GoshenTicketType> ticketTypes;
+  final VoidCallback onAdd;
+  final ValueChanged<GoshenTicketType> onEdit;
+  final ValueChanged<GoshenTicketType> onDelete;
 
   @override
   Widget build(BuildContext context) {
     return _Panel(
       colors: colors,
       title: 'Ticket types',
-      subtitle: 'Published tickets available to members',
+      subtitle: 'Manage ticket price, capacity, and active status.',
+      trailing: IconButton(
+        tooltip: 'Add ticket type',
+        onPressed: onAdd,
+        icon: const Icon(Icons.add_circle_outline_rounded),
+      ),
       child: ticketTypes.isEmpty
-          ? _EmptyInline(colors: colors, text: 'No ticket type is active yet.')
-          : SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                headingTextStyle: TextStyle(
-                  color: colors.text,
-                  fontWeight: FontWeight.w900,
-                ),
-                dataTextStyle: TextStyle(
-                  color: colors.muted,
-                  fontWeight: FontWeight.w700,
-                ),
-                columns: const [
-                  DataColumn(label: Text('Ticket')),
-                  DataColumn(label: Text('Price')),
-                  DataColumn(label: Text('Capacity')),
-                  DataColumn(label: Text('Min')),
-                  DataColumn(label: Text('Max')),
-                ],
-                rows: ticketTypes.map((ticket) {
-                  return DataRow(
-                    cells: [
-                      DataCell(Text(
-                          ticket.name.trim().isEmpty ? 'Ticket' : ticket.name)),
-                      DataCell(Text(
-                          '${ticket.currency} ${ticket.price.toStringAsFixed(ticket.price % 1 == 0 ? 0 : 2)}')),
-                      DataCell(Text(ticket.capacity == null
-                          ? 'Unlimited'
-                          : _number(ticket.capacity!))),
-                      DataCell(Text(_number(ticket.minPerBooking))),
-                      DataCell(Text(_number(ticket.maxPerBooking))),
-                    ],
-                  );
-                }).toList(),
-              ),
+          ? _EmptyInline(colors: colors, text: 'No ticket type has been added.')
+          : Column(
+              children: ticketTypes
+                  .map(
+                    (ticket) => _SetupListTile(
+                      colors: colors,
+                      icon: Icons.confirmation_number_outlined,
+                      title:
+                          ticket.name.trim().isEmpty ? 'Ticket' : ticket.name,
+                      subtitle: [
+                        '${ticket.currency} ${_decimalInput(ticket.price)}',
+                        ticket.isActive ? 'active' : 'inactive',
+                        if (ticket.capacity != null)
+                          'Capacity ${_number(ticket.capacity!)}',
+                        'Min ${_number(ticket.minPerBooking)}',
+                        'Max ${_number(ticket.maxPerBooking)}',
+                      ].join(' • '),
+                      statusColor:
+                          ticket.isActive ? colors.success : colors.danger,
+                      onEdit: () => onEdit(ticket),
+                      onDelete: () => onDelete(ticket),
+                    ),
+                  )
+                  .toList(),
             ),
+    );
+  }
+}
+
+class _RetreatSetupRegistrationFieldsCard extends StatelessWidget {
+  const _RetreatSetupRegistrationFieldsCard({
+    required this.colors,
+    required this.fields,
+    required this.onAdd,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final _ManagementPalette colors;
+  final List<GoshenRegistrationField> fields;
+  final VoidCallback onAdd;
+  final ValueChanged<GoshenRegistrationField> onEdit;
+  final ValueChanged<GoshenRegistrationField> onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Panel(
+      colors: colors,
+      title: 'Registration fields',
+      subtitle: 'Control attendee fields shown on the registration form.',
+      trailing: IconButton(
+        tooltip: 'Add field',
+        onPressed: onAdd,
+        icon: const Icon(Icons.add_circle_outline_rounded),
+      ),
+      child: fields.isEmpty
+          ? _EmptyInline(
+              colors: colors, text: 'No attendee field is configured.')
+          : Column(
+              children: fields
+                  .map(
+                    (field) => _SetupListTile(
+                      colors: colors,
+                      icon: field.isImageSelect
+                          ? Icons.image_outlined
+                          : field.isColorSelect
+                              ? Icons.palette_outlined
+                              : field.isSelect
+                                  ? Icons.list_alt_outlined
+                                  : Icons.short_text_rounded,
+                      title: field.label,
+                      subtitle: [
+                        field.key,
+                        field.type.replaceAll('_', ' '),
+                        field.isRequired ? 'required' : 'optional',
+                        if (field.options.isNotEmpty)
+                          '${_number(field.options.length)} options',
+                      ].join(' • '),
+                      statusColor: field.isRequired ? colors.gold : colors.teal,
+                      onEdit: () => onEdit(field),
+                      onDelete: field.id <= 0 ? null : () => onDelete(field),
+                    ),
+                  )
+                  .toList(),
+            ),
+    );
+  }
+}
+
+class _SetupListTile extends StatelessWidget {
+  const _SetupListTile({
+    required this.colors,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onEdit,
+    this.onDelete,
+    this.statusColor,
+  });
+
+  final _ManagementPalette colors;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onEdit;
+  final VoidCallback? onDelete;
+  final Color? statusColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = statusColor ?? colors.gold;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.innerCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colors.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: accent, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.text,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: colors.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Edit',
+            onPressed: onEdit,
+            icon: const Icon(Icons.edit_outlined),
+          ),
+          IconButton(
+            tooltip: 'Delete',
+            onPressed: onDelete,
+            color: colors.danger,
+            icon: const Icon(Icons.delete_outline_rounded),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -9127,6 +10182,227 @@ InputDecoration _managementInputDecoration(
       borderSide: BorderSide(color: colors.gold, width: 1.5),
     ),
   );
+}
+
+const _setupFieldTypes = [
+  'text',
+  'textarea',
+  'select',
+  'image_select',
+  'color_select',
+];
+
+String? _requiredValidator(String? value) =>
+    value == null || value.trim().isEmpty ? 'This field is required.' : null;
+
+Widget _setupSheet({
+  required BuildContext context,
+  required _ManagementPalette colors,
+  required String title,
+  required Widget child,
+}) {
+  return Padding(
+    padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+    child: Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.92,
+      ),
+      decoration: BoxDecoration(
+        color: colors.card,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 22),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Container(
+                  width: 46,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: colors.border,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: TextStyle(
+                  color: colors.text,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 16),
+              child,
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+Widget _setupTextField({
+  required _ManagementPalette colors,
+  required TextEditingController controller,
+  required String label,
+  String? helperText,
+  TextInputType? keyboardType,
+  String? Function(String?)? validator,
+  int minLines = 1,
+  int maxLines = 1,
+  Widget? suffixIcon,
+}) {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: TextFormField(
+      controller: controller,
+      minLines: minLines,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      validator: validator,
+      decoration: _managementInputDecoration(colors, label).copyWith(
+        helperText: helperText,
+        suffixIcon: suffixIcon,
+      ),
+    ),
+  );
+}
+
+Widget _setupDropdown({
+  required _ManagementPalette colors,
+  required String label,
+  required String value,
+  required Map<String, String> values,
+  required ValueChanged<String> onChanged,
+}) {
+  final effectiveValue = values.containsKey(value) ? value : values.keys.first;
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: DropdownButtonFormField<String>(
+      value: effectiveValue,
+      isExpanded: true,
+      decoration: _managementInputDecoration(colors, label),
+      items: values.entries
+          .map(
+            (entry) => DropdownMenuItem<String>(
+              value: entry.key,
+              child: Text(entry.value),
+            ),
+          )
+          .toList(),
+      onChanged: (selected) {
+        if (selected != null) onChanged(selected);
+      },
+    ),
+  );
+}
+
+Widget _setupSaveButton({
+  required _ManagementPalette colors,
+  required bool saving,
+  required String label,
+  required VoidCallback onPressed,
+}) {
+  return SizedBox(
+    width: double.infinity,
+    child: FilledButton.icon(
+      onPressed: saving ? null : onPressed,
+      icon: saving
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.save_outlined),
+      label: Text(saving ? 'Saving...' : label),
+      style: FilledButton.styleFrom(
+        backgroundColor: colors.gold,
+        foregroundColor: colors.deep,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+      ),
+    ),
+  );
+}
+
+String _dateInput(DateTime? value) {
+  if (value == null) return '';
+  final local = value.toLocal();
+  final month = local.month.toString().padLeft(2, '0');
+  final day = local.day.toString().padLeft(2, '0');
+  final hour = local.hour.toString().padLeft(2, '0');
+  final minute = local.minute.toString().padLeft(2, '0');
+  return '${local.year}-$month-${day}T$hour:$minute';
+}
+
+String _decimalInput(double value) {
+  if (value == 0) return '0';
+  return value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(2);
+}
+
+String? _nullableTextValue(String value) {
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
+}
+
+String _optionsToLines(List<GoshenRegistrationFieldOption> options) {
+  return options.map((option) {
+    final values = [
+      option.label,
+      option.value,
+      option.imagePath,
+      option.colorHex,
+      option.fee == 0 ? '' : _decimalInput(option.fee),
+      option.feeLabel,
+    ];
+    while (values.isNotEmpty && values.last.trim().isEmpty) {
+      values.removeLast();
+    }
+    return values.join('|');
+  }).join('\n');
+}
+
+List<Map<String, dynamic>> _parseOptionsLines(String raw) {
+  final lines = raw
+      .split('\n')
+      .map((line) => line.trim())
+      .where((line) => line.isNotEmpty)
+      .toList();
+
+  return [
+    for (var index = 0; index < lines.length; index += 1)
+      _parseOptionLine(lines[index], index),
+  ];
+}
+
+Map<String, dynamic> _parseOptionLine(String line, int index) {
+  final parts = line.split('|').map((part) => part.trim()).toList();
+  String part(int i) => i < parts.length ? parts[i] : '';
+  final label = part(0);
+  final explicitValue = part(1);
+  return {
+    'label': label,
+    'value': explicitValue.isNotEmpty
+        ? explicitValue
+        : label.toLowerCase() == 'please select'
+            ? ''
+            : label
+                .toLowerCase()
+                .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+                .replaceAll(RegExp(r'_+'), '_')
+                .replaceAll(RegExp(r'^_|_$'), ''),
+    'image_path': part(2),
+    'color_hex': part(3),
+    'fee_amount': double.tryParse(part(4)) ?? 0,
+    'fee_label': part(5),
+    'sort_order': index + 1,
+  };
 }
 
 Color? _parseColor(String? value) {

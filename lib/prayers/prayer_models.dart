@@ -1,5 +1,55 @@
 import '../utils/Utility.dart';
 
+class PrayerPoint {
+  final int id;
+  final String title;
+  final String author;
+  final String content;
+  final String thumbnailUrl;
+  final bool isPublished;
+  final int date;
+  final String? rawDate;
+  final String? createdAt;
+  final String? updatedAt;
+
+  const PrayerPoint({
+    required this.id,
+    required this.title,
+    required this.author,
+    required this.content,
+    required this.thumbnailUrl,
+    required this.isPublished,
+    required this.date,
+    this.rawDate,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory PrayerPoint.fromJson(Map<String, dynamic> json) {
+    final content = _decodeMaybe(_readString(
+        json, const ['content', 'body', 'prayer', 'description', 'text']));
+    return PrayerPoint(
+      id: _readInt(json, const ['id', 'prayer_point_id']),
+      title: _readString(json, const ['title', 'subject']).isEmpty
+          ? _titleFromContent(content)
+          : _readString(json, const ['title', 'subject']),
+      author: _readString(json, const ['author', 'name']),
+      content: content,
+      thumbnailUrl:
+          _readString(json, const ['thumbnail_url', 'thumbnail', 'image_url']),
+      isPublished: _readBool(json, const ['is_published', 'published']) ||
+          json['is_published'] == null && json['published'] == null,
+      date:
+          _readDate(json, const ['date', 'created_at_timestamp', 'created_at']),
+      rawDate: _readNullableString(json, const ['date']),
+      createdAt: _readNullableString(json, const ['created_at']),
+      updatedAt: _readNullableString(json, const ['updated_at']),
+    );
+  }
+
+  bool get hasThumbnail => thumbnailUrl.trim().isNotEmpty;
+}
+
 class PrayerRequest {
   final int id;
   final String title;

@@ -365,6 +365,175 @@ class GoshenRetreatApi {
     );
   }
 
+  Future<GoshenRetreatEvent> fetchRetreatSetup({
+    required Userdata user,
+    required GoshenRetreatEvent event,
+  }) {
+    return _postRetreatSetup(
+      url: ApiUrl.goshenRetreatSetup(event.publicId),
+      user: user,
+      payload: const {},
+      fallback: 'Unable to load retreat setup.',
+    );
+  }
+
+  Future<GoshenRetreatEvent> saveRetreatSetupOverview({
+    required Userdata user,
+    required GoshenRetreatEvent event,
+    required Map<String, dynamic> payload,
+  }) {
+    return _postRetreatSetup(
+      url: ApiUrl.goshenRetreatSetupOverview(event.publicId),
+      user: user,
+      payload: payload,
+      fallback: 'Unable to save retreat setup.',
+    );
+  }
+
+  Future<GoshenRetreatEvent> saveRetreatSetupSchedule({
+    required Userdata user,
+    required GoshenRetreatEvent event,
+    required Map<String, dynamic> payload,
+  }) {
+    return _postRetreatSetup(
+      url: ApiUrl.goshenRetreatSetupSchedules(event.publicId),
+      user: user,
+      payload: payload,
+      fallback: 'Unable to save schedule.',
+    );
+  }
+
+  Future<GoshenRetreatEvent> deleteRetreatSetupSchedule({
+    required Userdata user,
+    required GoshenRetreatEvent event,
+    required int scheduleId,
+  }) {
+    return _postRetreatSetup(
+      url: ApiUrl.goshenRetreatSetupScheduleDelete(
+        event.publicId,
+        '$scheduleId',
+      ),
+      user: user,
+      payload: const {},
+      fallback: 'Unable to delete schedule.',
+    );
+  }
+
+  Future<GoshenRetreatEvent> saveRetreatSetupTicketType({
+    required Userdata user,
+    required GoshenRetreatEvent event,
+    required Map<String, dynamic> payload,
+  }) {
+    return _postRetreatSetup(
+      url: ApiUrl.goshenRetreatSetupTicketTypes(event.publicId),
+      user: user,
+      payload: payload,
+      fallback: 'Unable to save ticket type.',
+    );
+  }
+
+  Future<GoshenRetreatEvent> deleteRetreatSetupTicketType({
+    required Userdata user,
+    required GoshenRetreatEvent event,
+    required String ticketTypeId,
+  }) {
+    return _postRetreatSetup(
+      url: ApiUrl.goshenRetreatSetupTicketTypeDelete(
+        event.publicId,
+        ticketTypeId,
+      ),
+      user: user,
+      payload: const {},
+      fallback: 'Unable to delete ticket type.',
+    );
+  }
+
+  Future<GoshenRetreatEvent> saveRetreatSetupRegistrationField({
+    required Userdata user,
+    required GoshenRetreatEvent event,
+    required Map<String, dynamic> payload,
+  }) {
+    return _postRetreatSetup(
+      url: ApiUrl.goshenRetreatSetupRegistrationFields(event.publicId),
+      user: user,
+      payload: payload,
+      fallback: 'Unable to save registration field.',
+    );
+  }
+
+  Future<GoshenRetreatEvent> deleteRetreatSetupRegistrationField({
+    required Userdata user,
+    required GoshenRetreatEvent event,
+    required int fieldId,
+  }) {
+    return _postRetreatSetup(
+      url: ApiUrl.goshenRetreatSetupRegistrationFieldDelete(
+        event.publicId,
+        '$fieldId',
+      ),
+      user: user,
+      payload: const {},
+      fallback: 'Unable to delete registration field.',
+    );
+  }
+
+  Future<GoshenRetreatEvent> _postRetreatSetup({
+    required String url,
+    required Userdata user,
+    required Map<String, dynamic> payload,
+    required String fallback,
+  }) async {
+    try {
+      final response = await _dio.post(
+        url,
+        options: _mobileOptions(user),
+        data: {
+          'data': {
+            'email': user.email,
+            'api_token': user.apiToken,
+            ...payload,
+          }
+        },
+      );
+
+      final data = Map<String, dynamic>.from(decodeApiResponse(response.data));
+      if (data['status'] != 'ok') {
+        throw Exception(data['message'] ?? fallback);
+      }
+
+      final wrapper = Map<String, dynamic>.from(data['data'] as Map? ?? {});
+      final eventPayload =
+          Map<String, dynamic>.from(wrapper['event'] as Map? ?? {});
+      final updated = GoshenRetreatEvent.fromJson(eventPayload);
+      _mergeEventCache(updated);
+      return updated;
+    } on DioException catch (error) {
+      throw Exception(_friendlyApiError(error, fallback));
+    }
+  }
+
+  void _mergeEventCache(GoshenRetreatEvent updated) {
+    final events = _eventsCache;
+    if (events == null || events.isEmpty) {
+      _eventsCache = [updated];
+      return;
+    }
+
+    var replaced = false;
+    _eventsCache = events.map((event) {
+      if (event.publicId == updated.publicId) {
+        replaced = true;
+        return updated;
+      }
+      return event;
+    }).toList();
+
+    if (!replaced) {
+      final current = _eventsCache ?? const <GoshenRetreatEvent>[];
+      _eventsCache = [updated, ...current];
+    }
+  }
+
   Future<GoshenAccommodationManagementSummary> fetchAccommodationManagement({
     required Userdata user,
     required GoshenRetreatEvent event,

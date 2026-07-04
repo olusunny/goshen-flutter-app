@@ -6248,9 +6248,11 @@ class _RegistrationFieldControl extends StatelessWidget {
               orElse: () => GoshenRegistrationFieldOption(
                 label: optionValue.isEmpty ? 'Please Select' : optionValue,
                 value: optionValue,
+                imagePath: '',
                 imageUrl: '',
                 colorHex: '',
                 fee: 0,
+                feeLabel: '',
                 currency: '',
               ),
             )

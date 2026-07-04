@@ -13,12 +13,102 @@ class PrayerApiClient {
   static final Map<String, PrayerFeed> _feedCache = {};
   static PropheticDecree? _decreeCache;
   static bool _hasDecreeCache = false;
+  static List<PrayerPoint>? _prayerPointCache;
 
   PrayerFeed? cachedPrayerFeed(Userdata? user) =>
       _feedCache[_userCacheKey(user)];
 
   PropheticDecree? get cachedActivePropheticDecree =>
       _hasDecreeCache ? _decreeCache : null;
+
+  List<PrayerPoint>? get cachedPrayerPoints => _prayerPointCache;
+
+  Future<List<PrayerPoint>> fetchPrayerPoints() async {
+    final response = await _send(
+      () => _dio.get(ApiUrl.PRAYER_POINTS),
+    );
+    final points = _prayerPointListFromResponse(response.data);
+    _prayerPointCache = points;
+    return points;
+  }
+
+  Future<List<PrayerPoint>> fetchManagedPrayerPoints(Userdata user) async {
+    final response = await _send(
+      () => _dio.post(
+        ApiUrl.CONTROL_HUB_PRAYER_POINTS_SEARCH,
+        data: jsonEncode({'data': _managementPayload(user)}),
+        options: _authOptions(user),
+      ),
+    );
+    return _prayerPointListFromResponse(response.data);
+  }
+
+  Future<PrayerPoint> createPrayerPoint({
+    required Userdata user,
+    required Map<String, dynamic> payload,
+  }) async {
+    final response = await _send(
+      () => _dio.post(
+        ApiUrl.CONTROL_HUB_PRAYER_POINTS,
+        data: jsonEncode({'data': _managementPayload(user, payload)}),
+        options: _authOptions(user),
+      ),
+    );
+    return _prayerPointFromResponse(
+        response.data, 'Unable to create prayer point.');
+  }
+
+  Future<PrayerPoint> updatePrayerPoint({
+    required Userdata user,
+    required PrayerPoint point,
+    required Map<String, dynamic> payload,
+  }) async {
+    final response = await _send(
+      () => _dio.post(
+        ApiUrl.controlHubPrayerPoint('${point.id}'),
+        data: jsonEncode({'data': _managementPayload(user, payload)}),
+        options: _authOptions(user),
+      ),
+    );
+    return _prayerPointFromResponse(
+        response.data, 'Unable to update prayer point.');
+  }
+
+  Future<PrayerPoint> updatePrayerPointStatus({
+    required Userdata user,
+    required PrayerPoint point,
+    required bool isPublished,
+  }) async {
+    final response = await _send(
+      () => _dio.post(
+        ApiUrl.controlHubPrayerPointStatus('${point.id}'),
+        data: jsonEncode({
+          'data': _managementPayload(user, {'is_published': isPublished})
+        }),
+        options: _authOptions(user),
+      ),
+    );
+    return _prayerPointFromResponse(
+        response.data, 'Unable to update prayer point.');
+  }
+
+  Future<void> deletePrayerPoint({
+    required Userdata user,
+    required PrayerPoint point,
+  }) async {
+    final response = await _send(
+      () => _dio.post(
+        ApiUrl.controlHubPrayerPointDelete('${point.id}'),
+        data: jsonEncode({'data': _managementPayload(user)}),
+        options: _authOptions(user),
+      ),
+    );
+    final data = _decode(response.data);
+    if (data is Map<String, dynamic> && data['status'] == 'error') {
+      throw PrayerApiException(
+          (data['message'] ?? 'Unable to delete prayer point.').toString());
+    }
+  }
 
   Future<PrayerFeed> fetchPrayerFeed({Userdata? user, int afterId = 0}) async {
     final response = await _dio.get(
@@ -377,6 +467,63 @@ class PrayerApiClient {
           .toString();
     }
     return data.toString();
+  }
+
+  List<PrayerPoint> _prayerPointListFromResponse(dynamic responseData) {
+    final data = _decode(responseData);
+    dynamic raw;
+
+    if (data is Map<String, dynamic>) {
+      if (data['status'] == 'error') {
+        throw PrayerApiException(
+            (data['message'] ?? 'Unable to load prayer points.').toString());
+      }
+
+      raw = data['prayer_points'];
+      if (raw is! List && data['data'] is List) raw = data['data'];
+      if (raw is! List && data['data'] is Map) {
+        final wrapper = Map<String, dynamic>.from(data['data'] as Map);
+        raw = wrapper['prayer_points'] ?? wrapper['items'] ?? wrapper['data'];
+      }
+    } else if (data is List) {
+      raw = data;
+    }
+
+    return ((raw as List?) ?? const [])
+        .whereType<Map>()
+        .map((item) => PrayerPoint.fromJson(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
+  PrayerPoint _prayerPointFromResponse(dynamic responseData, String fallback) {
+    final data = _decode(responseData);
+    if (data is! Map<String, dynamic>) {
+      throw PrayerApiException(fallback);
+    }
+    if (data['status'] == 'error') {
+      throw PrayerApiException((data['message'] ?? fallback).toString());
+    }
+
+    dynamic raw = data['data'] ?? data['prayer_point'] ?? data['point'];
+    if (raw is Map && raw['prayer_point'] is Map) {
+      raw = raw['prayer_point'];
+    }
+    if (raw is! Map) {
+      throw PrayerApiException(fallback);
+    }
+
+    return PrayerPoint.fromJson(Map<String, dynamic>.from(raw));
+  }
+
+  Map<String, dynamic> _managementPayload(
+    Userdata user, [
+    Map<String, dynamic>? payload,
+  ]) {
+    return {
+      'email': user.email,
+      'api_token': user.apiToken,
+      ...?payload,
+    };
   }
 
   dynamic _decode(dynamic value) {
