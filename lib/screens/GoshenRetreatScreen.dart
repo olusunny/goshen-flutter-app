@@ -6014,9 +6014,13 @@ class _AttendeeDraft {
   final Map<String, String> customFields = {};
 
   String fieldValue(String key) {
+    final canonicalKey = _attendeeFieldIdentity(key);
     if (customFields.containsKey(key)) return customFields[key] ?? '';
+    if (customFields.containsKey(canonicalKey)) {
+      return customFields[canonicalKey] ?? '';
+    }
 
-    return switch (key) {
+    return switch (canonicalKey) {
       'company' => company,
       'designation' => designation,
       'gender' => gender,
@@ -6028,9 +6032,13 @@ class _AttendeeDraft {
   }
 
   void setFieldValue(String key, String value) {
+    final canonicalKey = _attendeeFieldIdentity(key);
     customFields[key] = value;
+    if (canonicalKey != key) {
+      customFields[canonicalKey] = value;
+    }
 
-    switch (key) {
+    switch (canonicalKey) {
       case 'company':
         company = value;
         break;
@@ -6071,6 +6079,29 @@ class _AttendeeDraft {
 
     return data;
   }
+}
+
+String _attendeeFieldIdentity(String key) {
+  final normalized = key
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+      .replaceAll(RegExp(r'_+'), '_')
+      .replaceAll(RegExp(r'^_|_$'), '');
+  const aliases = {
+    'age': 'age_group',
+    'agegroup': 'age_group',
+    'free_bus': 'free_church_bus_interest',
+    'freechurchbus': 'free_church_bus_interest',
+    'free_church_bus': 'free_church_bus_interest',
+    'free_church_bus_consent': 'free_church_bus_interest',
+    'church_bus': 'free_church_bus_interest',
+    'bus_interest': 'free_church_bus_interest',
+    'volunteer': 'volunteer_department',
+    'volunteer_choice': 'volunteer_department',
+    'volunteer_department_choice': 'volunteer_department',
+  };
+  return aliases[normalized] ?? normalized;
 }
 
 class _AttendeeFields extends StatelessWidget {

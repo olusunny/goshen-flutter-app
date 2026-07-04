@@ -26,9 +26,9 @@ class SQLiteDbProvider {
   initDB() async {
     return await openDatabase(
         join(await getDatabasesPath(), 'streamit_database.db'),
-        version: 12,
-        onOpen: (db) {},
-        onUpgrade: (Database db, int oldVersion, int newVersion) async {
+        version: 13, onOpen: (db) async {
+      await _ensureUserdataSchema(db);
+    }, onUpgrade: (Database db, int oldVersion, int newVersion) async {
       if (oldVersion < 2) {
         await _addColumnIfMissing(db, Userdata.TABLE, 'role', 'TEXT');
         await _addColumnIfMissing(db, Userdata.TABLE, 'apiToken', 'TEXT');
@@ -87,6 +87,11 @@ class SQLiteDbProvider {
         await _addColumnIfMissing(db, Userdata.TABLE, 'profileTitle', 'TEXT');
         await _addColumnIfMissing(db, Userdata.TABLE, 'maritalStatus', 'TEXT');
       }
+      if (oldVersion < 13) {
+        await _addColumnIfMissing(
+            db, Userdata.TABLE, 'canManageDynamicForms', 'INTEGER');
+      }
+      await _ensureUserdataSchema(db);
     }, onCreate: (Database db, int version) async {
       await db.execute("CREATE TABLE ${Categories.TABLE} ("
           "id INTEGER PRIMARY KEY,"
@@ -249,6 +254,7 @@ class SQLiteDbProvider {
           "canManageQuiz INTEGER,"
           "canManageFundraising INTEGER,"
           "canManageWalletWithdrawals INTEGER,"
+          "canManageDynamicForms INTEGER,"
           "canSendAdminMessages INTEGER,"
           "activated INTEGER"
           ")");
@@ -262,6 +268,42 @@ class SQLiteDbProvider {
     if (!exists) {
       await db.execute("ALTER TABLE $table ADD COLUMN $column $type");
     }
+  }
+
+  Future<void> _ensureUserdataSchema(Database db) async {
+    await _addColumnIfMissing(db, Userdata.TABLE, 'firstName', 'TEXT');
+    await _addColumnIfMissing(db, Userdata.TABLE, 'profileTitle', 'TEXT');
+    await _addColumnIfMissing(db, Userdata.TABLE, 'maritalStatus', 'TEXT');
+    await _addColumnIfMissing(db, Userdata.TABLE, 'middleName', 'TEXT');
+    await _addColumnIfMissing(db, Userdata.TABLE, 'lastName', 'TEXT');
+    await _addColumnIfMissing(db, Userdata.TABLE, 'triumphantId', 'TEXT');
+    await _addColumnIfMissing(db, Userdata.TABLE, 'groupId', 'INTEGER');
+    await _addColumnIfMissing(db, Userdata.TABLE, 'groupName', 'TEXT');
+    await _addColumnIfMissing(db, Userdata.TABLE, 'countryOfResidence', 'TEXT');
+    await _addColumnIfMissing(
+        db, Userdata.TABLE, 'stateCountyProvince', 'TEXT');
+    await _addColumnIfMissing(db, Userdata.TABLE, 'memberType', 'TEXT');
+    await _addColumnIfMissing(db, Userdata.TABLE, 'address', 'TEXT');
+    await _addColumnIfMissing(db, Userdata.TABLE, 'addressLatitude', 'TEXT');
+    await _addColumnIfMissing(db, Userdata.TABLE, 'addressLongitude', 'TEXT');
+    await _addColumnIfMissing(db, Userdata.TABLE, 'role', 'TEXT');
+    await _addColumnIfMissing(db, Userdata.TABLE, 'apiToken', 'TEXT');
+    await _addColumnIfMissing(db, Userdata.TABLE, 'roles', 'TEXT');
+    await _addColumnIfMissing(db, Userdata.TABLE, 'isGo', 'INTEGER');
+    await _addColumnIfMissing(db, Userdata.TABLE, 'canManageGroups', 'INTEGER');
+    await _addColumnIfMissing(
+        db, Userdata.TABLE, 'canManageGoshenRegistration', 'INTEGER');
+    await _addColumnIfMissing(
+        db, Userdata.TABLE, 'canManageGoshenVouchers', 'INTEGER');
+    await _addColumnIfMissing(db, Userdata.TABLE, 'canManageQuiz', 'INTEGER');
+    await _addColumnIfMissing(
+        db, Userdata.TABLE, 'canManageFundraising', 'INTEGER');
+    await _addColumnIfMissing(
+        db, Userdata.TABLE, 'canManageWalletWithdrawals', 'INTEGER');
+    await _addColumnIfMissing(
+        db, Userdata.TABLE, 'canManageDynamicForms', 'INTEGER');
+    await _addColumnIfMissing(
+        db, Userdata.TABLE, 'canSendAdminMessages', 'INTEGER');
   }
 
   //userdata crud
@@ -283,50 +325,8 @@ class SQLiteDbProvider {
 
   insertUser(Userdata userdata) async {
     final db = await database;
-    var result = await db!.rawInsert(
-        "INSERT Into ${Userdata.TABLE} (firstName,profileTitle,maritalStatus,middleName,lastName,email, name,triumphantId,coverPhoto, avatar,gender,groupId,groupName,dateOfBirth,phone,countryOfResidence,stateCountyProvince,memberType,address,addressLatitude,addressLongitude,aboutMe,location,qualification,facebook,twitter,linkdln,role,apiToken,roles,isGo,canManageGroups,canManageGoshenRegistration,canManageGoshenVouchers,canManageQuiz,canManageFundraising,canManageWalletWithdrawals,canSendAdminMessages,activated)"
-        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        [
-          userdata.firstName,
-          userdata.profileTitle,
-          userdata.maritalStatus,
-          userdata.middleName,
-          userdata.lastName,
-          userdata.email,
-          userdata.name,
-          userdata.triumphantId,
-          userdata.coverPhoto,
-          userdata.avatar,
-          userdata.gender,
-          userdata.groupId,
-          userdata.groupName,
-          userdata.dateOfBirth,
-          userdata.phone,
-          userdata.countryOfResidence,
-          userdata.stateCountyProvince,
-          userdata.memberType,
-          userdata.address,
-          userdata.addressLatitude,
-          userdata.addressLongitude,
-          userdata.aboutMe,
-          userdata.location,
-          userdata.qualification,
-          userdata.facebook,
-          userdata.twitter,
-          userdata.linkdln,
-          userdata.role,
-          userdata.apiToken,
-          userdata.roles.join(','),
-          userdata.isGo ? 1 : 0,
-          userdata.canManageGroups ? 1 : 0,
-          userdata.canManageGoshenRegistration ? 1 : 0,
-          userdata.canManageGoshenVouchers ? 1 : 0,
-          userdata.canManageQuiz ? 1 : 0,
-          userdata.canManageFundraising ? 1 : 0,
-          userdata.canManageWalletWithdrawals ? 1 : 0,
-          userdata.canSendAdminMessages ? 1 : 0,
-          userdata.activated
-        ]);
+    await _ensureUserdataSchema(db!);
+    var result = await db.insert(Userdata.TABLE, userdata.toMap());
     return result;
   }
 
