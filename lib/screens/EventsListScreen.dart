@@ -680,106 +680,106 @@ class ItemTile extends StatelessWidget {
             ));
       },
       child: Container(
-        height: 90,
         width: double.infinity,
-        padding: EdgeInsets.fromLTRB(15, 0, 15, 5),
+        constraints: const BoxConstraints(minHeight: 90),
+        padding: const EdgeInsets.fromLTRB(15, 8, 15, 6),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Expanded(
-              child: Row(
-                children: <Widget>[
-                  Card(
-                      margin: EdgeInsets.all(0),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                Card(
+                    margin: EdgeInsets.all(0),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    clipBehavior: Clip.antiAliasWithSaveLayer,
+                    child: Container(
+                      height: 40,
+                      width: 40,
+                      child: CachedNetworkImage(
+                        imageUrl: events.thumbnail ?? '',
+                        imageBuilder: (context, imageProvider) => Container(
+                          decoration: BoxDecoration(
+                            image: DecorationImage(
+                                image: imageProvider,
+                                fit: BoxFit.cover,
+                                colorFilter: ColorFilter.mode(
+                                    Colors.black12, BlendMode.darken)),
+                          ),
+                        ),
+                        placeholder: (context, url) =>
+                            Center(child: CupertinoActivityIndicator()),
+                        errorWidget: (context, url, error) => Center(
+                            child: Image.asset(
+                          Img.get('event.jpg'),
+                          fit: BoxFit.fill,
+                          width: double.infinity,
+                          height: double.infinity,
+                          //color: Colors.black26,
+                        )),
                       ),
-                      clipBehavior: Clip.antiAliasWithSaveLayer,
-                      child: Container(
-                        height: 40,
-                        width: 40,
-                        child: CachedNetworkImage(
-                          imageUrl: events.thumbnail ?? '',
-                          imageBuilder: (context, imageProvider) => Container(
-                            decoration: BoxDecoration(
-                              image: DecorationImage(
-                                  image: imageProvider,
-                                  fit: BoxFit.cover,
-                                  colorFilter: ColorFilter.mode(
-                                      Colors.black12, BlendMode.darken)),
+                    )),
+                Container(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: Text(
+                              DateFormat('EEE, MMM d, yyyy').format(tempDate),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyles.caption(context),
                             ),
                           ),
-                          placeholder: (context, url) =>
-                              Center(child: CupertinoActivityIndicator()),
-                          errorWidget: (context, url, error) => Center(
-                              child: Image.asset(
-                            Img.get('event.jpg'),
-                            fit: BoxFit.fill,
-                            width: double.infinity,
-                            height: double.infinity,
-                            //color: Colors.black26,
-                          )),
-                        ),
-                      )),
-                  Container(width: 10),
-                  Expanded(
-                    child: Column(
-                      children: <Widget>[
-                        Row(
-                          children: <Widget>[
-                            Text(
-                                DateFormat('EEE, MMM d, yyyy').format(tempDate),
-                                style: TextStyles.caption(context)
-                                //.copyWith(color: MyColors.grey_60),
-                                ),
-                            Spacer(),
-                            Text(events.time!,
-                                style: TextStyles.caption(context)
-                                //.copyWith(color: MyColors.grey_60),
-                                ),
-                            if (isPast) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF60707A)
-                                      .withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: const Text(
-                                  'Past',
-                                  style: TextStyle(
-                                    color: Color(0xFF60707A),
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w900,
-                                  ),
+                          const SizedBox(width: 8),
+                          Text(
+                            events.time!,
+                            style: TextStyles.caption(context),
+                          ),
+                          if (isPast) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF60707A)
+                                    .withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: const Text(
+                                'Past',
+                                style: TextStyle(
+                                  color: Color(0xFF60707A),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
                                 ),
                               ),
-                            ],
+                            ),
                           ],
-                        ),
-                        Spacer(),
-                        Align(
-                          alignment: Alignment.topLeft,
-                          child: Text(events.title!,
-                              maxLines: 2,
-                              style: TextStyles.subhead(context).copyWith(
-                                  //color: MyColors.grey_80,
-                                  fontWeight: FontWeight.w500)),
-                        ),
-                        Spacer(),
-                      ],
-                    ),
-                  )
-                ],
-              ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(events.title!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyles.subhead(context).copyWith(
+                              //color: MyColors.grey_80,
+                              fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                )
+              ],
             ),
-            Container(
-              height: 10,
-            ),
+            const SizedBox(height: 10),
             Divider(
               height: 0.1,
               //color: Colors.grey.shade800,
