@@ -1,4 +1,4 @@
-package com.covenantofmercy.app;
+package com.triumphant.android;
 
 import androidx.annotation.NonNull;
 

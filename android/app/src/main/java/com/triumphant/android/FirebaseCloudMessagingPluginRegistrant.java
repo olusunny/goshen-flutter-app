@@ -1,4 +1,4 @@
-package com.covenantofmercy.app;
+package com.triumphant.android;
 
 import io.flutter.plugin.common.PluginRegistry;
 //import com.dexterous.flutterlocalnotifications.FlutterLocalNotificationsPlugin;

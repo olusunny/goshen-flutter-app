@@ -50,12 +50,11 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDgD2EpZwct_d-stb7FBbBbdEpKYa6lN5Y',
-    appId: '1:160642673140:android:50444551145c7a608771a1',
-    messagingSenderId: '160642673140',
-    projectId: 'mychurch-3a9c9',
-    databaseURL: 'https://mychurch-3a9c9.firebaseio.com',
-    storageBucket: 'mychurch-3a9c9.firebasestorage.app',
+    apiKey: 'AIzaSyB7gtgPiM4cbU7IkZ7X9JBe1I3dyTH2s5E',
+    appId: '1:245162281677:android:ea10c16f85faacdb3eb784',
+    messagingSenderId: '245162281677',
+    projectId: 'mfm-triumphant-church-apps',
+    storageBucket: 'mfm-triumphant-church-apps.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
