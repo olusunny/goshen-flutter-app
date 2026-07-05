@@ -295,7 +295,7 @@ class _OnboardingCopy {
       _OnboardingCopy(
         title: 'Everything in One Place',
         hint:
-            'Find events, Bible tools, notes, giving, branches, and church resources with ease.',
+            'Find events, Bible tools, notes, giving, Goshen Retreat registration, and church resources with ease.',
       ),
       _OnboardingCopy(
         title: 'Messages and Live Worship',

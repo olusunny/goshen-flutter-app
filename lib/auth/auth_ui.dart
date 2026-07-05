@@ -1,4 +1,3 @@
-import 'package:churchapp_flutter/utils/img.dart';
 import 'package:flutter/material.dart';
 
 import '../utils/my_colors.dart';
@@ -40,14 +39,14 @@ class AuthShell extends StatelessWidget {
               const SizedBox(height: 10),
               Center(
                 child: Container(
-                  width: 98,
-                  height: 98,
-                  padding: const EdgeInsets.all(8),
+                  width: 108,
+                  height: 108,
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
                     color: isDark
                         ? Colors.white.withValues(alpha: 0.08)
                         : Colors.white,
-                    shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black
@@ -57,8 +56,12 @@ class AuthShell extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: ClipOval(
-                    child: Image.asset(Img.get('icon.png'), fit: BoxFit.cover),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/icon/triumphant_launcher.png',
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
               ),
