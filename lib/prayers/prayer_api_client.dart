@@ -14,6 +14,7 @@ class PrayerApiClient {
   static PropheticDecree? _decreeCache;
   static bool _hasDecreeCache = false;
   static List<PrayerPoint>? _prayerPointCache;
+  static List<PrayerPoint>? _wallPrayerPointCache;
 
   PrayerFeed? cachedPrayerFeed(Userdata? user) =>
       _feedCache[_userCacheKey(user)];
@@ -23,12 +24,25 @@ class PrayerApiClient {
 
   List<PrayerPoint>? get cachedPrayerPoints => _prayerPointCache;
 
-  Future<List<PrayerPoint>> fetchPrayerPoints() async {
+  List<PrayerPoint>? get cachedWallPrayerPoints => _wallPrayerPointCache;
+
+  Future<List<PrayerPoint>> fetchPrayerPoints({
+    bool showOnPrayerWallOnly = false,
+  }) async {
     final response = await _send(
-      () => _dio.get(ApiUrl.PRAYER_POINTS),
+      () => _dio.get(
+        ApiUrl.PRAYER_POINTS,
+        queryParameters: {
+          if (showOnPrayerWallOnly) 'wall': 1,
+        },
+      ),
     );
     final points = _prayerPointListFromResponse(response.data);
-    _prayerPointCache = points;
+    if (showOnPrayerWallOnly) {
+      _wallPrayerPointCache = points;
+    } else {
+      _prayerPointCache = points;
+    }
     return points;
   }
 

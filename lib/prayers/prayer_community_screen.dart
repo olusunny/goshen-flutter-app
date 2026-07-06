@@ -54,7 +54,7 @@ class _PrayerCommunityScreenState extends State<PrayerCommunityScreen> {
       _items = cachedFeed.requests;
       _submissionStatus = cachedFeed.submissionStatus;
       _decree = _api.cachedActivePropheticDecree;
-      _prayerPoints = _api.cachedPrayerPoints ?? const <PrayerPoint>[];
+      _prayerPoints = _api.cachedWallPrayerPoints ?? const <PrayerPoint>[];
       _loading = false;
       WidgetsBinding.instance
           .addPostFrameCallback((_) => _loadPrayers(silent: true));
@@ -82,7 +82,7 @@ class _PrayerCommunityScreenState extends State<PrayerCommunityScreen> {
       final results = await Future.wait<dynamic>([
         _api.fetchPrayerFeed(user: user),
         _api.fetchActivePropheticDecree(),
-        _api.fetchPrayerPoints(),
+        _api.fetchPrayerPoints(showOnPrayerWallOnly: true),
       ]);
       final feed = results[0] as PrayerFeed;
       _items = feed.requests;

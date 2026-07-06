@@ -7,6 +7,7 @@ class PrayerPoint {
   final String content;
   final String thumbnailUrl;
   final bool isPublished;
+  final bool showOnPrayerWall;
   final int date;
   final String? rawDate;
   final String? createdAt;
@@ -19,6 +20,7 @@ class PrayerPoint {
     required this.content,
     required this.thumbnailUrl,
     required this.isPublished,
+    required this.showOnPrayerWall,
     required this.date,
     this.rawDate,
     this.createdAt,
@@ -39,6 +41,10 @@ class PrayerPoint {
           _readString(json, const ['thumbnail_url', 'thumbnail', 'image_url']),
       isPublished: _readBool(json, const ['is_published', 'published']) ||
           json['is_published'] == null && json['published'] == null,
+      showOnPrayerWall:
+          _readBool(json, const ['show_on_prayer_wall', 'showOnPrayerWall']) ||
+              json['show_on_prayer_wall'] == null &&
+                  json['showOnPrayerWall'] == null,
       date:
           _readDate(json, const ['date', 'created_at_timestamp', 'created_at']),
       rawDate: _readNullableString(json, const ['date']),

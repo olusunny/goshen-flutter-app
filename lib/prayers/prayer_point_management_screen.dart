@@ -211,6 +211,7 @@ class _PrayerPointEditorScreenState extends State<PrayerPointEditorScreen> {
   final _date = TextEditingController();
   final _content = TextEditingController();
   bool _published = true;
+  bool _showOnPrayerWall = true;
   bool _saving = false;
 
   bool get _editing => widget.point != null;
@@ -225,6 +226,7 @@ class _PrayerPointEditorScreenState extends State<PrayerPointEditorScreen> {
       _date.text = point.rawDate ?? '';
       _content.text = point.content;
       _published = point.isPublished;
+      _showOnPrayerWall = point.showOnPrayerWall;
     }
   }
 
@@ -259,6 +261,7 @@ class _PrayerPointEditorScreenState extends State<PrayerPointEditorScreen> {
       'date': _date.text.trim().isEmpty ? null : _date.text.trim(),
       'content': _content.text.trim(),
       'is_published': _published,
+      'show_on_prayer_wall': _showOnPrayerWall,
     };
 
     try {
@@ -348,6 +351,17 @@ class _PrayerPointEditorScreenState extends State<PrayerPointEditorScreen> {
               value: _published,
               onChanged: (value) => setState(() => _published = value),
               title: const Text('Publish in app'),
+              subtitle:
+                  const Text('Show on the standalone Prayer Points page.'),
+              contentPadding: EdgeInsets.zero,
+            ),
+            SwitchListTile.adaptive(
+              value: _showOnPrayerWall,
+              onChanged: (value) => setState(() => _showOnPrayerWall = value),
+              title: const Text('Show above prayer wall'),
+              subtitle: const Text(
+                'List this prayer point above user prayer wall activities.',
+              ),
               contentPadding: EdgeInsets.zero,
             ),
             const SizedBox(height: 22),
@@ -605,6 +619,9 @@ String _pointMeta(PrayerPoint point) {
   if (point.author.trim().isNotEmpty) parts.add(point.author.trim());
   if (point.date > 0) parts.add(TimUtil.formatFullDatestamp(point.date));
   parts.add(point.isPublished ? 'Published' : 'Unpublished');
+  parts.add(
+    point.showOnPrayerWall ? 'Shows on prayer wall' : 'Hidden from prayer wall',
+  );
   return parts.join(' - ');
 }
 
