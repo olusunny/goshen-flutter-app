@@ -12,7 +12,20 @@
           "package_name": "com.triumphant.android"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "245162281677-vkv35baj2v50j23krouputiu9l7rl8a2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.triumphant.android",
+            "certificate_hash": "59bf4956fa6bcfa96e4d0108aa98b181d1c40ecd"
+          }
+        },
+        {
+          "client_id": "245162281677-elnrtplddngu0qqhs4hra6r9qnfntbs3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyB7gtgPiM4cbU7IkZ7X9JBe1I3dyTH2s5E"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "245162281677-elnrtplddngu0qqhs4hra6r9qnfntbs3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
