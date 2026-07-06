@@ -86,6 +86,7 @@ import './screens/ContactUsScreen.dart';
 import './screens/SuggestionScreen.dart';
 import './screens/TransportationArrangementsScreen.dart';
 import './prayers/prayer_community_screen.dart';
+import './prayers/prayer_points_screen.dart';
 import './testimonies/testimony_wall_screen.dart';
 import './wallet_security/wallet_security_controller.dart';
 import './wallet_security/wallet_security_guard.dart';
@@ -871,6 +872,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             return MaterialPageRoute(
               builder: (context) {
                 return PrayerCommunityScreen();
+              },
+            );
+          }
+
+          if (settings.name == PrayerPointsScreen.routeName) {
+            return MaterialPageRoute(
+              builder: (context) {
+                return const PrayerPointsScreen();
               },
             );
           }

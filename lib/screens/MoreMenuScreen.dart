@@ -7,6 +7,7 @@ import '../features/fundraising/fundraising_screen.dart';
 import '../i18n/strings.g.dart';
 import '../prayers/prayer_community_screen.dart';
 import '../prayers/prayer_guest_prompt.dart';
+import '../prayers/prayer_points_screen.dart';
 import '../providers/AppStateManager.dart';
 import '../providers/HomeProvider.dart';
 import '../screens/AboutUsScreen.dart';
@@ -198,6 +199,9 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
           () => Navigator.pushNamed(context, PlaylistsScreen.routeName)),
       _MoreMenuItem(t.bookmarks, Icons.collections_bookmark_outlined,
           () => Navigator.pushNamed(context, BookmarksScreen.routeName)),
+      _MoreMenuItem('Prayer Points', Icons.menu_book_rounded,
+          () => Navigator.pushNamed(context, PrayerPointsScreen.routeName),
+          accent: const Color(0xFFFFC857)),
       _MoreMenuItem('Interactive Prayer Wall',
           Icons.volunteer_activism_outlined, () => _openPrayer(context)),
       if (_testimoniesEnabled)

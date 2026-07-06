@@ -97,7 +97,7 @@ Future<void> showPrayerGuestPrompt(BuildContext context) {
                         _PromptFeature(
                           icon: Icons.campaign_rounded,
                           text:
-                              'Prophet Abel Taiwo Ojo shares a Daily Prophetic Decree over the prayer wall.',
+                              'The church Pastor shares a Daily Prophetic Decree over the prayer wall.',
                           color: text,
                           muted: muted,
                         ),

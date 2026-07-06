@@ -18,6 +18,7 @@ import '../models/Userdata.dart';
 import '../notes/NotesListScreen.dart';
 import '../prayers/prayer_community_screen.dart';
 import '../prayers/prayer_guest_prompt.dart';
+import '../prayers/prayer_points_screen.dart';
 import '../providers/AppStateManager.dart';
 import '../providers/AudioPlayerModel.dart';
 import '../providers/events.dart';
@@ -172,6 +173,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     Navigator.pushNamed(context, GalleryScreen.routeName),
                 onGoshenRetreatTap: () =>
                     Navigator.pushNamed(context, GoshenRetreatScreen.routeName),
+                onPrayerPointsTap: () =>
+                    Navigator.pushNamed(context, PrayerPointsScreen.routeName),
               ),
               QuickAccessSection(
                 onVideosTap: () =>
@@ -1260,6 +1263,7 @@ class ActivityCenterSection extends StatelessWidget {
     required this.onCategoriesTap,
     required this.onGalleryTap,
     required this.onGoshenRetreatTap,
+    required this.onPrayerPointsTap,
     required this.goshenRetreatEnabled,
   }) : super(key: key);
 
@@ -1269,6 +1273,7 @@ class ActivityCenterSection extends StatelessWidget {
   final VoidCallback onCategoriesTap;
   final VoidCallback onGalleryTap;
   final VoidCallback onGoshenRetreatTap;
+  final VoidCallback onPrayerPointsTap;
   final bool goshenRetreatEnabled;
 
   @override
@@ -1310,6 +1315,13 @@ class ActivityCenterSection extends StatelessWidget {
         icon: Icons.edit_note_outlined,
         color: const Color(0xFF2C9B88),
         onTap: onNotesTap,
+      ),
+      ActivityCardData(
+        title: 'Prayer Points',
+        subtitle: 'Read current church prayer points',
+        icon: Icons.menu_book_rounded,
+        color: const Color(0xFFFFB625),
+        onTap: onPrayerPointsTap,
       ),
       ActivityCardData(
         title: 'Giving',
