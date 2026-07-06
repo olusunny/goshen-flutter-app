@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:video_player/video_player.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -1329,7 +1330,7 @@ class _PrayerPointCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = _PrayerPalette.of(context);
-    final plainContent = _plainPrayerPointContent(point.content);
+    final hasContent = point.content.trim().isNotEmpty;
     return Container(
       decoration: BoxDecoration(
         color: colors.card,
@@ -1404,17 +1405,17 @@ class _PrayerPointCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  plainContent,
-                  maxLines: 5,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: colors.text.withValues(alpha: 0.88),
-                    height: 1.4,
-                    fontSize: 15,
+                if (hasContent) ...[
+                  const SizedBox(height: 12),
+                  HtmlWidget(
+                    point.content,
+                    textStyle: TextStyle(
+                      color: colors.text.withValues(alpha: 0.88),
+                      height: 1.4,
+                      fontSize: 15,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -1422,17 +1423,6 @@ class _PrayerPointCard extends StatelessWidget {
       ),
     );
   }
-}
-
-String _plainPrayerPointContent(String value) {
-  return value
-      .replaceAll(RegExp(r'<[^>]+>'), ' ')
-      .replaceAll('&nbsp;', ' ')
-      .replaceAll('&amp;', '&')
-      .replaceAll('&quot;', '"')
-      .replaceAll('&#039;', "'")
-      .replaceAll(RegExp(r'\s+'), ' ')
-      .trim();
 }
 
 String _prayerPointMeta(PrayerPoint point) {

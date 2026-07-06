@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 
 import '../utils/TimUtil.dart';
 import 'prayer_api_client.dart';
@@ -187,7 +188,7 @@ class _PrayerPointReadCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = _PrayerPointsPalette.of(context);
-    final content = _plainPrayerPointContent(point.content);
+    final hasContent = point.content.trim().isNotEmpty;
     return Container(
       decoration: BoxDecoration(
         color: colors.card,
@@ -269,11 +270,11 @@ class _PrayerPointReadCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                if (content.isNotEmpty) ...[
+                if (hasContent) ...[
                   const SizedBox(height: 14),
-                  Text(
-                    content,
-                    style: TextStyle(
+                  HtmlWidget(
+                    point.content,
+                    textStyle: TextStyle(
                       color: colors.text.withValues(alpha: 0.9),
                       fontSize: 16,
                       height: 1.48,
@@ -402,17 +403,6 @@ class _PrayerPointSkeleton extends StatelessWidget {
       ),
     );
   }
-}
-
-String _plainPrayerPointContent(String value) {
-  return value
-      .replaceAll(RegExp(r'<[^>]+>'), ' ')
-      .replaceAll('&nbsp;', ' ')
-      .replaceAll('&amp;', '&')
-      .replaceAll('&quot;', '"')
-      .replaceAll('&#039;', "'")
-      .replaceAll(RegExp(r'\s+'), ' ')
-      .trim();
 }
 
 String _prayerPointMeta(PrayerPoint point) {
