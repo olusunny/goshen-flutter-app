@@ -18,6 +18,14 @@ import '../providers/events.dart';
 import '../models/UserEvents.dart';
 
 var flutterLocalNotificationsPlugin = new FlutterLocalNotificationsPlugin();
+const AndroidNotificationChannel _defaultNotificationChannel =
+    AndroidNotificationChannel(
+  'churchapp',
+  'Church app alerts',
+  description: 'Important church updates, devotionals, and account messages.',
+  importance: Importance.max,
+  playSound: true,
+);
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print("Handling a background message: ${message.messageId}");
@@ -69,10 +77,25 @@ class Firebase {
       onSelect(response.payload);
     });
 
-    flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()!
-        .requestNotificationsPermission();
+    final androidNotifications =
+        flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+    await androidNotifications?.createNotificationChannel(
+      _defaultNotificationChannel,
+    );
+    await androidNotifications?.requestNotificationsPermission();
+
+    await FirebaseMessaging.instance.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+    await FirebaseMessaging.instance
+        .setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
 
     FirebaseMessaging.onMessage.listen((message) async {
       print("onMessage: $message");

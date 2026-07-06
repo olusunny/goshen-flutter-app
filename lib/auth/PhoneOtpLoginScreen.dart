@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:sms_autofill/sms_autofill.dart';
 
 import '../utils/Alerts.dart';
 import '../utils/my_colors.dart';
@@ -16,7 +18,8 @@ class PhoneOtpLoginScreen extends StatefulWidget {
   State<PhoneOtpLoginScreen> createState() => _PhoneOtpLoginScreenState();
 }
 
-class _PhoneOtpLoginScreenState extends State<PhoneOtpLoginScreen> {
+class _PhoneOtpLoginScreenState extends State<PhoneOtpLoginScreen>
+    with CodeAutoFill {
   final _dialCodeController = TextEditingController(text: defaultDialCode());
   final _phoneController = TextEditingController();
   final _codeController = TextEditingController();
@@ -26,13 +29,27 @@ class _PhoneOtpLoginScreenState extends State<PhoneOtpLoginScreen> {
   int? _resendToken;
   bool _loading = false;
   bool _codeSent = false;
+  bool _autoVerifying = false;
 
   @override
   void dispose() {
+    cancel();
+    unregisterListener();
     _dialCodeController.dispose();
     _phoneController.dispose();
     _codeController.dispose();
     super.dispose();
+  }
+
+  @override
+  void codeUpdated() {
+    final receivedCode = (code ?? '').trim();
+    if (receivedCode.isEmpty || !_codeSent || _autoVerifying) return;
+
+    _codeController.text = receivedCode;
+    if (receivedCode.length >= 4) {
+      _verifyCode(autoSubmitted: true);
+    }
   }
 
   Future<void> _sendCode() async {
@@ -60,7 +77,7 @@ class _PhoneOtpLoginScreenState extends State<PhoneOtpLoginScreen> {
         timeout: const Duration(seconds: 60),
         forceResendingToken: _resendToken,
         verificationCompleted: (credential) async {
-          await _signInWithCredential(credential);
+          await _signInWithCredential(credential, allowWhileLoading: true);
         },
         verificationFailed: (error) {
           if (!mounted) return;
@@ -80,6 +97,7 @@ class _PhoneOtpLoginScreenState extends State<PhoneOtpLoginScreen> {
             _codeSent = true;
             _loading = false;
           });
+          _listenForIncomingOtp();
         },
         codeAutoRetrievalTimeout: (verificationId) {
           _verificationId = verificationId;
@@ -95,8 +113,15 @@ class _PhoneOtpLoginScreenState extends State<PhoneOtpLoginScreen> {
     }
   }
 
-  Future<void> _verifyCode() async {
-    if (_loading) return;
+  void _listenForIncomingOtp() {
+    try {
+      cancel();
+      listenForCode(smsCodeRegexPattern: r'\d{4,6}');
+    } catch (_) {}
+  }
+
+  Future<void> _verifyCode({bool autoSubmitted = false}) async {
+    if (_loading && !autoSubmitted) return;
     final verificationId = _verificationId;
     final code = _codeController.text.trim();
 
@@ -113,12 +138,23 @@ class _PhoneOtpLoginScreenState extends State<PhoneOtpLoginScreen> {
       verificationId: verificationId,
       smsCode: code,
     );
-    await _signInWithCredential(credential);
+    await _signInWithCredential(
+      credential,
+      allowWhileLoading: autoSubmitted,
+      autoSubmitted: autoSubmitted,
+    );
   }
 
-  Future<void> _signInWithCredential(PhoneAuthCredential credential) async {
-    if (_loading) return;
-    setState(() => _loading = true);
+  Future<void> _signInWithCredential(
+    PhoneAuthCredential credential, {
+    bool allowWhileLoading = false,
+    bool autoSubmitted = false,
+  }) async {
+    if (_loading && !allowWhileLoading) return;
+    setState(() {
+      _loading = true;
+      _autoVerifying = autoSubmitted;
+    });
     try {
       final firebaseUser =
           (await FirebaseAuth.instance.signInWithCredential(credential)).user;
@@ -143,7 +179,12 @@ class _PhoneOtpLoginScreenState extends State<PhoneOtpLoginScreen> {
             'The code could not be verified. Please try again.');
       }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _autoVerifying = false;
+        });
+      }
     }
   }
 
@@ -195,12 +236,39 @@ class _PhoneOtpLoginScreenState extends State<PhoneOtpLoginScreen> {
           ),
           if (_codeSent) ...[
             const SizedBox(height: 14),
-            AuthTextField(
+            TextField(
               controller: _codeController,
-              label: 'SMS code',
-              icon: Icons.sms_outlined,
               keyboardType: TextInputType.number,
               textInputAction: TextInputAction.done,
+              autofillHints: const [AutofillHints.oneTimeCode],
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(6),
+              ],
+              onChanged: (value) {
+                if (value.trim().length >= 6) {
+                  _verifyCode(autoSubmitted: true);
+                }
+              },
+              style: TextStyle(
+                color: isDark ? Colors.white : MyColors.primary,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 3,
+              ),
+              decoration: InputDecoration(
+                labelText:
+                    _autoVerifying ? 'Verifying SMS code...' : 'SMS code',
+                prefixIcon:
+                    const Icon(Icons.sms_outlined, color: Color(0xFFFFB522)),
+                helperText:
+                    'The app will fill and verify the code automatically when possible.',
+                filled: true,
+                fillColor:
+                    isDark ? const Color(0xFF071720) : const Color(0xFFF5F8FA),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
             ),
           ],
           const SizedBox(height: 16),
