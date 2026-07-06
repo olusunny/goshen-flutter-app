@@ -29,6 +29,9 @@ afterEvaluate { project ->
         project.android {
             compileSdkVersion 36
             buildToolsVersion "36.0.0"
+            buildFeatures {
+                buildConfig true
+            }
         }
     }
 }}

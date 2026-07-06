@@ -32,6 +32,7 @@ class Firebase {
   late Function navigateInbox;
   late Function navigateLivestreams;
   late Function navigateEvents;
+  late Function navigateDevotional;
   static String appState = "idle";
 
   Firebase(
@@ -39,11 +40,13 @@ class Firebase {
     Function navigateInbox,
     Function navigateLivestreams,
     Function navigateEvents,
+    Function navigateDevotional,
   ) {
     this.navigateMedia = navigateMedia;
     this.navigateLivestreams = navigateLivestreams;
     this.navigateInbox = navigateInbox;
     this.navigateEvents = navigateEvents;
+    this.navigateDevotional = navigateDevotional;
   }
 
   //updated myBackgroundMessageHandler
@@ -77,6 +80,17 @@ class Firebase {
     });
 
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      if (message.data.isNotEmpty) {
+        onSelect(json.encode(message.data));
+      }
+    });
+
+    FirebaseMessaging.instance.getInitialMessage().then((message) {
+      if (message?.data.isNotEmpty == true) {
+        onSelect(json.encode(message!.data));
+      }
+    }).catchError((_) {});
 
     try {
       final token = await FirebaseMessaging.instance.getToken();
@@ -163,6 +177,12 @@ class Firebase {
       LiveStreams liveStreams = LiveStreams.fromJson(livestream);
       title = liveStreams.description;
       msg = liveStreams.title;
+    }
+
+    if (action == "devotional" || action == "devotionals") {
+      title = "${data['title'] ?? "Today's devotional"}";
+      msg = _stripHtml(data['message'] ?? data['excerpt'] ?? '');
+      if (msg == '') msg = "Open today's devotional reading.";
     }
 
     if (title != "" && msg != "") {
@@ -288,7 +308,27 @@ class Firebase {
       navigateLivestreams(liveStreams);
     }
 
+    if (action == "devotional" || action == "devotionals") {
+      navigateDevotional(_devotionalNavigationData(data));
+    }
+
     return null;
+  }
+
+  Map<String, dynamic> _devotionalNavigationData(Map<String, dynamic> data) {
+    final raw = data['devotional'];
+    if (raw is String && raw.trim().isNotEmpty) {
+      try {
+        final decoded = json.decode(raw);
+        if (decoded is Map<String, dynamic>) return decoded;
+      } catch (_) {}
+    }
+
+    return {
+      if (data['devotional_id'] != null) 'id': data['devotional_id'],
+      if (data['id'] != null) 'id': data['id'],
+      if (data['date'] != null) 'date': data['date'],
+    };
   }
 
   sendFirebaseTokenToServer(String? token) async {

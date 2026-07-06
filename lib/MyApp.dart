@@ -58,6 +58,7 @@ import './livetvplayer/LivestreamsPlayer.dart';
 import './screens/Downloader.dart';
 import './screens/DynamicFormsScreen.dart';
 import './auth/LoginScreen.dart';
+import './auth/PhoneOtpLoginScreen.dart';
 import './audio_player/radio_player.dart';
 import './auth/RegisterScreen.dart';
 import './screens/VideoScreen.dart';
@@ -179,6 +180,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         ));
   }
 
+  navigateDevotional(Map<String, dynamic> data) {
+    navigatorKey.currentState!.pushNamed(
+      DevotionalScreen.routeName,
+      arguments: data,
+    );
+  }
+
   @override
   void initState() {
     Firebase(
@@ -186,6 +194,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       navigateInbox,
       navigateLivestreams,
       navigateEvents,
+      navigateDevotional,
     ).init();
     super.initState();
     WidgetsBinding.instance.addObserver(this);
@@ -845,9 +854,21 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           }
 
           if (settings.name == DevotionalScreen.routeName) {
+            final args = settings.arguments;
+            String? devotionalId;
+            String? devotionalDate;
+            if (args is Map) {
+              devotionalId = '${args['id'] ?? args['devotional_id'] ?? ''}';
+              devotionalDate = '${args['date'] ?? ''}';
+              if (devotionalId.trim().isEmpty) devotionalId = null;
+              if (devotionalDate.trim().isEmpty) devotionalDate = null;
+            }
             return MaterialPageRoute(
               builder: (context) {
-                return DevotionalScreen();
+                return DevotionalScreen(
+                  devotionalId: devotionalId,
+                  initialDate: devotionalDate,
+                );
               },
             );
           }
@@ -931,6 +952,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             return MaterialPageRoute(
               builder: (context) {
                 return LoginScreen();
+              },
+            );
+          }
+
+          if (settings.name == PhoneOtpLoginScreen.routeName) {
+            return MaterialPageRoute(
+              builder: (context) {
+                return const PhoneOtpLoginScreen();
               },
             );
           }

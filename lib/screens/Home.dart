@@ -26,6 +26,7 @@ import '../providers/HomeProvider.dart';
 import '../screens/AudioScreen.dart';
 import '../screens/BibleScreen.dart';
 import '../screens/CategoriesScreen.dart';
+import '../screens/DevotionalScreen.dart';
 import '../screens/DonationAccountsScreen.dart';
 import '../screens/EventsListScreen.dart';
 import '../screens/EventsViewerScreen.dart';
@@ -149,16 +150,19 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                 ),
               ),
-              DailyBibleVerseHomeCard(
-                verse: home.data['verse_of_day'],
-                onTap: () => Navigator.pushNamed(
-                  context,
-                  BibleScreen.routeName,
+              if (home.data['verse_of_day_enabled'] == true)
+                DailyBibleVerseHomeCard(
+                  verse: home.data['verse_of_day'],
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    BibleScreen.routeName,
+                  ),
                 ),
-              ),
               ActivityCenterSection(
                 goshenRetreatEnabled:
                     home.data['goshen_retreat_enabled'] == true,
+                prayerPointsEnabled: home.data['prayer_points_enabled'] == true,
+                devotionalsEnabled: home.data['devotionals_enabled'] == true,
                 onEventsTap: () =>
                     Navigator.pushNamed(context, EventsListScreen.routeName),
                 onNotesTap: () =>
@@ -175,6 +179,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     Navigator.pushNamed(context, GoshenRetreatScreen.routeName),
                 onPrayerPointsTap: () =>
                     Navigator.pushNamed(context, PrayerPointsScreen.routeName),
+                onDevotionalTap: () =>
+                    Navigator.pushNamed(context, DevotionalScreen.routeName),
               ),
               QuickAccessSection(
                 onVideosTap: () =>
@@ -194,22 +200,25 @@ class _MyHomePageState extends State<MyHomePage> {
                     Navigator.pushNamed(context, BibleScreen.routeName),
                 onHymnsTap: () =>
                     Navigator.pushNamed(context, HymnsListScreen.routeName),
+                hymnsEnabled: home.data['hymns_enabled'] == true,
                 onWebsiteTap: () => _openWebsite(context, home.data['website']),
               ),
-              PrayerRequestHomeCard(
-                prayerAvatars: (home.data['prayer_request_avatars'] as List?)
-                        ?.map((item) => '$item')
-                        .where((item) => item.trim().isNotEmpty)
-                        .toList() ??
-                    const [],
-                onPrayerTap: () {
-                  if (user == null) {
-                    showPrayerGuestPrompt(context);
-                    return;
-                  }
-                  Navigator.pushNamed(context, PrayerCommunityScreen.routeName);
-                },
-              ),
+              if (home.data['interactive_prayer_wall_enabled'] == true)
+                PrayerRequestHomeCard(
+                  prayerAvatars: (home.data['prayer_request_avatars'] as List?)
+                          ?.map((item) => '$item')
+                          .where((item) => item.trim().isNotEmpty)
+                          .toList() ??
+                      const [],
+                  onPrayerTap: () {
+                    if (user == null) {
+                      showPrayerGuestPrompt(context);
+                      return;
+                    }
+                    Navigator.pushNamed(
+                        context, PrayerCommunityScreen.routeName);
+                  },
+                ),
               HomeSocialLinksSection(home: home),
             ],
           ),
@@ -1264,7 +1273,10 @@ class ActivityCenterSection extends StatelessWidget {
     required this.onGalleryTap,
     required this.onGoshenRetreatTap,
     required this.onPrayerPointsTap,
+    required this.onDevotionalTap,
     required this.goshenRetreatEnabled,
+    required this.prayerPointsEnabled,
+    required this.devotionalsEnabled,
   }) : super(key: key);
 
   final VoidCallback onEventsTap;
@@ -1274,7 +1286,10 @@ class ActivityCenterSection extends StatelessWidget {
   final VoidCallback onGalleryTap;
   final VoidCallback onGoshenRetreatTap;
   final VoidCallback onPrayerPointsTap;
+  final VoidCallback onDevotionalTap;
   final bool goshenRetreatEnabled;
+  final bool prayerPointsEnabled;
+  final bool devotionalsEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -1316,13 +1331,22 @@ class ActivityCenterSection extends StatelessWidget {
         color: const Color(0xFF2C9B88),
         onTap: onNotesTap,
       ),
-      ActivityCardData(
-        title: 'Prayer Points',
-        subtitle: 'Read current church prayer points',
-        icon: Icons.menu_book_rounded,
-        color: const Color(0xFFFFB625),
-        onTap: onPrayerPointsTap,
-      ),
+      if (devotionalsEnabled)
+        ActivityCardData(
+          title: 'Devotional',
+          subtitle: 'Read today\'s devotional content',
+          icon: Icons.auto_stories_rounded,
+          color: const Color(0xFF2C9B88),
+          onTap: onDevotionalTap,
+        ),
+      if (prayerPointsEnabled)
+        ActivityCardData(
+          title: 'Prayer Points',
+          subtitle: 'Read current church prayer points',
+          icon: Icons.menu_book_rounded,
+          color: const Color(0xFFFFB625),
+          onTap: onPrayerPointsTap,
+        ),
       ActivityCardData(
         title: 'Giving',
         subtitle: 'Give securely through available accounts',
@@ -1460,6 +1484,7 @@ class QuickAccessSection extends StatelessWidget {
     required this.onLivestreamTap,
     required this.onBibleTap,
     required this.onHymnsTap,
+    required this.hymnsEnabled,
     required this.onWebsiteTap,
   }) : super(key: key);
 
@@ -1468,6 +1493,7 @@ class QuickAccessSection extends StatelessWidget {
   final VoidCallback onLivestreamTap;
   final VoidCallback onBibleTap;
   final VoidCallback onHymnsTap;
+  final bool hymnsEnabled;
   final VoidCallback onWebsiteTap;
 
   @override
@@ -1477,7 +1503,8 @@ class QuickAccessSection extends StatelessWidget {
       QuickAccessData('Audios', Icons.headphones_outlined, onAudiosTap),
       QuickAccessData('Livestream', Icons.live_tv_outlined, onLivestreamTap),
       QuickAccessData('Bible', Icons.menu_book_outlined, onBibleTap),
-      QuickAccessData('Hymns', Icons.library_music_outlined, onHymnsTap),
+      if (hymnsEnabled)
+        QuickAccessData('Hymns', Icons.library_music_outlined, onHymnsTap),
       QuickAccessData('Website', Icons.language_outlined, onWebsiteTap),
     ];
 

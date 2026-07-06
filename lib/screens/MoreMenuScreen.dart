@@ -14,6 +14,7 @@ import '../screens/AboutUsScreen.dart';
 import '../screens/BookmarkScreen.dart';
 import '../screens/ContactUsScreen.dart';
 import '../screens/DonationAccountsScreen.dart';
+import '../screens/DevotionalScreen.dart';
 import '../screens/Downloader.dart';
 import '../screens/DynamicFormsScreen.dart';
 import '../screens/GalleryScreen.dart';
@@ -24,6 +25,7 @@ import '../screens/GoshenScannerManagerScreen.dart';
 import '../screens/GoshenRetreatScreen.dart';
 import '../screens/GoshenWalletScreen.dart';
 import '../screens/GroupsScreen.dart';
+import '../screens/HymnsListScreen.dart';
 import '../screens/ManageGroupsScreen.dart';
 import '../screens/PastorsScreen.dart';
 import '../screens/PlaylistsScreen.dart';
@@ -46,6 +48,13 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
   bool _testimoniesEnabled = false;
   bool _goshenRetreatEnabled = false;
   bool _fundraisingEnabled = false;
+  bool _prayerPointsEnabled = true;
+  bool _interactivePrayerWallEnabled = true;
+  bool _hymnsEnabled = true;
+  bool _devotionalsEnabled = true;
+  bool _churchGroupsEnabled = true;
+  bool _dynamicFormsEnabled = true;
+  bool _goshenQuizEnabled = true;
   bool _scannerManagerEnabled = false;
   bool _scannerConsoleEnabled = false;
 
@@ -80,12 +89,27 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
         (_testimoniesEnabled != snapshot.testimoniesEnabled ||
             _goshenRetreatEnabled != snapshot.goshenRetreatEnabled ||
             _fundraisingEnabled != snapshot.fundraisingEnabled ||
+            _prayerPointsEnabled != snapshot.prayerPointsEnabled ||
+            _interactivePrayerWallEnabled !=
+                snapshot.interactivePrayerWallEnabled ||
+            _hymnsEnabled != snapshot.hymnsEnabled ||
+            _devotionalsEnabled != snapshot.devotionalsEnabled ||
+            _churchGroupsEnabled != snapshot.churchGroupsEnabled ||
+            _dynamicFormsEnabled != snapshot.dynamicFormsEnabled ||
+            _goshenQuizEnabled != snapshot.goshenQuizEnabled ||
             _scannerManagerEnabled != snapshot.scannerManagerEnabled ||
             _scannerConsoleEnabled != snapshot.scannerConsoleEnabled)) {
       setState(() {
         _testimoniesEnabled = snapshot.testimoniesEnabled;
         _goshenRetreatEnabled = snapshot.goshenRetreatEnabled;
         _fundraisingEnabled = snapshot.fundraisingEnabled;
+        _prayerPointsEnabled = snapshot.prayerPointsEnabled;
+        _interactivePrayerWallEnabled = snapshot.interactivePrayerWallEnabled;
+        _hymnsEnabled = snapshot.hymnsEnabled;
+        _devotionalsEnabled = snapshot.devotionalsEnabled;
+        _churchGroupsEnabled = snapshot.churchGroupsEnabled;
+        _dynamicFormsEnabled = snapshot.dynamicFormsEnabled;
+        _goshenQuizEnabled = snapshot.goshenQuizEnabled;
         _scannerManagerEnabled = snapshot.scannerManagerEnabled;
         _scannerConsoleEnabled = snapshot.scannerConsoleEnabled;
       });
@@ -147,9 +171,10 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
       _MoreMenuItem('Giving', Icons.volunteer_activism_outlined,
           () => Navigator.pushNamed(context, DonationAccountsScreen.routeName),
           accent: const Color(0xFFE1A63B)),
-      _MoreMenuItem('Forms', Icons.dynamic_form_rounded,
-          () => Navigator.pushNamed(context, DynamicFormsScreen.routeName),
-          accent: const Color(0xFF2C9B88)),
+      if (_dynamicFormsEnabled)
+        _MoreMenuItem('Forms', Icons.dynamic_form_rounded,
+            () => Navigator.pushNamed(context, DynamicFormsScreen.routeName),
+            accent: const Color(0xFF2C9B88)),
       if (_fundraisingEnabled)
         _MoreMenuItem('Project support', Icons.campaign_rounded,
             () => Navigator.pushNamed(context, FundraisingScreen.routeName),
@@ -169,7 +194,7 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
             () =>
                 Navigator.pushNamed(context, GoshenExperienceScreen.routeName),
             accent: const Color(0xFF2C9B88)),
-      if (_goshenRetreatEnabled && user != null)
+      if (_goshenRetreatEnabled && _goshenQuizEnabled && user != null)
         _MoreMenuItem('Goshen Quiz', Icons.quiz_rounded,
             () => Navigator.pushNamed(context, GoshenQuizScreen.routeName),
             accent: const Color(0xFFFFC857)),
@@ -195,23 +220,34 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
                   ),
                 ),
             accent: const Color(0xFFFFC857)),
+      if (_devotionalsEnabled)
+        _MoreMenuItem('Devotional', Icons.auto_stories_rounded,
+            () => Navigator.pushNamed(context, DevotionalScreen.routeName),
+            accent: const Color(0xFFFFC857)),
+      if (_hymnsEnabled)
+        _MoreMenuItem('Hymns', Icons.library_music_outlined,
+            () => Navigator.pushNamed(context, HymnsListScreen.routeName),
+            accent: const Color(0xFF2C9B88)),
       _MoreMenuItem(t.myplaylists, Icons.playlist_play_rounded,
           () => Navigator.pushNamed(context, PlaylistsScreen.routeName)),
       _MoreMenuItem(t.bookmarks, Icons.collections_bookmark_outlined,
           () => Navigator.pushNamed(context, BookmarksScreen.routeName)),
-      _MoreMenuItem('Prayer Points', Icons.menu_book_rounded,
-          () => Navigator.pushNamed(context, PrayerPointsScreen.routeName),
-          accent: const Color(0xFFFFC857)),
-      _MoreMenuItem('Interactive Prayer Wall',
-          Icons.volunteer_activism_outlined, () => _openPrayer(context)),
+      if (_prayerPointsEnabled)
+        _MoreMenuItem('Prayer Points', Icons.menu_book_rounded,
+            () => Navigator.pushNamed(context, PrayerPointsScreen.routeName),
+            accent: const Color(0xFFFFC857)),
+      if (_interactivePrayerWallEnabled)
+        _MoreMenuItem('Interactive Prayer Wall',
+            Icons.volunteer_activism_outlined, () => _openPrayer(context)),
       if (_testimoniesEnabled)
         _MoreMenuItem('Testimonies & Thanksgiving', Icons.auto_awesome_rounded,
             () => Navigator.pushNamed(context, TestimonyWallScreen.routeName),
             accent: const Color(0xFFFFC857)),
       _MoreMenuItem('Church Pastors', Icons.groups_2_outlined,
           () => Navigator.pushNamed(context, PastorsScreen.routeName)),
-      _MoreMenuItem('Church Groups', Icons.diversity_3_outlined,
-          () => Navigator.pushNamed(context, GroupsScreen.routeName)),
+      if (_churchGroupsEnabled)
+        _MoreMenuItem('Church Groups', Icons.diversity_3_outlined,
+            () => Navigator.pushNamed(context, GroupsScreen.routeName)),
       if (user?.canManageChurchGroups == true)
         _MoreMenuItem('Manage Groups', Icons.admin_panel_settings_outlined,
             () => Navigator.pushNamed(context, ManageGroupsScreen.routeName),

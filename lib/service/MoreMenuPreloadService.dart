@@ -18,6 +18,13 @@ class MoreMenuPreloadSnapshot {
     required this.testimoniesEnabled,
     required this.goshenRetreatEnabled,
     required this.fundraisingEnabled,
+    required this.prayerPointsEnabled,
+    required this.interactivePrayerWallEnabled,
+    required this.hymnsEnabled,
+    required this.devotionalsEnabled,
+    required this.churchGroupsEnabled,
+    required this.dynamicFormsEnabled,
+    required this.goshenQuizEnabled,
     required this.scannerManagerEnabled,
     required this.scannerConsoleEnabled,
     required this.warmedAt,
@@ -26,6 +33,13 @@ class MoreMenuPreloadSnapshot {
   final bool testimoniesEnabled;
   final bool goshenRetreatEnabled;
   final bool fundraisingEnabled;
+  final bool prayerPointsEnabled;
+  final bool interactivePrayerWallEnabled;
+  final bool hymnsEnabled;
+  final bool devotionalsEnabled;
+  final bool churchGroupsEnabled;
+  final bool dynamicFormsEnabled;
+  final bool goshenQuizEnabled;
   final bool scannerManagerEnabled;
   final bool scannerConsoleEnabled;
   final DateTime warmedAt;
@@ -90,6 +104,22 @@ class MoreMenuPreloadService {
         _snapshot?.goshenRetreatEnabled == true;
     var fundraisingEnabled = homeData?['fundraising_enabled'] == true ||
         _snapshot?.fundraisingEnabled == true;
+    var prayerPointsEnabled = _readModuleFlag(
+        homeData, 'prayer_points_enabled', _snapshot?.prayerPointsEnabled);
+    var interactivePrayerWallEnabled = _readModuleFlag(
+        homeData,
+        'interactive_prayer_wall_enabled',
+        _snapshot?.interactivePrayerWallEnabled);
+    var hymnsEnabled =
+        _readModuleFlag(homeData, 'hymns_enabled', _snapshot?.hymnsEnabled);
+    var devotionalsEnabled = _readModuleFlag(
+        homeData, 'devotionals_enabled', _snapshot?.devotionalsEnabled);
+    var churchGroupsEnabled = _readModuleFlag(
+        homeData, 'church_groups_enabled', _snapshot?.churchGroupsEnabled);
+    var dynamicFormsEnabled = _readModuleFlag(
+        homeData, 'dynamic_forms_enabled', _snapshot?.dynamicFormsEnabled);
+    var goshenQuizEnabled = _readModuleFlag(
+        homeData, 'goshen_quiz_enabled', _snapshot?.goshenQuizEnabled);
     var scannerManagerEnabled = _snapshot?.scannerManagerEnabled ?? false;
     var scannerConsoleEnabled = _snapshot?.scannerConsoleEnabled ?? false;
 
@@ -126,15 +156,21 @@ class MoreMenuPreloadService {
         testimonyApi.fetchTestimonies().then((_) {}).catchError((_) {}),
       if (fundraisingEnabled)
         fundraisingApi.fetchActiveCampaign().then((_) {}).catchError((_) {}),
-      DynamicFormApi(dio: dio).fetchForms(user).then((_) {}).catchError((_) {}),
-      PrayerApiClient(dio: dio)
-          .fetchPrayerFeed(user: user)
-          .then((_) {})
-          .catchError((_) {}),
-      PrayerApiClient(dio: dio)
-          .fetchActivePropheticDecree()
-          .then((_) {})
-          .catchError((_) {}),
+      if (dynamicFormsEnabled)
+        DynamicFormApi(dio: dio)
+            .fetchForms(user)
+            .then((_) {})
+            .catchError((_) {}),
+      if (interactivePrayerWallEnabled)
+        PrayerApiClient(dio: dio)
+            .fetchPrayerFeed(user: user)
+            .then((_) {})
+            .catchError((_) {}),
+      if (interactivePrayerWallEnabled)
+        PrayerApiClient(dio: dio)
+            .fetchActivePropheticDecree()
+            .then((_) {})
+            .catchError((_) {}),
     ];
 
     if (goshenRetreatEnabled) {
@@ -160,6 +196,13 @@ class MoreMenuPreloadService {
       testimoniesEnabled: testimoniesEnabled,
       goshenRetreatEnabled: goshenRetreatEnabled,
       fundraisingEnabled: fundraisingEnabled,
+      prayerPointsEnabled: prayerPointsEnabled,
+      interactivePrayerWallEnabled: interactivePrayerWallEnabled,
+      hymnsEnabled: hymnsEnabled,
+      devotionalsEnabled: devotionalsEnabled,
+      churchGroupsEnabled: churchGroupsEnabled,
+      dynamicFormsEnabled: dynamicFormsEnabled,
+      goshenQuizEnabled: goshenQuizEnabled,
       scannerManagerEnabled: scannerManagerEnabled,
       scannerConsoleEnabled: scannerConsoleEnabled,
       warmedAt: DateTime.now(),
@@ -182,5 +225,17 @@ class MoreMenuPreloadService {
         'superadmin',
       }.contains(role),
     );
+  }
+
+  bool _readModuleFlag(
+    Map<String, dynamic>? data,
+    String key,
+    bool? previous,
+  ) {
+    final value = data?[key];
+    if (value == null) return previous ?? true;
+    if (value is bool) return value;
+    final text = value.toString().toLowerCase().trim();
+    return text == '1' || text == 'true' || text == 'yes' || text == 'on';
   }
 }

@@ -14,7 +14,12 @@ import 'package:intl/intl.dart';
 import '../i18n/strings.g.dart';
 
 class DevotionalScreen extends StatefulWidget {
+  const DevotionalScreen({Key? key, this.devotionalId, this.initialDate})
+      : super(key: key);
+
   static const routeName = "/devotionals";
+  final String? devotionalId;
+  final String? initialDate;
 
   @override
   _DevotionalScreenState createState() => _DevotionalScreenState();
@@ -43,6 +48,9 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
 
   @override
   void initState() {
+    if ((widget.initialDate ?? '').trim().isNotEmpty) {
+      selectedDate = DateTime.tryParse(widget.initialDate!) ?? selectedDate;
+    }
     _selecteddate = DateFormat('yyyy-MM-dd').format(selectedDate);
     super.initState();
   }
@@ -130,6 +138,7 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
         child: SingleChildScrollView(
           child: DevotionalsPageBody(
             key: UniqueKey(),
+            devotionalId: widget.devotionalId,
             date: _selecteddate,
             dateTime: selectedDate,
           ),
@@ -140,8 +149,10 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
 }
 
 class DevotionalsPageBody extends StatefulWidget {
-  const DevotionalsPageBody({Key? key, this.date, this.dateTime})
+  const DevotionalsPageBody(
+      {Key? key, this.devotionalId, this.date, this.dateTime})
       : super(key: key);
+  final String? devotionalId;
   final String? date;
   final DateTime? dateTime;
 
@@ -162,11 +173,16 @@ class _BranchesPageBodyState extends State<DevotionalsPageBody> {
     try {
       final dio = Dio();
 
+      final payload = <String, dynamic>{};
+      if ((widget.devotionalId ?? '').trim().isNotEmpty) {
+        payload['id'] = widget.devotionalId!.trim();
+      } else {
+        payload['date'] = widget.date;
+      }
+
       final response = await dio.post(
         ApiUrl.DEVOTIONALS,
-        data: jsonEncode({
-          "data": {"date": widget.date}
-        }),
+        data: jsonEncode({"data": payload}),
       );
 
       if (response.statusCode == 200) {
@@ -176,7 +192,13 @@ class _BranchesPageBodyState extends State<DevotionalsPageBody> {
         print(res);
         setState(() {
           isLoading = false;
-          devotionals = Devotionals.fromJson(res['devotional']);
+          if (res['status'] == 'error' || res['devotional'] == null) {
+            isError = true;
+            devotionals = null;
+          } else {
+            devotionals = Devotionals.fromJson(
+                Map<String, dynamic>.from(res['devotional']));
+          }
           print(widget.date);
           print(devotionals);
         });
@@ -233,17 +255,22 @@ class _BranchesPageBodyState extends State<DevotionalsPageBody> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
-            Text(devotionals!.title!,
+            Text(
+                (devotionals!.title ?? '').trim().isEmpty
+                    ? t.devotionals
+                    : devotionals!.title!,
                 textAlign: TextAlign.center,
                 style: TextStyles.headline(context)
                     .copyWith(fontWeight: FontWeight.bold)),
             Container(height: 5),
-            Text(devotionals!.author!,
-                textAlign: TextAlign.start,
-                style: TextStyles.subhead(context)
-                    .copyWith(fontWeight: FontWeight.w500, fontSize: 18)),
-            Divider(height: 5),
-            Text(DateFormat('EEE, MMM d, yyyy').format(widget.dateTime!),
+            if ((devotionals!.author ?? '').trim().isNotEmpty) ...[
+              Text(devotionals!.author!,
+                  textAlign: TextAlign.start,
+                  style: TextStyles.subhead(context)
+                      .copyWith(fontWeight: FontWeight.w500, fontSize: 18)),
+              Divider(height: 5),
+            ],
+            Text(_formattedDate(),
                 textAlign: TextAlign.justify,
                 style: TextStyles.subhead(context).copyWith(fontSize: 16)),
             Container(height: 20),
@@ -253,7 +280,7 @@ class _BranchesPageBodyState extends State<DevotionalsPageBody> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(0),
                 child: CachedNetworkImage(
-                  imageUrl: devotionals!.thumbnail!,
+                  imageUrl: devotionals!.thumbnail ?? '',
                   imageBuilder: (context, imageProvider) => Container(
                     decoration: BoxDecoration(
                       image: DecorationImage(
@@ -277,31 +304,42 @@ class _BranchesPageBodyState extends State<DevotionalsPageBody> {
               ),
             ),
             Container(height: 20),
+            if ((devotionals!.biblereading ?? '').trim().isNotEmpty) ...[
+              HtmlWidget(
+                devotionals!.biblereading!,
+                textStyle: TextStyles.medium(context).copyWith(fontSize: 17),
+              ),
+              Container(height: 20),
+            ],
             HtmlWidget(
-              devotionals!.biblereading!,
-              //webView: false,
-              textStyle: TextStyles.medium(context).copyWith(fontSize: 17),
-            ),
-            Container(height: 20),
-            HtmlWidget(
-              devotionals!.content!,
-              //webView: false,
-              textStyle: TextStyles.medium(context).copyWith(fontSize: 20),
-            ),
-            Container(height: 20),
-            HtmlWidget(
-              devotionals!.confession!,
+              (devotionals!.content ?? '').trim().isEmpty
+                  ? (devotionals!.excerpt ?? '')
+                  : devotionals!.content!,
               //webView: false,
               textStyle: TextStyles.medium(context).copyWith(fontSize: 20),
             ),
-            Container(height: 20),
-            HtmlWidget(
-              devotionals!.studies!,
-              //webView: false,
-              textStyle: TextStyles.medium(context).copyWith(fontSize: 20),
-            ),
+            if ((devotionals!.confession ?? '').trim().isNotEmpty) ...[
+              Container(height: 20),
+              HtmlWidget(
+                devotionals!.confession!,
+                textStyle: TextStyles.medium(context).copyWith(fontSize: 20),
+              ),
+            ],
+            if ((devotionals!.studies ?? '').trim().isNotEmpty) ...[
+              Container(height: 20),
+              HtmlWidget(
+                devotionals!.studies!,
+                textStyle: TextStyles.medium(context).copyWith(fontSize: 20),
+              ),
+            ],
           ],
         ),
       );
+  }
+
+  String _formattedDate() {
+    final devotionalDate = DateTime.tryParse(devotionals?.date ?? '');
+    final date = devotionalDate ?? widget.dateTime ?? DateTime.now();
+    return DateFormat('EEE, MMM d, yyyy').format(date);
   }
 }

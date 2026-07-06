@@ -17,12 +17,14 @@ class GoogleAuthConfig {
     this.webClientId = '',
     this.androidClientId = '',
     this.iosClientId = '',
+    this.phoneLoginEnabled = false,
   });
 
   final bool enabled;
   final String webClientId;
   final String androidClientId;
   final String iosClientId;
+  final bool phoneLoginEnabled;
 
   factory GoogleAuthConfig.fromJson(Map<String, dynamic> json) {
     return GoogleAuthConfig(
@@ -30,6 +32,7 @@ class GoogleAuthConfig {
       webClientId: (json['google_web_client_id'] ?? '').toString(),
       androidClientId: (json['google_android_client_id'] ?? '').toString(),
       iosClientId: (json['google_ios_client_id'] ?? '').toString(),
+      phoneLoginEnabled: _readBool(json['mobile_phone_otp_login_enabled']),
     );
   }
 

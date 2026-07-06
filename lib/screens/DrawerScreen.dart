@@ -15,6 +15,7 @@ import '../prayers/prayer_guest_prompt.dart';
 import '../providers/AppStateManager.dart';
 import '../providers/HomeProvider.dart';
 import '../screens/AboutUsScreen.dart';
+import '../screens/DevotionalScreen.dart';
 import '../screens/GoshenRetreatScreen.dart';
 import '../screens/GroupsScreen.dart';
 import '../screens/ManageGroupsScreen.dart';
@@ -23,6 +24,7 @@ import '../service/MoreMenuPreloadService.dart';
 import '../socials/Settings.dart';
 import '../socials/UpdateUserProfile.dart';
 import '../testimonies/testimony_wall_screen.dart';
+import '../prayers/prayer_points_screen.dart';
 import '../utils/ApiUrl.dart';
 import '../utils/app_themes.dart';
 import '../utils/langs.dart';
@@ -41,6 +43,10 @@ class _DrawerScreenState extends State<DrawerScreen> {
   Userdata? userdata;
   bool _testimoniesEnabled = false;
   bool _goshenRetreatEnabled = false;
+  bool _prayerPointsEnabled = true;
+  bool _interactivePrayerWallEnabled = true;
+  bool _devotionalsEnabled = true;
+  bool _churchGroupsEnabled = true;
 
   @override
   void initState() {
@@ -84,6 +90,15 @@ class _DrawerScreenState extends State<DrawerScreen> {
     _setFeatureFlags(
       testimoniesEnabled: testimoniesEnabled,
       goshenRetreatEnabled: goshenRetreatEnabled,
+      prayerPointsEnabled:
+          _readFlag(data['prayer_points_enabled'], _prayerPointsEnabled),
+      interactivePrayerWallEnabled: _readFlag(
+          data['interactive_prayer_wall_enabled'],
+          _interactivePrayerWallEnabled),
+      devotionalsEnabled:
+          _readFlag(data['devotionals_enabled'], _devotionalsEnabled),
+      churchGroupsEnabled:
+          _readFlag(data['church_groups_enabled'], _churchGroupsEnabled),
       notify: notify,
     );
   }
@@ -93,6 +108,10 @@ class _DrawerScreenState extends State<DrawerScreen> {
     _setFeatureFlags(
       testimoniesEnabled: snapshot.testimoniesEnabled,
       goshenRetreatEnabled: snapshot.goshenRetreatEnabled,
+      prayerPointsEnabled: snapshot.prayerPointsEnabled,
+      interactivePrayerWallEnabled: snapshot.interactivePrayerWallEnabled,
+      devotionalsEnabled: snapshot.devotionalsEnabled,
+      churchGroupsEnabled: snapshot.churchGroupsEnabled,
       notify: notify,
     );
   }
@@ -100,14 +119,26 @@ class _DrawerScreenState extends State<DrawerScreen> {
   void _setFeatureFlags({
     required bool testimoniesEnabled,
     required bool goshenRetreatEnabled,
+    required bool prayerPointsEnabled,
+    required bool interactivePrayerWallEnabled,
+    required bool devotionalsEnabled,
+    required bool churchGroupsEnabled,
     required bool notify,
   }) {
     if (mounted &&
         (_testimoniesEnabled != testimoniesEnabled ||
-            _goshenRetreatEnabled != goshenRetreatEnabled)) {
+            _goshenRetreatEnabled != goshenRetreatEnabled ||
+            _prayerPointsEnabled != prayerPointsEnabled ||
+            _interactivePrayerWallEnabled != interactivePrayerWallEnabled ||
+            _devotionalsEnabled != devotionalsEnabled ||
+            _churchGroupsEnabled != churchGroupsEnabled)) {
       void update() {
         _testimoniesEnabled = testimoniesEnabled;
         _goshenRetreatEnabled = goshenRetreatEnabled;
+        _prayerPointsEnabled = prayerPointsEnabled;
+        _interactivePrayerWallEnabled = interactivePrayerWallEnabled;
+        _devotionalsEnabled = devotionalsEnabled;
+        _churchGroupsEnabled = churchGroupsEnabled;
       }
 
       if (notify) {
@@ -116,6 +147,13 @@ class _DrawerScreenState extends State<DrawerScreen> {
         update();
       }
     }
+  }
+
+  bool _readFlag(dynamic value, bool fallback) {
+    if (value == null) return fallback;
+    if (value is bool) return value;
+    final text = value.toString().toLowerCase().trim();
+    return text == '1' || text == 'true' || text == 'yes' || text == 'on';
   }
 
   @override
@@ -211,10 +249,23 @@ class _DrawerScreenState extends State<DrawerScreen> {
               _DrawerSection(
                 card: card,
                 children: [
-                  _DrawerTile(
-                      icon: Icons.volunteer_activism_outlined,
-                      title: 'Interactive Prayer Wall',
-                      onTap: _openPrayerCommunity),
+                  if (_interactivePrayerWallEnabled)
+                    _DrawerTile(
+                        icon: Icons.volunteer_activism_outlined,
+                        title: 'Interactive Prayer Wall',
+                        onTap: _openPrayerCommunity),
+                  if (_prayerPointsEnabled)
+                    _DrawerTile(
+                        icon: Icons.menu_book_rounded,
+                        title: 'Prayer Points',
+                        onTap: () => Navigator.pushNamed(
+                            context, PrayerPointsScreen.routeName)),
+                  if (_devotionalsEnabled)
+                    _DrawerTile(
+                        icon: Icons.auto_stories_rounded,
+                        title: 'Devotional',
+                        onTap: () => Navigator.pushNamed(
+                            context, DevotionalScreen.routeName)),
                   if (_goshenRetreatEnabled)
                     _DrawerTile(
                         icon: Icons.event_available_rounded,
@@ -227,11 +278,12 @@ class _DrawerScreenState extends State<DrawerScreen> {
                         title: 'Testimonies & Thanksgiving',
                         onTap: () => Navigator.pushNamed(
                             context, TestimonyWallScreen.routeName)),
-                  _DrawerTile(
-                      icon: Icons.diversity_3_outlined,
-                      title: 'Church Groups',
-                      onTap: () =>
-                          Navigator.pushNamed(context, GroupsScreen.routeName)),
+                  if (_churchGroupsEnabled)
+                    _DrawerTile(
+                        icon: Icons.diversity_3_outlined,
+                        title: 'Church Groups',
+                        onTap: () => Navigator.pushNamed(
+                            context, GroupsScreen.routeName)),
                   if (userdata?.canManageChurchGroups == true)
                     _DrawerTile(
                         icon: Icons.admin_panel_settings_outlined,

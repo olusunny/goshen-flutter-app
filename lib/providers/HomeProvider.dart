@@ -40,6 +40,19 @@ class HomeProvider with ChangeNotifier {
     "testimonies_count": 0,
     "goshen_retreat_enabled": false,
     "fundraising_enabled": false,
+    "prayer_points_enabled": true,
+    "interactive_prayer_wall_enabled": true,
+    "hymns_enabled": true,
+    "devotionals_enabled": true,
+    "verse_of_day_enabled": true,
+    "transportation_arrangements_enabled": true,
+    "church_groups_enabled": true,
+    "dynamic_forms_enabled": true,
+    "goshen_quiz_enabled": true,
+    "goshen_wallet_withdrawals_enabled": true,
+    "goshen_wallet_auto_topup_enabled": true,
+    "branches_enabled": true,
+    "mobile_phone_otp_login_enabled": false,
     "inbox": 0,
     "inbox_latest_ids": [],
   };
@@ -114,14 +127,42 @@ class HomeProvider with ChangeNotifier {
         data['mixlr_page'] = res['mixlr_page'] ?? "";
         data['whatsapp_page'] = res['whatsapp_page'] ?? "";
         data['twitter_page'] = res['twitter_page'] ?? "";
-        data['verse_of_day'] = res['verse_of_day'];
+        data['mobile_phone_otp_login_enabled'] =
+            _readBool(res['mobile_phone_otp_login_enabled']);
+        data['prayer_points_enabled'] =
+            _readBool(res['prayer_points_enabled'], fallback: true);
+        data['interactive_prayer_wall_enabled'] =
+            _readBool(res['interactive_prayer_wall_enabled'], fallback: true);
+        data['hymns_enabled'] = _readBool(res['hymns_enabled'], fallback: true);
+        data['devotionals_enabled'] =
+            _readBool(res['devotionals_enabled'], fallback: true);
+        data['verse_of_day_enabled'] =
+            _readBool(res['verse_of_day_enabled'], fallback: true);
+        data['transportation_arrangements_enabled'] = _readBool(
+            res['transportation_arrangements_enabled'],
+            fallback: true);
+        data['church_groups_enabled'] =
+            _readBool(res['church_groups_enabled'], fallback: true);
+        data['dynamic_forms_enabled'] =
+            _readBool(res['dynamic_forms_enabled'], fallback: true);
+        data['goshen_quiz_enabled'] =
+            _readBool(res['goshen_quiz_enabled'], fallback: true);
+        data['goshen_wallet_withdrawals_enabled'] =
+            _readBool(res['goshen_wallet_withdrawals_enabled'], fallback: true);
+        data['goshen_wallet_auto_topup_enabled'] =
+            _readBool(res['goshen_wallet_auto_topup_enabled'], fallback: true);
+        data['branches_enabled'] =
+            _readBool(res['branches_enabled'], fallback: true);
+        data['verse_of_day'] =
+            data['verse_of_day_enabled'] == true ? res['verse_of_day'] : null;
         data['prayer_requests_count'] = res['prayer_requests_count'] ?? 0;
         data['prayer_request_avatars'] = res['prayer_request_avatars'] ?? [];
         data['testimonies_enabled'] = res['testimonies_enabled'] == true;
         data['testimonies_count'] = res['testimonies_count'] ?? 0;
         data['goshen_retreat_enabled'] = await _fetchGoshenRetreatFlag(dio);
         data['fundraising_enabled'] =
-            await FundraisingApi(dio: dio).hasActiveCampaign();
+            _readBool(res['fundraising_enabled'], fallback: true) &&
+                await FundraisingApi(dio: dio).hasActiveCampaign();
         data['inbox_latest_ids'] = (res['inbox_latest_ids'] as List?) ?? [];
         data['inbox'] =
             await InboxReadStore.unreadCount(data['inbox_latest_ids'] as List);
@@ -177,5 +218,12 @@ class HomeProvider with ChangeNotifier {
     isError = true;
     isLoading = false;
     notifyListeners();
+  }
+
+  static bool _readBool(dynamic value, {bool fallback = false}) {
+    if (value == null) return fallback;
+    if (value is bool) return value;
+    final text = value.toString().toLowerCase().trim();
+    return text == '1' || text == 'true' || text == 'yes' || text == 'on';
   }
 }

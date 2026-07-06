@@ -12,6 +12,7 @@ import '../utils/Alerts.dart';
 import '../utils/ApiUrl.dart';
 import '../utils/my_colors.dart';
 import 'ForgotPasswordScreen.dart';
+import 'PhoneOtpLoginScreen.dart';
 import 'RegisterScreen.dart';
 import 'VerifyEmailScreen.dart';
 import 'auth_ui.dart';
@@ -29,6 +30,7 @@ class LoginScreenRouteState extends State<LoginScreen> {
   final passwordController = TextEditingController();
   final googleAuth = GoogleAuthService();
   bool googleEnabled = false;
+  bool phoneEnabled = false;
   bool googleLoading = false;
 
   @override
@@ -41,10 +43,16 @@ class LoginScreenRouteState extends State<LoginScreen> {
     try {
       final config = await googleAuth.fetchConfig();
       if (!mounted) return;
-      setState(() => googleEnabled = config.enabled);
+      setState(() {
+        googleEnabled = config.enabled;
+        phoneEnabled = config.phoneLoginEnabled;
+      });
     } catch (_) {
       if (!mounted) return;
-      setState(() => googleEnabled = false);
+      setState(() {
+        googleEnabled = false;
+        phoneEnabled = false;
+      });
     }
   }
 
@@ -214,9 +222,19 @@ class LoginScreenRouteState extends State<LoginScreen> {
           ),
           if (googleEnabled) ...[
             const SizedBox(height: 12),
-            _GoogleAuthButton(
+            _SecondaryAuthButton(
               label: googleLoading ? 'Connecting...' : 'Continue with Google',
+              icon: Icons.g_mobiledata_rounded,
               onPressed: googleLoading ? null : _signInWithGoogle,
+            ),
+          ],
+          if (phoneEnabled) ...[
+            const SizedBox(height: 12),
+            _SecondaryAuthButton(
+              label: 'Continue with phone',
+              icon: Icons.phone_iphone_rounded,
+              onPressed: () => Navigator.of(context)
+                  .pushNamed(PhoneOtpLoginScreen.routeName),
             ),
           ],
           const SizedBox(height: 14),
@@ -235,10 +253,15 @@ class LoginScreenRouteState extends State<LoginScreen> {
   }
 }
 
-class _GoogleAuthButton extends StatelessWidget {
-  const _GoogleAuthButton({required this.label, required this.onPressed});
+class _SecondaryAuthButton extends StatelessWidget {
+  const _SecondaryAuthButton({
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+  });
 
   final String label;
+  final IconData icon;
   final VoidCallback? onPressed;
 
   @override
@@ -249,7 +272,7 @@ class _GoogleAuthButton extends StatelessWidget {
       height: 54,
       child: OutlinedButton.icon(
         onPressed: onPressed,
-        icon: const Icon(Icons.g_mobiledata_rounded, size: 30),
+        icon: Icon(icon, size: icon == Icons.g_mobiledata_rounded ? 30 : 22),
         label: Text(label),
         style: OutlinedButton.styleFrom(
           foregroundColor: isDark ? Colors.white : MyColors.primary,

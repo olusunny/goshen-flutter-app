@@ -249,6 +249,7 @@ class ApiUrl {
   static const String LOGIN = BASEURL + "loginUser";
   static const String SYNC_MOBILE_SESSION = BASEURL + "syncMobileSession";
   static const String GOOGLE_AUTH = BASEURL + "googleAuth";
+  static const String PHONE_AUTH = BASEURL + "phoneAuth";
   static const String VERIFY_EMAIL = BASEURL + "verifyMobileEmail";
   static const String RESEND_VERIFICATION =
       BASEURL + "resendMobileVerification";

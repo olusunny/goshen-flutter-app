@@ -7,6 +7,7 @@ import '../models/GoshenWallet.dart';
 import '../models/ScreenArguements.dart';
 import '../models/Userdata.dart';
 import '../providers/AppStateManager.dart';
+import '../providers/HomeProvider.dart';
 import '../service/GoshenWalletApi.dart';
 import '../screens/GoshenWalletTransferScreen.dart';
 import '../utils/my_colors.dart';
@@ -77,6 +78,11 @@ class _GoshenWalletScreenState extends State<GoshenWalletScreen> {
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<AppStateManager>(context).userdata;
+    final homeData = Provider.of<HomeProvider>(context).data;
+    final autoTopUpEnabled =
+        _featureEnabled(homeData['goshen_wallet_auto_topup_enabled']);
+    final withdrawalEnabled =
+        _featureEnabled(homeData['goshen_wallet_withdrawals_enabled']);
     final palette = _WalletPalette.of(context);
 
     return Scaffold(
@@ -146,39 +152,43 @@ class _GoshenWalletScreenState extends State<GoshenWalletScreen> {
                         saving: _saving,
                         onApply: () => _redeemVoucher(user),
                       ),
-                      const SizedBox(height: 16),
-                      _SavingsPlanCard(
-                        wallet: wallet,
-                        palette: palette,
-                        amountController: _planAmountController,
-                        cyclesController: _planCyclesController,
-                        frequency: _frequency,
-                        editingPlanId: _editingPlanId,
-                        saving: _saving,
-                        onFrequencyChanged: (value) =>
-                            setState(() => _frequency = value),
-                        onSave: () => _saveSavingsPlan(user, wallet),
-                        onNewPlan: _clearPlanEditor,
-                        onEdit: _editSavingsPlan,
-                        onSetup: (plan) =>
-                            _setupSavingsPlan(user, wallet, plan),
-                        onToggle: (plan, active) =>
-                            _toggleSavingsPlan(user, wallet, plan, active),
-                        onCancel: (plan) =>
-                            _cancelSavingsPlan(user, wallet, plan),
-                      ),
+                      if (autoTopUpEnabled) ...[
+                        const SizedBox(height: 16),
+                        _SavingsPlanCard(
+                          wallet: wallet,
+                          palette: palette,
+                          amountController: _planAmountController,
+                          cyclesController: _planCyclesController,
+                          frequency: _frequency,
+                          editingPlanId: _editingPlanId,
+                          saving: _saving,
+                          onFrequencyChanged: (value) =>
+                              setState(() => _frequency = value),
+                          onSave: () => _saveSavingsPlan(user, wallet),
+                          onNewPlan: _clearPlanEditor,
+                          onEdit: _editSavingsPlan,
+                          onSetup: (plan) =>
+                              _setupSavingsPlan(user, wallet, plan),
+                          onToggle: (plan, active) =>
+                              _toggleSavingsPlan(user, wallet, plan, active),
+                          onCancel: (plan) =>
+                              _cancelSavingsPlan(user, wallet, plan),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       _TransferActionCard(
                         wallet: wallet,
                         palette: palette,
                         onOpen: () => _openTransfer(wallet),
                       ),
-                      const SizedBox(height: 16),
-                      _WithdrawalLaunchCard(
-                        wallet: wallet,
-                        palette: palette,
-                        onOpen: () => _openWithdrawal(wallet),
-                      ),
+                      if (withdrawalEnabled) ...[
+                        const SizedBox(height: 16),
+                        _WithdrawalLaunchCard(
+                          wallet: wallet,
+                          palette: palette,
+                          onOpen: () => _openWithdrawal(wallet),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       _LedgerCard(
                         wallet: wallet,
@@ -191,6 +201,17 @@ class _GoshenWalletScreenState extends State<GoshenWalletScreen> {
               ),
             ),
     );
+  }
+
+  bool _featureEnabled(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (['0', 'false', 'off', 'no'].contains(normalized)) return false;
+      if (['1', 'true', 'on', 'yes'].contains(normalized)) return true;
+    }
+    return true;
   }
 
   Future<void> _saveGoal(Userdata user, GoshenWallet wallet) async {

@@ -550,6 +550,9 @@ class _PreferenceTile extends StatelessWidget {
         return Icons.groups_rounded;
       case 'giving':
         return Icons.favorite_border_rounded;
+      case 'devotional':
+      case 'devotionals':
+        return Icons.auto_stories_rounded;
       default:
         return Icons.campaign_rounded;
     }
