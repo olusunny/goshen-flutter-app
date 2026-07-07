@@ -131,6 +131,7 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
         user?.canManageWalletWithdrawalTools == true;
     final canManageDynamicForms = user?.canManageDynamicFormTools == true;
     final canManageChurchEvents = user?.canManageChurchEventTools == true;
+    final canManageVerseOfDay = user?.canManageVerseOfDayTools == true;
     final canSendAdminMessages = user?.canSendAdminMessageTools == true;
     final canOpenGoshenManagement = user != null &&
         (_scannerManagerEnabled ||
@@ -143,6 +144,7 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
             canManageWalletWithdrawals ||
             canManageDynamicForms ||
             canManageChurchEvents ||
+            canManageVerseOfDay ||
             canSendAdminMessages);
     final items = <_MoreMenuItem>[
       if (canOpenGoshenManagement)

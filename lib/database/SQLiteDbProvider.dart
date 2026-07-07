@@ -26,7 +26,7 @@ class SQLiteDbProvider {
   initDB() async {
     return await openDatabase(
         join(await getDatabasesPath(), 'streamit_database.db'),
-        version: 15, onOpen: (db) async {
+        version: 16, onOpen: (db) async {
       await _ensureUserdataSchema(db);
     }, onUpgrade: (Database db, int oldVersion, int newVersion) async {
       if (oldVersion < 2) {
@@ -98,6 +98,10 @@ class SQLiteDbProvider {
       if (oldVersion < 15) {
         await _addColumnIfMissing(
             db, Userdata.TABLE, 'canManageChurchEvents', 'INTEGER');
+      }
+      if (oldVersion < 16) {
+        await _addColumnIfMissing(
+            db, Userdata.TABLE, 'canManageVerseOfDay', 'INTEGER');
       }
       await _ensureUserdataSchema(db);
     }, onCreate: (Database db, int version) async {
@@ -264,6 +268,7 @@ class SQLiteDbProvider {
           "canManageWalletWithdrawals INTEGER,"
           "canManageDynamicForms INTEGER,"
           "canManageChurchEvents INTEGER,"
+          "canManageVerseOfDay INTEGER,"
           "canManagePropheticDecree INTEGER,"
           "canSendAdminMessages INTEGER,"
           "activated INTEGER"
@@ -314,6 +319,8 @@ class SQLiteDbProvider {
         db, Userdata.TABLE, 'canManageDynamicForms', 'INTEGER');
     await _addColumnIfMissing(
         db, Userdata.TABLE, 'canManageChurchEvents', 'INTEGER');
+    await _addColumnIfMissing(
+        db, Userdata.TABLE, 'canManageVerseOfDay', 'INTEGER');
     await _addColumnIfMissing(
         db, Userdata.TABLE, 'canManagePropheticDecree', 'INTEGER');
     await _addColumnIfMissing(

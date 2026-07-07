@@ -23,6 +23,7 @@ import 'ChurchEventManagementScreen.dart';
 import 'DynamicFormManagementScreen.dart';
 import 'GoshenRetreatScreen.dart';
 import 'GoshenScannerManagerScreen.dart';
+import 'VerseOfDayManagementScreen.dart';
 
 class GoshenManagementHubScreen extends StatefulWidget {
   const GoshenManagementHubScreen({
@@ -97,6 +98,10 @@ class _GoshenManagementHubScreenState extends State<GoshenManagementHubScreen> {
           'generaloverseer',
           'triumphantitmanager',
         }.contains(role));
+  }
+
+  bool _canManageVerseOfDay(Userdata user) {
+    return user.canManageVerseOfDayTools || _canManagePrayerPoints(user);
   }
 
   @override
@@ -379,6 +384,25 @@ class _GoshenManagementHubScreenState extends State<GoshenManagementHubScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (_) => PrayerPointManagementScreen(
+                          user: widget.user,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                if (_canManageVerseOfDay(widget.user)) ...[
+                  const SizedBox(height: 12),
+                  _HubActionCard(
+                    colors: colors,
+                    title: 'Verse of the Day',
+                    subtitle:
+                        'Create, edit, publish, unpublish, or delete the daily Bible verse shown in the app.',
+                    icon: Icons.menu_book_outlined,
+                    accent: colors.teal,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => VerseOfDayManagementScreen(
                           user: widget.user,
                         ),
                       ),

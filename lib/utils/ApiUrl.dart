@@ -200,6 +200,16 @@ class ApiUrl {
       BASEURL + "api/control-hub/church-events/$eventId/status";
   static String controlHubChurchEventDelete(String eventId) =>
       BASEURL + "api/control-hub/church-events/$eventId/delete";
+  static const String CONTROL_HUB_VERSE_OF_DAY =
+      BASEURL + "api/control-hub/verse-of-day";
+  static const String CONTROL_HUB_VERSE_OF_DAY_SEARCH =
+      BASEURL + "api/control-hub/verse-of-day/search";
+  static String controlHubVerseOfDay(String verseId) =>
+      BASEURL + "api/control-hub/verse-of-day/$verseId";
+  static String controlHubVerseOfDayStatus(String verseId) =>
+      BASEURL + "api/control-hub/verse-of-day/$verseId/status";
+  static String controlHubVerseOfDayDelete(String verseId) =>
+      BASEURL + "api/control-hub/verse-of-day/$verseId/delete";
   static const String GOSHEN_EXPERIENCE =
       BASEURL + "api/goshen-retreat/experience";
   static String goshenExperienceSurvey(String surveyId) =>
