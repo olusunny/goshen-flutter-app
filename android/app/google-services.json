@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "245162281677-pd8t4knmagpp7ss5rkog36pkustp1jrv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.triumphant.android",
+            "certificate_hash": "9c022f48c14903104207cb92825f3be167c54652"
+          }
+        },
+        {
           "client_id": "245162281677-vkv35baj2v50j23krouputiu9l7rl8a2.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
