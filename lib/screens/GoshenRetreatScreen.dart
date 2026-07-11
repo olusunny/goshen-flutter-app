@@ -4510,6 +4510,7 @@ class _TicketSummary extends StatelessWidget {
                             if (ticket.attendeeName.isNotEmpty)
                               ticket.attendeeName,
                             if (ticket.ticketType.isNotEmpty) ticket.ticketType,
+                            'Paid ${ticket.amountPaidLabel}',
                           ].join(' · '),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -4710,6 +4711,12 @@ Future<void> _showTicketDetails(
                           icon: Icons.verified_rounded,
                           label: 'Status',
                           value: ticket.statusLabel,
+                          colors: colors,
+                        ),
+                        _TicketMetaRow(
+                          icon: Icons.payments_outlined,
+                          label: 'Amount paid',
+                          value: ticket.amountPaidLabel,
                           colors: colors,
                         ),
                         _TicketMetaRow(

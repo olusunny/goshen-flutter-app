@@ -1480,6 +1480,8 @@ class GoshenTicket {
     required this.eventName,
     required this.ticketType,
     required this.attendeeName,
+    required this.currency,
+    required this.amountPaid,
     required this.qrEncoded,
     required this.documentUrls,
   });
@@ -1492,6 +1494,8 @@ class GoshenTicket {
   final String eventName;
   final String ticketType;
   final String attendeeName;
+  final String currency;
+  final double amountPaid;
   final String qrEncoded;
   final Map<String, String> documentUrls;
 
@@ -1506,6 +1510,11 @@ class GoshenTicket {
       eventName: '${json['event_name'] ?? ''}',
       ticketType: '${json['ticket_type'] ?? ''}',
       attendeeName: '${json['attendee_name'] ?? ''}',
+      currency: '${json['currency'] ?? 'GBP'}',
+      amountPaid: double.tryParse(
+            '${json['amount_paid'] ?? json['paid_amount'] ?? 0}',
+          ) ??
+          0,
       qrEncoded: '${json['qr_encoded'] ?? ''}',
       documentUrls:
           rawDocumentUrls is Map ? _stringMap(rawDocumentUrls) : const {},
@@ -1530,6 +1539,10 @@ class GoshenTicket {
 
   String get checkInLabel =>
       checkedInAt == null ? 'Not checked in' : _formatDate(checkedInAt!);
+
+  String get amountPaidLabel => amountPaid <= 0
+      ? 'Not recorded'
+      : '${currency.trim().isEmpty ? 'GBP' : currency.toUpperCase()} ${_money(amountPaid)}';
 }
 
 class GoshenScannerStatus {
