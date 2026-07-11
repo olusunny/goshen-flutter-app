@@ -11,6 +11,8 @@ class GoshenRetreatEvent {
     required this.supportEmail,
     required this.inquiryPhone,
     required this.featureImageUrl,
+    required this.startDate,
+    required this.endDate,
     required this.salesStartAt,
     required this.salesEndAt,
     required this.registration,
@@ -32,6 +34,8 @@ class GoshenRetreatEvent {
   final String supportEmail;
   final String inquiryPhone;
   final String featureImageUrl;
+  final DateTime? startDate;
+  final DateTime? endDate;
   final DateTime? salesStartAt;
   final DateTime? salesEndAt;
   final GoshenRegistrationStatus registration;
@@ -63,6 +67,8 @@ class GoshenRetreatEvent {
         'contactPhone',
       ]),
       featureImageUrl: _featureImageUrl(json),
+      startDate: _date(json['start_date'] ?? json['startDate']),
+      endDate: _date(json['end_date'] ?? json['endDate']),
       salesStartAt: _date(json['sales_start_at']),
       salesEndAt: _date(json['sales_end_at']),
       registration: GoshenRegistrationStatus.fromJson(
@@ -102,6 +108,14 @@ class GoshenRetreatEvent {
   }
 
   String get dateLabel {
+    if (startDate != null) {
+      if (endDate == null || _sameDate(startDate!, endDate!)) {
+        return _formatDate(startDate!);
+      }
+
+      return '${_formatDate(startDate!)} - ${_formatDate(endDate!)}';
+    }
+
     if (schedules.isEmpty) return 'Dates will be announced';
     final first = schedules.first.startsAt;
     final last = schedules.last.endsAt ?? schedules.last.startsAt;
@@ -119,6 +133,7 @@ class GoshenRetreatEvent {
   bool get canRegister => registration.open && ticketTypes.isNotEmpty;
 
   DateTime? get countdownTarget {
+    if (startDate != null) return startDate;
     for (final schedule in schedules) {
       if (schedule.startsAt != null) return schedule.startsAt;
     }
