@@ -918,28 +918,27 @@ class GoshenRetreatApi {
 
   Future<List<GoshenGeneratedVoucher>> generateVouchers({
     required Userdata user,
-    required GoshenRetreatEvent event,
+    GoshenRetreatEvent? event,
     required String label,
     required double amount,
     required String currency,
     required int quantity,
+    required String purpose,
     int maxUses = 1,
   }) async {
     final response = await _dio.post(
       ApiUrl.GOSHEN_RETREAT_VOUCHERS_GENERATE,
       options: _mobileOptions(user),
-      data: {
-        'data': {
-          'email': user.email,
-          'api_token': user.apiToken,
-          'event_id': event.publicId,
-          'label': label.trim(),
-          'amount': amount,
-          'currency': currency.trim().toUpperCase(),
-          'quantity': quantity,
-          'max_uses': maxUses,
-        }
-      },
+      data: voucherGenerationPayload(
+        user: user,
+        label: label,
+        amount: amount,
+        currency: currency,
+        quantity: quantity,
+        maxUses: maxUses,
+        purpose: purpose,
+        event: event,
+      ),
     );
 
     final data = Map<String, dynamic>.from(decodeApiResponse(response.data));
@@ -952,6 +951,30 @@ class GoshenRetreatApi {
             GoshenGeneratedVoucher.fromJson(Map<String, dynamic>.from(item)))
         .toList();
   }
+
+  static Map<String, dynamic> voucherGenerationPayload({
+    required Userdata user,
+    required String label,
+    required double amount,
+    required String currency,
+    required int quantity,
+    required int maxUses,
+    required String purpose,
+    GoshenRetreatEvent? event,
+  }) =>
+      {
+        'data': {
+          'email': user.email,
+          'api_token': user.apiToken,
+          'label': label.trim(),
+          'amount': amount,
+          'currency': currency.trim().toUpperCase(),
+          'quantity': quantity,
+          'max_uses': maxUses,
+          'purpose': purpose,
+          if (event != null) 'event_id': event.publicId,
+        }
+      };
 
   Future<List<GoshenVoucherUsage>> fetchVoucherUsages({
     required Userdata user,

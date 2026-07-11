@@ -1291,6 +1291,7 @@ class GoshenVoucherInfo {
   const GoshenVoucherInfo({
     required this.id,
     required this.eventId,
+    required this.purpose,
     required this.label,
     required this.batchReference,
     required this.codeSuffix,
@@ -1305,8 +1306,12 @@ class GoshenVoucherInfo {
     required this.createdAt,
   });
 
+  static const purposePayments = 'payments';
+  static const purposeWalletFunding = 'wallet_funding';
+
   final int id;
   final int eventId;
+  final String purpose;
   final String label;
   final String batchReference;
   final String codeSuffix;
@@ -1324,6 +1329,7 @@ class GoshenVoucherInfo {
     return GoshenVoucherInfo(
       id: int.tryParse('${json['id'] ?? 0}') ?? 0,
       eventId: int.tryParse('${json['event_id'] ?? 0}') ?? 0,
+      purpose: '${json['purpose'] ?? purposePayments}',
       label: '${json['label'] ?? ''}',
       batchReference: '${json['batch_reference'] ?? ''}',
       codeSuffix: '${json['code_suffix'] ?? ''}',
@@ -1340,6 +1346,8 @@ class GoshenVoucherInfo {
   }
 
   String get amountLabel => '$currency ${_money(amount)}'.trim();
+  String get purposeLabel =>
+      purpose == purposeWalletFunding ? 'Wallet Funding' : 'For Payments';
   String get statusLabel => _humanStatus(status, fallback: 'Active');
 }
 

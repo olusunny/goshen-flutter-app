@@ -247,7 +247,7 @@ class _GoshenManagementHubScreenState extends State<GoshenManagementHubScreen> {
                     colors: colors,
                     title: 'Voucher payments',
                     subtitle:
-                        'Generate cash vouchers, verify codes, and review voucher usage for registration payments.',
+                        'Generate payment or wallet funding vouchers, verify codes, and review voucher usage.',
                     icon: Icons.confirmation_number_outlined,
                     accent: colors.teal,
                     enabled: initialEvent != null,
@@ -1575,6 +1575,7 @@ class _GoshenVoucherManagementScreenState
   late List<GoshenRetreatEvent> _events;
   late GoshenRetreatEvent _selectedEvent;
   late Future<List<GoshenVoucherUsage>> _usageFuture;
+  String _purpose = GoshenVoucherInfo.purposePayments;
   bool _generating = false;
   bool _verifying = false;
   GoshenVoucherVerification? _verification;
@@ -1631,6 +1632,13 @@ class _GoshenVoucherManagementScreenState
     });
   }
 
+  void _selectPurpose(String purpose) {
+    setState(() {
+      _purpose = purpose;
+      _generated = const [];
+    });
+  }
+
   Future<void> _verifyVoucher() async {
     final code = _verifyController.text.trim();
     if (code.isEmpty) {
@@ -1680,11 +1688,14 @@ class _GoshenVoucherManagementScreenState
     try {
       final generated = await _api.generateVouchers(
         user: widget.user,
-        event: _selectedEvent,
+        event: _purpose == GoshenVoucherInfo.purposePayments
+            ? _selectedEvent
+            : null,
         label: _labelController.text,
         amount: amount,
         currency: currency,
         quantity: quantity.clamp(1, 200).toInt(),
+        purpose: _purpose,
         maxUses: maxUses.clamp(1, 100).toInt(),
       );
       if (!mounted) return;
@@ -1758,8 +1769,10 @@ class _GoshenVoucherManagementScreenState
               currencyController: _currencyController,
               quantityController: _quantityController,
               maxUsesController: _maxUsesController,
+              purpose: _purpose,
               generating: _generating,
               generated: _generated,
+              onPurposeChanged: _selectPurpose,
               onGenerate: _generateVouchers,
               onCopyGenerated: _copyGeneratedCodes,
             ),
@@ -8257,8 +8270,10 @@ class _VoucherGeneratePanel extends StatelessWidget {
     required this.currencyController,
     required this.quantityController,
     required this.maxUsesController,
+    required this.purpose,
     required this.generating,
     required this.generated,
+    required this.onPurposeChanged,
     required this.onGenerate,
     required this.onCopyGenerated,
   });
@@ -8269,8 +8284,10 @@ class _VoucherGeneratePanel extends StatelessWidget {
   final TextEditingController currencyController;
   final TextEditingController quantityController;
   final TextEditingController maxUsesController;
+  final String purpose;
   final bool generating;
   final List<GoshenGeneratedVoucher> generated;
+  final ValueChanged<String> onPurposeChanged;
   final VoidCallback onGenerate;
   final VoidCallback onCopyGenerated;
 
@@ -8287,6 +8304,17 @@ class _VoucherGeneratePanel extends StatelessWidget {
             colors: colors,
             controller: labelController,
             label: 'Batch label',
+          ),
+          const SizedBox(height: 10),
+          _ManagedDropdown(
+            colors: colors,
+            label: 'Purpose',
+            value: purpose,
+            items: const {
+              GoshenVoucherInfo.purposePayments: 'For Payments',
+              GoshenVoucherInfo.purposeWalletFunding: 'Wallet Funding',
+            },
+            onChanged: onPurposeChanged,
           ),
           const SizedBox(height: 10),
           Row(
@@ -8383,7 +8411,7 @@ class _VoucherGeneratePanel extends StatelessWidget {
                       border: Border.all(color: colors.border),
                     ),
                     child: SelectableText(
-                      '${item.code}  ·  ${item.voucher.amountLabel}',
+                      '${item.code}  ·  ${item.voucher.amountLabel}  ·  ${item.voucher.purposeLabel}',
                       style: TextStyle(
                         color: colors.text,
                         fontWeight: FontWeight.w900,
