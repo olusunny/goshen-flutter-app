@@ -1,5 +1,5 @@
 class ApiUrl {
-  static const String BASEURL = "https://goshen.shotfaz.com/";
+  static const String BASEURL = "https://portal.goshenretreat.uk/";
   static const String TERMS = BASEURL + "content_page/terms";
   static const String PRIVACY = BASEURL + "content_page/privacy";
   static const String ABOUT = BASEURL + "content_page/about";
