@@ -720,7 +720,8 @@ class _Avatar extends StatelessWidget {
       child: ClipOval(
         child: avatar.isNotEmpty
             ? Image.network(avatar, fit: BoxFit.cover)
-            : Image.asset('assets/icon/icon.png', fit: BoxFit.cover),
+            : Image.asset('assets/icon/triumphant_launcher.png',
+                fit: BoxFit.cover),
       ),
     );
   }
