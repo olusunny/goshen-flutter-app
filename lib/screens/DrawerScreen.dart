@@ -8,6 +8,7 @@ import 'package:in_app_review/in_app_review.dart';
 import 'package:provider/provider.dart';
 
 import '../auth/LoginScreen.dart';
+import '../features/counseling/counseling_screen.dart';
 import '../i18n/strings.g.dart';
 import '../models/Userdata.dart';
 import '../prayers/prayer_community_screen.dart';
@@ -254,6 +255,12 @@ class _DrawerScreenState extends State<DrawerScreen> {
                         icon: Icons.volunteer_activism_outlined,
                         title: 'Interactive Prayer Wall',
                         onTap: _openPrayerCommunity),
+                  if (userdata != null)
+                    _DrawerTile(
+                        icon: Icons.health_and_safety_outlined,
+                        title: 'Counseling',
+                        onTap: () => Navigator.pushNamed(
+                            context, CounselingScreen.routeName)),
                   if (_prayerPointsEnabled)
                     _DrawerTile(
                         icon: Icons.menu_book_rounded,

@@ -87,6 +87,13 @@ class ApiUrl {
       BASEURL + "prayer-community/profile/avatar";
   static const String TESTIMONIES = BASEURL + "testimonies";
   static const String TESTIMONIES_STATUS = BASEURL + "testimonies/status";
+  static const String COUNSELING = BASEURL + "api/v1/counseling";
+  static const String COUNSELING_CASES = COUNSELING + "/cases";
+  static String counselingCase(String caseId) => "$COUNSELING_CASES/$caseId";
+  static String counselingCaseClose(String caseId) =>
+      "${counselingCase(caseId)}/close";
+  static String counselingCaseMessages(String caseId) =>
+      "${counselingCase(caseId)}/messages";
   static const String GOSHEN_RETREAT_STATUS =
       BASEURL + "api/goshen-retreat/status";
   static const String GOSHEN_RETREAT_EVENTS =

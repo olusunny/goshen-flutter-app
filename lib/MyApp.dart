@@ -15,6 +15,7 @@ import './notes/NotesEditorScreen.dart';
 import './models/Userdata.dart';
 import './models/GoshenWallet.dart';
 import './features/fundraising/fundraising_screen.dart';
+import './features/counseling/counseling_screen.dart';
 import './models/LiveStreams.dart';
 import './screens/BibleTranslator.dart';
 import './screens/AudioScreen.dart';
@@ -606,6 +607,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             return MaterialPageRoute(
               builder: (context) {
                 return const FundraisingScreen();
+              },
+            );
+          }
+
+          if (settings.name == CounselingScreen.routeName) {
+            return MaterialPageRoute(
+              builder: (context) {
+                return const CounselingScreen();
               },
             );
           }
