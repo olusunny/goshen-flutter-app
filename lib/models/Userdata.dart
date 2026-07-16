@@ -138,7 +138,7 @@ class Userdata {
 
   factory Userdata.fromJson(Map<String, dynamic> json) {
     print(json['avatar'].toString());
-    int activated = int.parse(json['activated'].toString());
+    final activated = _readActivationState(json['activated']);
     //print(json);
     return Userdata(
         firstName: json['first_name'] as String?,
@@ -496,7 +496,7 @@ class Userdata {
       canManageCounseling: _readBool(data['canManageCounseling']),
       hasPropheticDecreePermission: _readBool(data['canManagePropheticDecree']),
       canSendAdminMessages: _readBool(data['canSendAdminMessages']),
-      activated: data['activated'],
+      activated: _readActivationState(data['activated']),
     );
   }
 
@@ -797,4 +797,17 @@ int? _readInt(dynamic value) {
   if (value == null) return null;
   if (value is int) return value;
   return int.tryParse(value.toString());
+}
+
+int _readActivationState(dynamic value) {
+  if (value == null) return 0;
+  if (value is int) return value;
+  if (value is bool) return value ? 1 : 0;
+
+  final text = value.toString().trim().toLowerCase();
+  if (text.isEmpty || text == 'null') return 0;
+  if (text == 'true' || text == 'yes') return 1;
+  if (text == 'false' || text == 'no') return 0;
+
+  return int.tryParse(text) ?? 0;
 }

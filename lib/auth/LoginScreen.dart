@@ -82,11 +82,17 @@ class LoginScreenRouteState extends State<LoginScreen> {
       Navigator.of(context).pop();
 
       if (response.statusCode != 200) {
-        Alerts.show(context, t.error, 'Unable to sign in right now.');
+        Alerts.show(context, t.error, _httpErrorMessage(response));
         return;
       }
 
-      final res = json.decode(response.body) as Map<String, dynamic>;
+      final decoded = json.decode(response.body);
+      if (decoded is! Map<String, dynamic>) {
+        Alerts.show(context, t.error, 'Unable to read the sign-in response.');
+        return;
+      }
+
+      final res = decoded;
       if (res["status"] == "error") {
         if (res["needs_verification"] == true) {
           Alerts.show(context, 'Email verification required',
@@ -105,13 +111,42 @@ class LoginScreenRouteState extends State<LoginScreen> {
         return;
       }
 
+      final userPayload = res["user"];
+      if (userPayload is! Map<String, dynamic>) {
+        Alerts.show(context, t.error,
+            'Sign-in succeeded but no user profile was returned.');
+        return;
+      }
+
       Provider.of<AppStateManager>(context, listen: false)
-          .setUserData(Userdata.fromJson(res["user"]));
+          .setUserData(Userdata.fromJson(userPayload));
       Navigator.of(context).pop();
-    } catch (_) {
+    } catch (exception) {
+      debugPrint('Login failed: $exception');
       Navigator.of(context).pop();
-      Alerts.show(context, t.error, 'Unable to sign in right now.');
+      Alerts.show(context, t.error,
+          'Unable to complete sign-in right now. Please try again.');
     }
+  }
+
+  String _httpErrorMessage(http.Response response) {
+    try {
+      final decoded = json.decode(response.body);
+      if (decoded is Map<String, dynamic>) {
+        return _messageFrom(decoded, 'Unable to sign in right now.');
+      }
+    } catch (_) {
+      // Fall through to the generic message.
+    }
+
+    if (response.statusCode == 419) {
+      return 'The sign-in session expired. Please try again.';
+    }
+    if (response.statusCode >= 500) {
+      return 'The server could not complete sign-in right now.';
+    }
+
+    return 'Unable to sign in right now.';
   }
 
   String _messageFrom(Map<String, dynamic> response, String fallback) {
