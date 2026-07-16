@@ -1,10 +1,12 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../auth/LoginScreen.dart';
@@ -282,6 +284,9 @@ class _CounselingCreateScreenState extends State<CounselingCreateScreen> {
   String _priority = 'normal';
   String? _audioPath;
   int _audioSeconds = 0;
+  String? _attachmentPath;
+  String? _attachmentName;
+  String _attachmentType = 'file';
   bool _submitting = false;
 
   @override
@@ -304,6 +309,27 @@ class _CounselingCreateScreenState extends State<CounselingCreateScreen> {
     setState(() {
       _audioPath = result['path'] as String?;
       _audioSeconds = result['duration'] as int? ?? 0;
+      _attachmentPath = null;
+      _attachmentName = null;
+      _attachmentType = 'file';
+    });
+  }
+
+  Future<void> _pickAttachment({required bool imageOnly}) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: imageOnly ? FileType.image : FileType.any,
+      withData: false,
+    );
+    final file = result?.files.single;
+    final path = file?.path;
+    if (path == null || path.trim().isEmpty) return;
+
+    setState(() {
+      _attachmentPath = path;
+      _attachmentName = file?.name ?? path.split(RegExp(r'[\\/]')).last;
+      _attachmentType = imageOnly ? 'image' : 'file';
+      _audioPath = null;
+      _audioSeconds = 0;
     });
   }
 
@@ -313,9 +339,11 @@ class _CounselingCreateScreenState extends State<CounselingCreateScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     final body = _body.text.trim();
-    if (body.isEmpty && (_audioPath ?? '').isEmpty) {
+    if (body.isEmpty &&
+        (_audioPath ?? '').isEmpty &&
+        (_attachmentPath ?? '').isEmpty) {
       await Alerts.show(context, 'Message required',
-          'Please write a message or attach a voice note.');
+          'Please write a message, attach a voice note, image, or file.');
       return;
     }
 
@@ -329,6 +357,8 @@ class _CounselingCreateScreenState extends State<CounselingCreateScreen> {
         body: body,
         audioPath: _audioPath,
         audioDurationSeconds: _audioSeconds,
+        attachmentPath: _attachmentPath,
+        attachmentType: _attachmentType,
       );
       if (!mounted) return;
       await Alerts.show(
@@ -465,6 +495,17 @@ class _CounselingCreateScreenState extends State<CounselingCreateScreen> {
                       _audioSeconds = 0;
                     }),
                   ),
+                  const SizedBox(height: 10),
+                  _FileAttachRow(
+                    attachmentName: _attachmentName,
+                    onPickImage: () => _pickAttachment(imageOnly: true),
+                    onPickFile: () => _pickAttachment(imageOnly: false),
+                    onRemove: () => setState(() {
+                      _attachmentPath = null;
+                      _attachmentName = null;
+                      _attachmentType = 'file';
+                    }),
+                  ),
                   const SizedBox(height: 18),
                   SizedBox(
                     width: double.infinity,
@@ -519,6 +560,9 @@ class _CounselingCaseDetailScreenState
   String? _error;
   String? _audioPath;
   int _audioSeconds = 0;
+  String? _attachmentPath;
+  String? _attachmentName;
+  String _attachmentType = 'file';
   bool _changed = false;
 
   @override
@@ -576,14 +620,34 @@ class _CounselingCaseDetailScreenState
     });
   }
 
+  Future<void> _pickAttachment({required bool imageOnly}) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: imageOnly ? FileType.image : FileType.any,
+      withData: false,
+    );
+    final file = result?.files.single;
+    final path = file?.path;
+    if (path == null || path.trim().isEmpty) return;
+
+    setState(() {
+      _attachmentPath = path;
+      _attachmentName = file?.name ?? path.split(RegExp(r'[\\/]')).last;
+      _attachmentType = imageOnly ? 'image' : 'file';
+      _audioPath = null;
+      _audioSeconds = 0;
+    });
+  }
+
   Future<void> _send() async {
     final user = _user;
     final item = _case;
     if (user == null || item == null || item.isClosed || _sending) return;
 
     final text = _message.text.trim();
-    if (text.isEmpty && (_audioPath ?? '').isEmpty) {
-      _showSnack('Write a message or attach a voice note.');
+    if (text.isEmpty &&
+        (_audioPath ?? '').isEmpty &&
+        (_attachmentPath ?? '').isEmpty) {
+      _showSnack('Write a message, attach a voice note, or add a file.');
       return;
     }
 
@@ -595,6 +659,8 @@ class _CounselingCaseDetailScreenState
         body: text,
         audioPath: _audioPath,
         audioDurationSeconds: _audioSeconds,
+        attachmentPath: _attachmentPath,
+        attachmentType: _attachmentType,
       );
       if (!mounted) return;
       setState(() {
@@ -606,6 +672,7 @@ class _CounselingCaseDetailScreenState
           priority: item.priority,
           category: item.category,
           subject: item.subject,
+          requester: item.requester,
           countryCode: item.countryCode,
           locale: item.locale,
           timezone: item.timezone,
@@ -619,6 +686,9 @@ class _CounselingCaseDetailScreenState
         _message.clear();
         _audioPath = null;
         _audioSeconds = 0;
+        _attachmentPath = null;
+        _attachmentName = null;
+        _attachmentType = 'file';
         _changed = true;
       });
     } catch (error) {
@@ -720,11 +790,19 @@ class _CounselingCaseDetailScreenState
               controller: _message,
               audioPath: _audioPath,
               audioSeconds: _audioSeconds,
+              attachmentName: _attachmentName,
               sending: _sending,
               onRecord: _record,
+              onPickImage: () => _pickAttachment(imageOnly: true),
+              onPickFile: () => _pickAttachment(imageOnly: false),
               onRemoveAudio: () => setState(() {
                 _audioPath = null;
                 _audioSeconds = 0;
+              }),
+              onRemoveAttachment: () => setState(() {
+                _attachmentPath = null;
+                _attachmentName = null;
+                _attachmentType = 'file';
               }),
               onSend: _send,
             ),
@@ -768,8 +846,10 @@ class _CounselingCaseDetailScreenState
                 padding: const EdgeInsets.only(bottom: 12),
                 child: CounselingMessageBubble(
                   message: message,
+                  caseId: item.id,
                   user: _user,
                   api: widget.api,
+                  onReacted: _replaceMessage,
                 ),
               ),
             ),
@@ -777,19 +857,50 @@ class _CounselingCaseDetailScreenState
       ),
     );
   }
+
+  void _replaceMessage(CounselingMessage next) {
+    final item = _case;
+    if (item == null) return;
+    setState(() {
+      _case = CounselingCase(
+        id: item.id,
+        reference: item.reference,
+        status: item.status,
+        priority: item.priority,
+        category: item.category,
+        subject: item.subject,
+        requester: item.requester,
+        countryCode: item.countryCode,
+        locale: item.locale,
+        timezone: item.timezone,
+        assignedProvider: item.assignedProvider,
+        lastMessageAt: item.lastMessageAt,
+        closedAt: item.closedAt,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+        messages: item.messages
+            .map((message) => message.id == next.id ? next : message)
+            .toList(),
+      );
+    });
+  }
 }
 
 class CounselingMessageBubble extends StatelessWidget {
   const CounselingMessageBubble({
     super.key,
     required this.message,
+    required this.caseId,
     required this.user,
     required this.api,
+    required this.onReacted,
   });
 
   final CounselingMessage message;
+  final int caseId;
   final Userdata? user;
   final CounselingApi api;
+  final ValueChanged<CounselingMessage> onReacted;
 
   @override
   Widget build(BuildContext context) {
@@ -799,55 +910,283 @@ class CounselingMessageBubble extends StatelessWidget {
     final foreground = mine ? Colors.white : colors.text;
     final muted = mine ? Colors.white70 : colors.muted;
 
-    return Align(
-      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-      child: ConstrainedBox(
-        constraints:
-            BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.82),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: background,
-            borderRadius: BorderRadius.only(
-              topLeft: const Radius.circular(22),
-              topRight: const Radius.circular(22),
-              bottomLeft: Radius.circular(mine ? 22 : 6),
-              bottomRight: Radius.circular(mine ? 6 : 22),
+    final senderName = message.sender?.name.trim().isNotEmpty == true
+        ? message.sender!.name.trim()
+        : (mine ? 'You' : 'Counselor');
+    final avatarUrl = message.sender?.avatar ?? '';
+
+    return Row(
+      mainAxisAlignment: mine ? MainAxisAlignment.end : MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!mine) _ChatAvatar(name: senderName, avatarUrl: avatarUrl),
+        if (!mine) const SizedBox(width: 8),
+        Flexible(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.sizeOf(context).width * 0.78,
             ),
-            border: mine ? null : Border.all(color: colors.border),
-            boxShadow: [
-              BoxShadow(
-                color:
-                    Colors.black.withValues(alpha: colors.isDark ? 0.22 : 0.07),
-                blurRadius: 14,
-                offset: const Offset(0, 7),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if ((message.body ?? '').trim().isNotEmpty)
-                Text(
-                  message.body!.trim(),
-                  style: TextStyle(color: foreground, height: 1.42),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: background,
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(22),
+                  topRight: const Radius.circular(22),
+                  bottomLeft: Radius.circular(mine ? 22 : 6),
+                  bottomRight: Radius.circular(mine ? 6 : 22),
                 ),
-              if (message.isAudio && (message.audioUrl ?? '').isNotEmpty) ...[
-                if ((message.body ?? '').trim().isNotEmpty)
-                  const SizedBox(height: 10),
-                _CounselingAudioPlayer(
-                  url: api.absoluteAudioUrl(message.audioUrl),
-                  user: user,
-                  inverse: mine,
-                ),
-              ],
-              const SizedBox(height: 8),
-              Text(
-                _formatDateTime(message.createdAt),
-                style: TextStyle(color: muted, fontSize: 11),
+                border: mine ? null : Border.all(color: colors.border),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black
+                        .withValues(alpha: colors.isDark ? 0.22 : 0.07),
+                    blurRadius: 14,
+                    offset: const Offset(0, 7),
+                  ),
+                ],
               ),
-            ],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    senderName,
+                    style: TextStyle(
+                      color: muted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  if ((message.body ?? '').trim().isNotEmpty)
+                    Text(
+                      message.body!.trim(),
+                      style: TextStyle(color: foreground, height: 1.42),
+                    ),
+                  if (message.isAudio &&
+                      (message.audioUrl ?? '').isNotEmpty) ...[
+                    if ((message.body ?? '').trim().isNotEmpty)
+                      const SizedBox(height: 10),
+                    _CounselingAudioPlayer(
+                      url: api.absoluteAudioUrl(message.audioUrl),
+                      user: user,
+                      inverse: mine,
+                    ),
+                  ],
+                  if (message.attachment != null) ...[
+                    if ((message.body ?? '').trim().isNotEmpty ||
+                        message.isAudio)
+                      const SizedBox(height: 10),
+                    _AttachmentPreview(
+                      message: message,
+                      api: api,
+                      inverse: mine,
+                    ),
+                  ],
+                  if (message.reactions.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: message.reactions
+                          .map((reaction) => _ReactionChip(
+                                label: '${reaction.emoji} ${reaction.count}',
+                                inverse: mine,
+                              ))
+                          .toList(),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _formatDateTime(message.createdAt),
+                        style: TextStyle(color: muted, fontSize: 11),
+                      ),
+                      const SizedBox(width: 8),
+                      for (final emoji in const ['🙏', '❤️'])
+                        InkWell(
+                          borderRadius: BorderRadius.circular(99),
+                          onTap: user == null
+                              ? null
+                              : () async {
+                                  try {
+                                    final updated = await api.reactToMessage(
+                                      user: user!,
+                                      caseId: caseId,
+                                      messageId: message.id,
+                                      reaction: emoji,
+                                    );
+                                    onReacted(updated);
+                                  } catch (_) {}
+                                },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 2,
+                            ),
+                            child: Text(emoji),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
+        ),
+        if (mine) const SizedBox(width: 8),
+        if (mine) _ChatAvatar(name: senderName, avatarUrl: avatarUrl),
+      ],
+    );
+  }
+}
+
+class _ChatAvatar extends StatelessWidget {
+  const _ChatAvatar({required this.name, required this.avatarUrl});
+
+  final String name;
+  final String avatarUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
+    return CircleAvatar(
+      radius: 17,
+      backgroundColor: _gold.withValues(alpha: 0.22),
+      backgroundImage:
+          avatarUrl.trim().isEmpty ? null : NetworkImage(avatarUrl),
+      child: avatarUrl.trim().isEmpty
+          ? Text(
+              initial,
+              style: const TextStyle(
+                color: _primary,
+                fontWeight: FontWeight.w800,
+              ),
+            )
+          : null,
+    );
+  }
+}
+
+class _ReactionChip extends StatelessWidget {
+  const _ReactionChip({required this.label, required this.inverse});
+
+  final String label;
+  final bool inverse;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: inverse
+            ? Colors.white.withValues(alpha: 0.13)
+            : Colors.black.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: inverse ? Colors.white : _primary,
+          fontWeight: FontWeight.w700,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+}
+
+class _AttachmentPreview extends StatelessWidget {
+  const _AttachmentPreview({
+    required this.message,
+    required this.api,
+    required this.inverse,
+  });
+
+  final CounselingMessage message;
+  final CounselingApi api;
+  final bool inverse;
+
+  @override
+  Widget build(BuildContext context) {
+    final attachment = message.attachment;
+    if (attachment == null) return const SizedBox.shrink();
+    final url = api.absoluteMediaUrl(attachment.url ?? message.mediaUrl);
+    final name = attachment.name ?? 'Attachment';
+
+    if (message.isImage && url.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Image.network(
+          url,
+          headers: userHeaders(context),
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _FileAttachmentTile(
+            name: name,
+            inverse: inverse,
+            url: url,
+          ),
+        ),
+      );
+    }
+
+    return _FileAttachmentTile(name: name, inverse: inverse, url: url);
+  }
+
+  Map<String, String> userHeaders(BuildContext context) {
+    final user = Provider.of<AppStateManager>(context, listen: false).userdata;
+    return user == null ? const {} : api.authHeaders(user);
+  }
+}
+
+class _FileAttachmentTile extends StatelessWidget {
+  const _FileAttachmentTile({
+    required this.name,
+    required this.inverse,
+    required this.url,
+  });
+
+  final String name;
+  final bool inverse;
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: url.isEmpty
+          ? null
+          : () => launchUrl(
+                Uri.parse(url),
+                mode: LaunchMode.externalApplication,
+              ),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: inverse
+              ? Colors.white.withValues(alpha: 0.12)
+              : Colors.black.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.attach_file_rounded,
+                color: inverse ? Colors.white : _primary),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                name,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: inverse ? Colors.white : _primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1140,9 +1479,13 @@ class _MessageComposer extends StatelessWidget {
     required this.controller,
     required this.audioPath,
     required this.audioSeconds,
+    required this.attachmentName,
     required this.sending,
     required this.onRecord,
+    required this.onPickImage,
+    required this.onPickFile,
     required this.onRemoveAudio,
+    required this.onRemoveAttachment,
     required this.onSend,
   });
 
@@ -1150,9 +1493,13 @@ class _MessageComposer extends StatelessWidget {
   final TextEditingController controller;
   final String? audioPath;
   final int audioSeconds;
+  final String? attachmentName;
   final bool sending;
   final VoidCallback onRecord;
+  final VoidCallback onPickImage;
+  final VoidCallback onPickFile;
   final VoidCallback onRemoveAudio;
+  final VoidCallback onRemoveAttachment;
   final VoidCallback onSend;
 
   @override
@@ -1184,6 +1531,14 @@ class _MessageComposer extends StatelessWidget {
                     onRemove: enabled ? onRemoveAudio : null,
                   ),
                 ),
+              if (attachmentName != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _AttachedFileChip(
+                    name: attachmentName!,
+                    onRemove: enabled ? onRemoveAttachment : null,
+                  ),
+                ),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -1192,6 +1547,18 @@ class _MessageComposer extends StatelessWidget {
                     icon: const Icon(Icons.mic_rounded),
                     color: _primary,
                     tooltip: 'Record voice note',
+                  ),
+                  IconButton(
+                    onPressed: enabled ? onPickImage : null,
+                    icon: const Icon(Icons.image_outlined),
+                    color: _teal,
+                    tooltip: 'Attach image',
+                  ),
+                  IconButton(
+                    onPressed: enabled ? onPickFile : null,
+                    icon: const Icon(Icons.attach_file_rounded),
+                    color: _primary,
+                    tooltip: 'Attach file',
                   ),
                   Expanded(
                     child: TextField(
@@ -1282,6 +1649,44 @@ class _AudioAttachRow extends StatelessWidget {
   }
 }
 
+class _FileAttachRow extends StatelessWidget {
+  const _FileAttachRow({
+    required this.attachmentName,
+    required this.onPickImage,
+    required this.onPickFile,
+    required this.onRemove,
+  });
+
+  final String? attachmentName;
+  final VoidCallback onPickImage;
+  final VoidCallback onPickFile;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    if (attachmentName != null) {
+      return _AttachedFileChip(name: attachmentName!, onRemove: onRemove);
+    }
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        OutlinedButton.icon(
+          onPressed: onPickImage,
+          icon: const Icon(Icons.image_outlined),
+          label: const Text('Attach image'),
+        ),
+        OutlinedButton.icon(
+          onPressed: onPickFile,
+          icon: const Icon(Icons.attach_file_rounded),
+          label: const Text('Attach file'),
+        ),
+      ],
+    );
+  }
+}
+
 class _AttachedAudioChip extends StatelessWidget {
   const _AttachedAudioChip({required this.seconds, required this.onRemove});
 
@@ -1315,6 +1720,50 @@ class _AttachedAudioChip extends StatelessWidget {
             onPressed: onRemove,
             icon: const Icon(Icons.close_rounded),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AttachedFileChip extends StatelessWidget {
+  const _AttachedFileChip({required this.name, required this.onRemove});
+
+  final String name;
+  final VoidCallback? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: _teal.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _teal.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.attach_file_rounded, color: _teal, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: _primary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          if (onRemove != null)
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              tooltip: 'Remove attachment',
+              onPressed: onRemove,
+              icon: const Icon(Icons.close_rounded, size: 18),
+            ),
         ],
       ),
     );

@@ -37,6 +37,7 @@ class CounselingCase {
     this.countryCode,
     this.locale,
     this.timezone,
+    this.requester,
     this.assignedProvider,
     this.lastMessageAt,
     this.closedAt,
@@ -54,6 +55,7 @@ class CounselingCase {
   final String? countryCode;
   final String? locale;
   final String? timezone;
+  final CounselingPerson? requester;
   final CounselingProviderSummary? assignedProvider;
   final DateTime? lastMessageAt;
   final DateTime? closedAt;
@@ -87,6 +89,10 @@ class CounselingCase {
       countryCode: _stringOrNull(json['country_code']),
       locale: _stringOrNull(json['locale']),
       timezone: _stringOrNull(json['timezone']),
+      requester: json['requester'] is Map
+          ? CounselingPerson.fromJson(
+              Map<String, dynamic>.from(json['requester']))
+          : null,
       assignedProvider: provider is Map
           ? CounselingProviderSummary.fromJson(
               Map<String, dynamic>.from(provider),
@@ -121,14 +127,77 @@ class CounselingProviderSummary {
   }
 }
 
+class CounselingPerson {
+  CounselingPerson({
+    required this.id,
+    required this.name,
+    this.email,
+    this.phone,
+    this.avatar,
+    this.type,
+  });
+
+  final int id;
+  final String name;
+  final String? email;
+  final String? phone;
+  final String? avatar;
+  final String? type;
+
+  factory CounselingPerson.fromJson(Map<String, dynamic> json) {
+    return CounselingPerson(
+      id: _int(json['id']),
+      name: _stringOrNull(json['name']) ?? 'Member',
+      email: _stringOrNull(json['email']),
+      phone: _stringOrNull(json['phone']),
+      avatar: _stringOrNull(json['avatar']),
+      type: _stringOrNull(json['type']),
+    );
+  }
+}
+
+class CounselingAttachment {
+  CounselingAttachment({
+    this.url,
+    this.mime,
+    this.name,
+    this.sizeBytes,
+  });
+
+  final String? url;
+  final String? mime;
+  final String? name;
+  final int? sizeBytes;
+
+  factory CounselingAttachment.fromJson(Map<String, dynamic> json) {
+    return CounselingAttachment(
+      url: _stringOrNull(json['url']),
+      mime: _stringOrNull(json['mime']),
+      name: _stringOrNull(json['name']),
+      sizeBytes: json['size_bytes'] == null ? null : _int(json['size_bytes']),
+    );
+  }
+}
+
+class CounselingReaction {
+  CounselingReaction({required this.emoji, required this.count});
+
+  final String emoji;
+  final int count;
+}
+
 class CounselingMessage {
   CounselingMessage({
     required this.id,
     required this.direction,
     required this.messageType,
     this.body,
+    this.sender,
+    this.mediaUrl,
     this.audioUrl,
     this.audioDurationSeconds,
+    this.attachment,
+    this.reactions = const [],
     this.createdAt,
   });
 
@@ -136,23 +205,63 @@ class CounselingMessage {
   final String direction;
   final String messageType;
   final String? body;
+  final CounselingPerson? sender;
+  final String? mediaUrl;
   final String? audioUrl;
   final int? audioDurationSeconds;
+  final CounselingAttachment? attachment;
+  final List<CounselingReaction> reactions;
   final DateTime? createdAt;
 
   bool get isAudio => messageType.toLowerCase() == 'audio';
+  bool get isImage => messageType.toLowerCase() == 'image';
+  bool get isFile => messageType.toLowerCase() == 'file';
   bool get isFromRequester => direction.toLowerCase() == 'inbound';
 
   factory CounselingMessage.fromJson(Map<String, dynamic> json) {
+    final reactions = <CounselingReaction>[];
+    final rawReactions = json['reactions'];
+    if (rawReactions is List) {
+      for (final item in rawReactions.whereType<Map>()) {
+        reactions.add(CounselingReaction(
+          emoji: _stringOrNull(item['emoji']) ?? '',
+          count: _int(item['count']),
+        ));
+      }
+    } else if (rawReactions is Map) {
+      final counts = <String, int>{};
+      rawReactions.forEach((key, value) {
+        final emoji = value is Map
+            ? _stringOrNull(value['reaction'])
+            : _stringOrNull(value);
+        if (emoji == null || emoji.isEmpty) return;
+        counts[emoji] = (counts[emoji] ?? 0) + 1;
+      });
+      counts.forEach((emoji, count) {
+        reactions.add(CounselingReaction(emoji: emoji, count: count));
+      });
+    }
+
     return CounselingMessage(
       id: _int(json['id']),
       direction: '${json['direction'] ?? 'inbound'}',
       messageType: '${json['message_type'] ?? 'text'}',
       body: _stringOrNull(json['body']),
+      sender: json['sender'] is Map
+          ? CounselingPerson.fromJson(Map<String, dynamic>.from(json['sender']))
+          : null,
+      mediaUrl: _stringOrNull(json['media_url']),
       audioUrl: _stringOrNull(json['audio_url']),
       audioDurationSeconds: json['audio_duration_seconds'] == null
           ? null
           : _int(json['audio_duration_seconds']),
+      attachment: json['attachment'] is Map
+          ? CounselingAttachment.fromJson(
+              Map<String, dynamic>.from(json['attachment']),
+            )
+          : null,
+      reactions:
+          reactions.where((reaction) => reaction.emoji.isNotEmpty).toList(),
       createdAt: _date(json['created_at']),
     );
   }

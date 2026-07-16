@@ -20,6 +20,7 @@ class MoreMenuPreloadSnapshot {
     required this.fundraisingEnabled,
     required this.prayerPointsEnabled,
     required this.interactivePrayerWallEnabled,
+    required this.counselingEnabled,
     required this.hymnsEnabled,
     required this.devotionalsEnabled,
     required this.churchGroupsEnabled,
@@ -35,6 +36,7 @@ class MoreMenuPreloadSnapshot {
   final bool fundraisingEnabled;
   final bool prayerPointsEnabled;
   final bool interactivePrayerWallEnabled;
+  final bool counselingEnabled;
   final bool hymnsEnabled;
   final bool devotionalsEnabled;
   final bool churchGroupsEnabled;
@@ -110,6 +112,8 @@ class MoreMenuPreloadService {
         homeData,
         'interactive_prayer_wall_enabled',
         _snapshot?.interactivePrayerWallEnabled);
+    var counselingEnabled = _readModuleFlag(
+        homeData, 'counseling_enabled', _snapshot?.counselingEnabled);
     var hymnsEnabled =
         _readModuleFlag(homeData, 'hymns_enabled', _snapshot?.hymnsEnabled);
     var devotionalsEnabled = _readModuleFlag(
@@ -198,6 +202,7 @@ class MoreMenuPreloadService {
       fundraisingEnabled: fundraisingEnabled,
       prayerPointsEnabled: prayerPointsEnabled,
       interactivePrayerWallEnabled: interactivePrayerWallEnabled,
+      counselingEnabled: counselingEnabled,
       hymnsEnabled: hymnsEnabled,
       devotionalsEnabled: devotionalsEnabled,
       churchGroupsEnabled: churchGroupsEnabled,

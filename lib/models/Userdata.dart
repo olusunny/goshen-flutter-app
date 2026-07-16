@@ -35,6 +35,7 @@ class Userdata {
   bool canManageDynamicForms = false;
   bool canManageChurchEvents = false;
   bool canManageVerseOfDay = false;
+  bool canManageCounseling = false;
   bool hasPropheticDecreePermission = false;
   bool canSendAdminMessages = false;
   bool following = false;
@@ -81,6 +82,7 @@ class Userdata {
     "canManageDynamicForms",
     "canManageChurchEvents",
     "canManageVerseOfDay",
+    "canManageCounseling",
     "canManagePropheticDecree",
     "canSendAdminMessages",
     "activated"
@@ -128,6 +130,7 @@ class Userdata {
     this.canManageDynamicForms = false,
     this.canManageChurchEvents = false,
     this.canManageVerseOfDay = false,
+    this.canManageCounseling = false,
     this.hasPropheticDecreePermission = false,
     this.canSendAdminMessages = false,
     this.following = false,
@@ -203,6 +206,9 @@ class Userdata {
         canManageVerseOfDay: _readBool(
           json['can_manage_verse_of_day'] ?? json['canManageVerseOfDay'],
         ),
+        canManageCounseling: _readBool(
+          json['can_manage_counseling'] ?? json['canManageCounseling'],
+        ),
         hasPropheticDecreePermission: _readBool(
           json['can_manage_prophetic_decree'] ??
               json['canManagePropheticDecree'],
@@ -276,6 +282,9 @@ class Userdata {
       ),
       canManageVerseOfDay: _readBool(
         json['can_manage_verse_of_day'] ?? json['canManageVerseOfDay'],
+      ),
+      canManageCounseling: _readBool(
+        json['can_manage_counseling'] ?? json['canManageCounseling'],
       ),
       hasPropheticDecreePermission: _readBool(
         json['can_manage_prophetic_decree'] ?? json['canManagePropheticDecree'],
@@ -351,6 +360,9 @@ class Userdata {
         canManageVerseOfDay: _readBool(
           json['can_manage_verse_of_day'] ?? json['canManageVerseOfDay'],
         ),
+        canManageCounseling: _readBool(
+          json['can_manage_counseling'] ?? json['canManageCounseling'],
+        ),
         hasPropheticDecreePermission: _readBool(
           json['can_manage_prophetic_decree'] ??
               json['canManagePropheticDecree'],
@@ -424,6 +436,9 @@ class Userdata {
       canManageVerseOfDay: _readBool(
         json['can_manage_verse_of_day'] ?? json['canManageVerseOfDay'],
       ),
+      canManageCounseling: _readBool(
+        json['can_manage_counseling'] ?? json['canManageCounseling'],
+      ),
       hasPropheticDecreePermission: _readBool(
         json['can_manage_prophetic_decree'] ?? json['canManagePropheticDecree'],
       ),
@@ -478,6 +493,7 @@ class Userdata {
       canManageDynamicForms: _readBool(data['canManageDynamicForms']),
       canManageChurchEvents: _readBool(data['canManageChurchEvents']),
       canManageVerseOfDay: _readBool(data['canManageVerseOfDay']),
+      canManageCounseling: _readBool(data['canManageCounseling']),
       hasPropheticDecreePermission: _readBool(data['canManagePropheticDecree']),
       canSendAdminMessages: _readBool(data['canSendAdminMessages']),
       activated: data['activated'],
@@ -525,6 +541,7 @@ class Userdata {
         "canManageDynamicForms": canManageDynamicForms ? 1 : 0,
         "canManageChurchEvents": canManageChurchEvents ? 1 : 0,
         "canManageVerseOfDay": canManageVerseOfDay ? 1 : 0,
+        "canManageCounseling": canManageCounseling ? 1 : 0,
         "canManagePropheticDecree": hasPropheticDecreePermission ? 1 : 0,
         "canSendAdminMessages": canSendAdminMessages ? 1 : 0,
         "activated": activated,
@@ -612,6 +629,11 @@ class Userdata {
   bool get canManageVerseOfDayTools {
     if (canManageVerseOfDay) return true;
     return _hasRole(_isVerseOfDayManagerRoleName);
+  }
+
+  bool get canManageCounselingTools {
+    if (canManageCounseling) return true;
+    return _hasRole(_isCounselingManagerRoleName);
   }
 
   bool get canSendAdminMessageTools {
@@ -704,6 +726,18 @@ bool _isVerseOfDayManagerRoleName(String normalized) {
 bool _isMessageManagerRoleName(String normalized) {
   return normalized == 'messagingmanager' ||
       normalized == 'messagecenter' ||
+      _isEventManagerRoleName(normalized);
+}
+
+bool _isCounselingManagerRoleName(String normalized) {
+  return normalized == 'counselor' ||
+      normalized == 'counsellor' ||
+      normalized == 'counselingteam' ||
+      normalized == 'counsellingteam' ||
+      normalized == 'pastor' ||
+      normalized == 'triageteam' ||
+      normalized == 'pastoralcare' ||
+      normalized == 'triumphantitmanager' ||
       _isEventManagerRoleName(normalized);
 }
 

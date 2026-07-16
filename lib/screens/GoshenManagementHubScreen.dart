@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../features/counseling/counseling_screen.dart';
 import '../features/fundraising/fundraising_api.dart';
 import '../features/fundraising/fundraising_models.dart';
 import '../models/GoshenExperience.dart';
@@ -37,6 +38,7 @@ class GoshenManagementHubScreen extends StatefulWidget {
     required this.canManageWalletWithdrawals,
     required this.canManageDynamicForms,
     required this.canManageChurchEvents,
+    required this.canManageCounseling,
     required this.canSendAdminMessages,
   });
 
@@ -49,6 +51,7 @@ class GoshenManagementHubScreen extends StatefulWidget {
   final bool canManageWalletWithdrawals;
   final bool canManageDynamicForms;
   final bool canManageChurchEvents;
+  final bool canManageCounseling;
   final bool canSendAdminMessages;
 
   @override
@@ -151,6 +154,21 @@ class _GoshenManagementHubScreenState extends State<GoshenManagementHubScreen> {
                   ),
                 ],
                 const SizedBox(height: 18),
+                if (widget.canManageCounseling) ...[
+                  _HubActionCard(
+                    colors: colors,
+                    title: 'Counseling desk',
+                    subtitle:
+                        'Review private counseling requests, open case threads, and follow up securely.',
+                    icon: Icons.health_and_safety_outlined,
+                    accent: colors.gold,
+                    onTap: () => Navigator.pushNamed(
+                      context,
+                      CounselingScreen.routeName,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 if (widget.canManageChurchEvents) ...[
                   _HubActionCard(
                     colors: colors,

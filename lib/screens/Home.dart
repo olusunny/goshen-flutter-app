@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../audio_player/miniPlayer.dart';
 import '../audio_player/player_page.dart';
 import '../auth/LoginScreen.dart';
+import '../features/counseling/counseling_screen.dart';
 import '../models/Events.dart';
 import '../models/Media.dart';
 import '../models/ScreenArguements.dart';
@@ -162,6 +163,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 goshenRetreatEnabled:
                     home.data['goshen_retreat_enabled'] == true,
                 prayerPointsEnabled: home.data['prayer_points_enabled'] == true,
+                counselingEnabled: home.data['counseling_enabled'] != false,
                 devotionalsEnabled: home.data['devotionals_enabled'] == true,
                 onEventsTap: () =>
                     Navigator.pushNamed(context, EventsListScreen.routeName),
@@ -179,6 +181,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     Navigator.pushNamed(context, GoshenRetreatScreen.routeName),
                 onPrayerPointsTap: () =>
                     Navigator.pushNamed(context, PrayerPointsScreen.routeName),
+                onCounselingTap: () =>
+                    Navigator.pushNamed(context, CounselingScreen.routeName),
                 onDevotionalTap: () =>
                     Navigator.pushNamed(context, DevotionalScreen.routeName),
               ),
@@ -1273,9 +1277,11 @@ class ActivityCenterSection extends StatelessWidget {
     required this.onGalleryTap,
     required this.onGoshenRetreatTap,
     required this.onPrayerPointsTap,
+    required this.onCounselingTap,
     required this.onDevotionalTap,
     required this.goshenRetreatEnabled,
     required this.prayerPointsEnabled,
+    required this.counselingEnabled,
     required this.devotionalsEnabled,
   }) : super(key: key);
 
@@ -1286,9 +1292,11 @@ class ActivityCenterSection extends StatelessWidget {
   final VoidCallback onGalleryTap;
   final VoidCallback onGoshenRetreatTap;
   final VoidCallback onPrayerPointsTap;
+  final VoidCallback onCounselingTap;
   final VoidCallback onDevotionalTap;
   final bool goshenRetreatEnabled;
   final bool prayerPointsEnabled;
+  final bool counselingEnabled;
   final bool devotionalsEnabled;
 
   @override
@@ -1346,6 +1354,14 @@ class ActivityCenterSection extends StatelessWidget {
           icon: Icons.menu_book_rounded,
           color: const Color(0xFFFFB625),
           onTap: onPrayerPointsTap,
+        ),
+      if (counselingEnabled)
+        ActivityCardData(
+          title: 'Private Counseling',
+          subtitle: 'Start a private pastoral care request',
+          icon: Icons.health_and_safety_outlined,
+          color: const Color(0xFF0B2A3A),
+          onTap: onCounselingTap,
         ),
       ActivityCardData(
         title: 'Giving',

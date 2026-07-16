@@ -36,7 +36,15 @@ class CounselingApi {
     String priority = 'normal',
     String? audioPath,
     int? audioDurationSeconds,
+    String? attachmentPath,
+    String attachmentType = 'file',
   }) async {
+    final hasAttachment = (attachmentPath ?? '').trim().isNotEmpty;
+    final messageType = audioPath != null
+        ? 'audio'
+        : hasAttachment
+            ? attachmentType
+            : 'text';
     final formData = FormData.fromMap({
       if ((subject ?? '').trim().isNotEmpty) 'subject': subject!.trim(),
       if ((category ?? '').trim().isNotEmpty) 'category': category!.trim(),
@@ -44,13 +52,19 @@ class CounselingApi {
       'country_code': _countryCode(user.countryOfResidence),
       'locale': 'en',
       'timezone': DateTime.now().timeZoneName,
-      'message_type': audioPath == null ? 'text' : 'audio',
+      'message_type': messageType,
       if (body.trim().isNotEmpty) 'body': body.trim(),
       if (audioPath != null) ...{
         'audio_duration_seconds': (audioDurationSeconds ?? 1).clamp(1, 300),
         'audio': MultipartFile.fromFileSync(
           audioPath,
           filename: _fileName(audioPath),
+        ),
+      },
+      if (hasAttachment) ...{
+        'attachment': MultipartFile.fromFileSync(
+          attachmentPath!,
+          filename: _fileName(attachmentPath),
         ),
       },
     });
@@ -69,15 +83,29 @@ class CounselingApi {
     required String body,
     String? audioPath,
     int? audioDurationSeconds,
+    String? attachmentPath,
+    String attachmentType = 'file',
   }) async {
+    final hasAttachment = (attachmentPath ?? '').trim().isNotEmpty;
+    final messageType = audioPath != null
+        ? 'audio'
+        : hasAttachment
+            ? attachmentType
+            : 'text';
     final formData = FormData.fromMap({
-      'message_type': audioPath == null ? 'text' : 'audio',
+      'message_type': messageType,
       if (body.trim().isNotEmpty) 'body': body.trim(),
       if (audioPath != null) ...{
         'audio_duration_seconds': (audioDurationSeconds ?? 1).clamp(1, 300),
         'audio': MultipartFile.fromFileSync(
           audioPath,
           filename: _fileName(audioPath),
+        ),
+      },
+      if (hasAttachment) ...{
+        'attachment': MultipartFile.fromFileSync(
+          attachmentPath!,
+          filename: _fileName(attachmentPath),
         ),
       },
     });
@@ -89,6 +117,20 @@ class CounselingApi {
         ));
     final data = _extractData(response.data);
     return CounselingMessage.fromJson(data);
+  }
+
+  Future<CounselingMessage> reactToMessage({
+    required Userdata user,
+    required int caseId,
+    required int messageId,
+    required String reaction,
+  }) async {
+    final response = await _send(() => _dio.post(
+          '${ApiUrl.counselingCaseMessages(caseId.toString())}/$messageId/reaction',
+          data: {'reaction': reaction},
+          options: _options(user),
+        ));
+    return CounselingMessage.fromJson(_extractData(response.data));
   }
 
   Future<CounselingCase> closeCase({
@@ -107,6 +149,10 @@ class CounselingApi {
   }
 
   String absoluteAudioUrl(String? url) {
+    return absoluteMediaUrl(url);
+  }
+
+  String absoluteMediaUrl(String? url) {
     final value = (url ?? '').trim();
     if (value.isEmpty) return '';
     if (value.startsWith('http://') || value.startsWith('https://')) {

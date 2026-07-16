@@ -51,6 +51,7 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
   bool _fundraisingEnabled = false;
   bool _prayerPointsEnabled = true;
   bool _interactivePrayerWallEnabled = true;
+  bool _counselingEnabled = true;
   bool _hymnsEnabled = true;
   bool _devotionalsEnabled = true;
   bool _churchGroupsEnabled = true;
@@ -93,6 +94,7 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
             _prayerPointsEnabled != snapshot.prayerPointsEnabled ||
             _interactivePrayerWallEnabled !=
                 snapshot.interactivePrayerWallEnabled ||
+            _counselingEnabled != snapshot.counselingEnabled ||
             _hymnsEnabled != snapshot.hymnsEnabled ||
             _devotionalsEnabled != snapshot.devotionalsEnabled ||
             _churchGroupsEnabled != snapshot.churchGroupsEnabled ||
@@ -106,6 +108,7 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
         _fundraisingEnabled = snapshot.fundraisingEnabled;
         _prayerPointsEnabled = snapshot.prayerPointsEnabled;
         _interactivePrayerWallEnabled = snapshot.interactivePrayerWallEnabled;
+        _counselingEnabled = snapshot.counselingEnabled;
         _hymnsEnabled = snapshot.hymnsEnabled;
         _devotionalsEnabled = snapshot.devotionalsEnabled;
         _churchGroupsEnabled = snapshot.churchGroupsEnabled;
@@ -133,6 +136,7 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
     final canManageDynamicForms = user?.canManageDynamicFormTools == true;
     final canManageChurchEvents = user?.canManageChurchEventTools == true;
     final canManageVerseOfDay = user?.canManageVerseOfDayTools == true;
+    final canManageCounseling = user?.canManageCounselingTools == true;
     final canSendAdminMessages = user?.canSendAdminMessageTools == true;
     final canOpenGoshenManagement = user != null &&
         (_scannerManagerEnabled ||
@@ -146,6 +150,7 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
             canManageDynamicForms ||
             canManageChurchEvents ||
             canManageVerseOfDay ||
+            canManageCounseling ||
             canSendAdminMessages);
     final items = <_MoreMenuItem>[
       if (canOpenGoshenManagement)
@@ -165,12 +170,17 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
                       canManageWalletWithdrawals: canManageWalletWithdrawals,
                       canManageDynamicForms: canManageDynamicForms,
                       canManageChurchEvents: canManageChurchEvents,
+                      canManageCounseling: canManageCounseling,
                       canSendAdminMessages: canSendAdminMessages,
                     ),
                   ),
                 ),
             accent: const Color(0xFFFFC857),
             featured: true),
+      if (_counselingEnabled)
+        _MoreMenuItem('Private Counseling', Icons.health_and_safety_outlined,
+            () => Navigator.pushNamed(context, CounselingScreen.routeName),
+            accent: const Color(0xFFFFC857), featured: true),
       _MoreMenuItem('Giving', Icons.volunteer_activism_outlined,
           () => Navigator.pushNamed(context, DonationAccountsScreen.routeName),
           accent: const Color(0xFFE1A63B)),
@@ -242,10 +252,6 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
       if (_interactivePrayerWallEnabled)
         _MoreMenuItem('Interactive Prayer Wall',
             Icons.volunteer_activism_outlined, () => _openPrayer(context)),
-      if (user != null)
-        _MoreMenuItem('Counseling', Icons.health_and_safety_outlined,
-            () => Navigator.pushNamed(context, CounselingScreen.routeName),
-            accent: const Color(0xFFFFC857)),
       if (_testimoniesEnabled)
         _MoreMenuItem('Testimonies & Thanksgiving', Icons.auto_awesome_rounded,
             () => Navigator.pushNamed(context, TestimonyWallScreen.routeName),

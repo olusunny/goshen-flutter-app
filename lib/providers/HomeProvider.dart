@@ -37,6 +37,7 @@ class HomeProvider with ChangeNotifier {
     "prayer_requests_count": 0,
     "prayer_request_avatars": [],
     "testimonies_enabled": false,
+    "counseling_enabled": true,
     "testimonies_count": 0,
     "goshen_retreat_enabled": false,
     "fundraising_enabled": false,
@@ -158,6 +159,8 @@ class HomeProvider with ChangeNotifier {
         data['prayer_requests_count'] = res['prayer_requests_count'] ?? 0;
         data['prayer_request_avatars'] = res['prayer_request_avatars'] ?? [];
         data['testimonies_enabled'] = res['testimonies_enabled'] == true;
+        data['counseling_enabled'] =
+            _readBool(res['counseling_enabled'], fallback: true);
         data['testimonies_count'] = res['testimonies_count'] ?? 0;
         data['goshen_retreat_enabled'] = await _fetchGoshenRetreatFlag(dio);
         data['fundraising_enabled'] =
