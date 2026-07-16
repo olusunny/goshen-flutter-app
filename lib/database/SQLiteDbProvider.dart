@@ -26,7 +26,7 @@ class SQLiteDbProvider {
   initDB() async {
     return await openDatabase(
         join(await getDatabasesPath(), 'streamit_database.db'),
-        version: 16, onOpen: (db) async {
+        version: 17, onOpen: (db) async {
       await _ensureUserdataSchema(db);
     }, onUpgrade: (Database db, int oldVersion, int newVersion) async {
       if (oldVersion < 2) {
@@ -102,6 +102,10 @@ class SQLiteDbProvider {
       if (oldVersion < 16) {
         await _addColumnIfMissing(
             db, Userdata.TABLE, 'canManageVerseOfDay', 'INTEGER');
+      }
+      if (oldVersion < 17) {
+        await _addColumnIfMissing(
+            db, Userdata.TABLE, 'canManageCounseling', 'INTEGER');
       }
       await _ensureUserdataSchema(db);
     }, onCreate: (Database db, int version) async {
@@ -269,6 +273,7 @@ class SQLiteDbProvider {
           "canManageDynamicForms INTEGER,"
           "canManageChurchEvents INTEGER,"
           "canManageVerseOfDay INTEGER,"
+          "canManageCounseling INTEGER,"
           "canManagePropheticDecree INTEGER,"
           "canSendAdminMessages INTEGER,"
           "activated INTEGER"
@@ -322,6 +327,8 @@ class SQLiteDbProvider {
     await _addColumnIfMissing(
         db, Userdata.TABLE, 'canManageVerseOfDay', 'INTEGER');
     await _addColumnIfMissing(
+        db, Userdata.TABLE, 'canManageCounseling', 'INTEGER');
+    await _addColumnIfMissing(
         db, Userdata.TABLE, 'canManagePropheticDecree', 'INTEGER');
     await _addColumnIfMissing(
         db, Userdata.TABLE, 'canSendAdminMessages', 'INTEGER');
@@ -344,16 +351,16 @@ class SQLiteDbProvider {
     return userdatalist.length > 0 ? userdatalist[0] : null;
   }
 
-  insertUser(Userdata userdata) async {
+  Future<int> insertUser(Userdata userdata) async {
     final db = await database;
     await _ensureUserdataSchema(db!);
     var result = await db.insert(Userdata.TABLE, userdata.toMap());
     return result;
   }
 
-  deleteUserData() async {
+  Future<int> deleteUserData() async {
     final db = await database;
-    db!.rawDelete("DELETE FROM ${Userdata.TABLE}");
+    return db!.rawDelete("DELETE FROM ${Userdata.TABLE}");
   }
 
   //categories crud

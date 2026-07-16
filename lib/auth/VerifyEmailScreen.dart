@@ -61,8 +61,9 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
       }
 
       if (res["user"] != null) {
-        Provider.of<AppStateManager>(context, listen: false)
+        await Provider.of<AppStateManager>(context, listen: false)
             .setUserData(Userdata.fromJson(res["user"]));
+        if (!mounted) return;
         Navigator.of(context).popUntil((route) => route.isFirst);
       } else {
         Alerts.show(context, t.success,

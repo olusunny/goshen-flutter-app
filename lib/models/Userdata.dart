@@ -137,46 +137,62 @@ class Userdata {
   }) : roles = roles ?? [];
 
   factory Userdata.fromJson(Map<String, dynamic> json) {
-    print(json['avatar'].toString());
     final activated = _readActivationState(json['activated']);
     //print(json);
     return Userdata(
-        firstName: json['first_name'] as String?,
+        firstName: _readString(json, const ['first_name', 'firstName']),
         profileTitle: _readString(json,
             const ['profile_title', 'profileTitle', 'salutation', 'title']),
         maritalStatus:
             _readString(json, const ['marital_status', 'maritalStatus']),
-        middleName: json['middle_name'] as String?,
-        lastName: json['last_name'] as String?,
-        name: json['name'] as String?,
-        email: json['email'] as String?,
+        middleName: _readString(json, const ['middle_name', 'middleName']),
+        lastName: _readString(json, const ['last_name', 'lastName']),
+        name: _readString(json, const ['name', 'full_name', 'fullName']),
+        email: _readString(json, const ['email']),
         triumphantId:
             _readString(json, const ['triumphant_id', 'triumphantId']),
-        avatar: activated == 1 ? "" : json['avatar'] as String?,
-        coverPhoto: activated == 1 ? "" : json['cover_photo'] as String?,
-        gender: activated == 1 ? "" : json['gender'] as String?,
+        avatar: activated == 1 ? "" : _readString(json, const ['avatar']),
+        coverPhoto: activated == 1
+            ? ""
+            : _readString(json, const ['cover_photo', 'coverPhoto']),
+        gender: activated == 1 ? "" : _readString(json, const ['gender']),
         groupId: activated == 1 ? null : _readInt(json['group_id']),
-        groupName: activated == 1 ? "" : json['group_name'] as String?,
-        dateOfBirth: activated == 1 ? "" : json['date_of_birth'] as String?,
-        phone: activated == 1 ? "" : json['phone'] as String?,
-        countryOfResidence:
-            activated == 1 ? "" : json['country_of_residence'] as String?,
-        stateCountyProvince:
-            activated == 1 ? "" : json['state_county_province'] as String?,
-        memberType: activated == 1 ? "" : json['member_type'] as String?,
-        address: activated == 1 ? "" : json['address'] as String?,
+        groupName: activated == 1
+            ? ""
+            : _readString(json, const ['group_name', 'groupName']),
+        dateOfBirth: activated == 1
+            ? ""
+            : _readString(json, const ['date_of_birth', 'dateOfBirth']),
+        phone: activated == 1 ? "" : _readString(json, const ['phone']),
+        countryOfResidence: activated == 1
+            ? ""
+            : _readString(
+                json, const ['country_of_residence', 'countryOfResidence']),
+        stateCountyProvince: activated == 1
+            ? ""
+            : _readString(
+                json, const ['state_county_province', 'stateCountyProvince']),
+        memberType: activated == 1
+            ? ""
+            : _readString(json, const ['member_type', 'memberType']),
+        address: activated == 1 ? "" : _readString(json, const ['address']),
         addressLatitude:
             activated == 1 ? "" : json['address_latitude']?.toString(),
         addressLongitude:
             activated == 1 ? "" : json['address_longitude']?.toString(),
-        aboutMe: activated == 1 ? "" : json['about_me'] as String?,
-        location: activated == 1 ? "" : json['location'] as String?,
-        qualification: activated == 1 ? "" : json['qualification'] as String?,
-        facebook: activated == 1 ? "" : json['facebook'] as String?,
-        twitter: activated == 1 ? "" : json['twitter'] as String?,
-        linkdln: activated == 1 ? "" : json['linkdln'] as String?,
+        aboutMe: activated == 1
+            ? ""
+            : _readString(json, const ['about_me', 'aboutMe']),
+        location: activated == 1 ? "" : _readString(json, const ['location']),
+        qualification:
+            activated == 1 ? "" : _readString(json, const ['qualification']),
+        facebook: activated == 1 ? "" : _readString(json, const ['facebook']),
+        twitter: activated == 1 ? "" : _readString(json, const ['twitter']),
+        linkdln: activated == 1
+            ? ""
+            : _readString(json, const ['linkdln', 'linkedin']),
         role: _readRole(json),
-        apiToken: json['api_token'] as String?,
+        apiToken: _readString(json, const ['api_token', 'apiToken', 'token']),
         roles: _readRoles(json),
         isGo: _readBool(json['is_go']),
         canManageGroups: _readBool(json['can_manage_groups']),

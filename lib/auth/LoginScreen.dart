@@ -32,6 +32,8 @@ class LoginScreenRouteState extends State<LoginScreen> {
   bool googleEnabled = false;
   bool phoneEnabled = false;
   bool googleLoading = false;
+  bool loginLoading = false;
+  bool _loginProgressVisible = false;
 
   @override
   void initState() {
@@ -70,16 +72,24 @@ class LoginScreenRouteState extends State<LoginScreen> {
   }
 
   Future<void> loginUser(String email, String password) async {
-    Alerts.showProgressDialog(context, t.processingpleasewait);
+    if (loginLoading) return;
+    setState(() => loginLoading = true);
+    _showLoginProgress();
+
     try {
-      final response = await http.post(
-        Uri.parse(ApiUrl.LOGIN),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "data": {"email": email, "password": password}
-        }),
-      );
-      Navigator.of(context).pop();
+      final response = await http
+          .post(
+            Uri.parse(ApiUrl.LOGIN),
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({
+              "data": {"email": email, "password": password}
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+      _dismissLoginProgress();
 
       if (response.statusCode != 200) {
         Alerts.show(context, t.error, _httpErrorMessage(response));
@@ -111,22 +121,114 @@ class LoginScreenRouteState extends State<LoginScreen> {
         return;
       }
 
-      final userPayload = res["user"];
-      if (userPayload is! Map<String, dynamic>) {
+      final userPayload = _extractUserPayload(res);
+      if (userPayload == null) {
         Alerts.show(context, t.error,
             'Sign-in succeeded but no user profile was returned.');
         return;
       }
 
-      Provider.of<AppStateManager>(context, listen: false)
+      if ((userPayload['api_token'] ?? '').toString().trim().isEmpty) {
+        Alerts.show(context, t.error,
+            'Sign-in succeeded but no secure session token was returned.');
+        return;
+      }
+
+      await Provider.of<AppStateManager>(context, listen: false)
           .setUserData(Userdata.fromJson(userPayload));
+      if (!mounted) return;
       Navigator.of(context).pop();
     } catch (exception) {
       debugPrint('Login failed: $exception');
-      Navigator.of(context).pop();
-      Alerts.show(context, t.error,
-          'Unable to complete sign-in right now. Please try again.');
+      _dismissLoginProgress();
+      if (!mounted) return;
+      Alerts.show(context, t.error, _friendlyLoginException(exception));
+    } finally {
+      if (mounted) setState(() => loginLoading = false);
     }
+  }
+
+  void _showLoginProgress() {
+    _loginProgressVisible = true;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          content: Row(
+            children: [
+              const CircularProgressIndicator.adaptive(),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  t.processingpleasewait,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _dismissLoginProgress() {
+    if (!mounted || !_loginProgressVisible) return;
+    _loginProgressVisible = false;
+    final navigator = Navigator.of(context, rootNavigator: true);
+    if (navigator.canPop()) {
+      navigator.pop();
+    }
+  }
+
+  Map<String, dynamic>? _extractUserPayload(Map<String, dynamic> response) {
+    Map<String, dynamic>? user;
+    final directUser = response['user'];
+    if (directUser is Map) {
+      user = Map<String, dynamic>.from(directUser);
+    }
+
+    final data = response['data'];
+    if (user == null && data is Map) {
+      final nestedUser = data['user'];
+      if (nestedUser is Map) {
+        user = Map<String, dynamic>.from(nestedUser);
+      } else if (_looksLikeUserPayload(data)) {
+        user = Map<String, dynamic>.from(data);
+      }
+    }
+
+    if (user == null) return null;
+
+    final token = response['api_token'] ??
+        response['token'] ??
+        (data is Map ? data['api_token'] ?? data['token'] : null);
+    if ((user['api_token']?.toString().trim().isEmpty ?? true) &&
+        token != null) {
+      user['api_token'] = token.toString();
+    }
+
+    return user;
+  }
+
+  bool _looksLikeUserPayload(Map<dynamic, dynamic> payload) {
+    return payload.containsKey('email') ||
+        payload.containsKey('api_token') ||
+        payload.containsKey('token');
+  }
+
+  String _friendlyLoginException(Object exception) {
+    final message = exception.toString();
+    if (message.contains('canManageCounseling') ||
+        message.contains('no column named')) {
+      return 'The app updated your local profile storage. Please try signing in again.';
+    }
+    if (message.contains('SocketException') ||
+        message.contains('HandshakeException') ||
+        message.contains('TimeoutException')) {
+      return 'Unable to reach the sign-in service. Please check your connection and try again.';
+    }
+    return 'Unable to complete sign-in right now. Please try again.';
   }
 
   String _httpErrorMessage(http.Response response) {
@@ -251,9 +353,9 @@ class LoginScreenRouteState extends State<LoginScreen> {
           ),
           const SizedBox(height: 12),
           AuthPrimaryButton(
-            label: t.signin,
+            label: loginLoading ? t.processingpleasewait : t.signin,
             icon: Icons.login_rounded,
-            onPressed: verifyFormAndSubmit,
+            onPressed: loginLoading ? null : verifyFormAndSubmit,
           ),
           if (googleEnabled) ...[
             const SizedBox(height: 12),

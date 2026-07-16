@@ -195,7 +195,7 @@ class AppStateManager with ChangeNotifier {
     notifyListeners();
   }
 
-  setUserData(Userdata _userdata) async {
+  Future<void> setUserData(Userdata _userdata) async {
     await SQLiteDbProvider.db.deleteUserData();
     await SQLiteDbProvider.db.insertUser(_userdata);
     this.userdata = _userdata;
@@ -207,7 +207,7 @@ class AppStateManager with ChangeNotifier {
     notifyListeners();
   }
 
-  unsetUserData() async {
+  Future<void> unsetUserData() async {
     await SQLiteDbProvider.db.deleteUserData();
     this.userdata = null;
     eventBus.fire(AppEvents.LOGOUT);
