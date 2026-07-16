@@ -1,7 +1,11 @@
+import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:video_player/video_player.dart';
 
 import '../../auth/LoginScreen.dart';
 import '../../models/Userdata.dart';
@@ -866,42 +870,73 @@ class _CounselingAudioPlayer extends StatefulWidget {
 }
 
 class _CounselingAudioPlayerState extends State<_CounselingAudioPlayer> {
-  final _player = AudioPlayer();
+  VideoPlayerController? _controller;
   bool _loading = false;
   bool _playing = false;
 
   @override
   void dispose() {
-    _player.dispose();
+    _controller?.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant _CounselingAudioPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.url != widget.url) {
+      _controller?.pause();
+      _controller?.dispose();
+      _controller = null;
+      _playing = false;
+      _loading = false;
+    }
   }
 
   Future<void> _toggle() async {
     if (_playing) {
-      await _player.pause();
+      await _controller?.pause();
       if (mounted) setState(() => _playing = false);
       return;
     }
 
     setState(() => _loading = true);
     try {
-      final token = (widget.user?.apiToken ?? '').trim();
-      await _player.setUrl(
-        widget.url,
-        headers: {
-          'Accept': 'audio/*',
-          if (token.isNotEmpty) 'Authorization': 'Bearer $token',
-        },
-      );
-      _player.playerStateStream.listen((state) {
+      if (_controller != null) {
+        await _controller!.dispose();
+        _controller = null;
+      }
+
+      final path = await _downloadProtectedAudio(widget.url);
+      final controller = VideoPlayerController.file(File(path));
+      _controller = controller;
+      await controller.initialize();
+
+      controller.addListener(() {
         if (!mounted) return;
-        final completed = state.processingState == ProcessingState.completed;
-        setState(() => _playing = state.playing && !completed);
-        if (completed) _player.seek(Duration.zero);
+        final completed = controller.value.duration > Duration.zero &&
+            controller.value.position >= controller.value.duration;
+
+        setState(() {
+          _playing = controller.value.isPlaying && !completed;
+          _loading = controller.value.isBuffering;
+        });
+
+        if (completed && controller.value.isPlaying) {
+          controller.pause();
+          controller.seekTo(Duration.zero);
+          setState(() => _playing = false);
+        }
       });
-      await _player.play();
-      if (mounted) setState(() => _playing = true);
-    } catch (_) {
+
+      await controller.play();
+      if (mounted) {
+        setState(() {
+          _playing = true;
+          _loading = false;
+        });
+      }
+    } catch (error) {
+      debugPrint('Counseling audio playback failed: $error');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Unable to play this voice note.')),
@@ -910,6 +945,139 @@ class _CounselingAudioPlayerState extends State<_CounselingAudioPlayer> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<String> _downloadProtectedAudio(String url) async {
+    final directory = Directory(
+      '${(await getTemporaryDirectory()).path}/counseling_audio',
+    );
+    if (!await directory.exists()) {
+      await directory.create(recursive: true);
+    }
+    await _trimAudioCache(directory);
+
+    final cached = await _findCachedAudio(directory, url);
+    if (cached != null) return cached.path;
+
+    final token = (widget.user?.apiToken ?? '').trim();
+    final response = await Dio().get<List<int>>(
+      url,
+      options: Options(
+        responseType: ResponseType.bytes,
+        headers: {
+          'Accept': 'audio/*',
+          if (token.isNotEmpty) 'Authorization': 'Bearer $token',
+        },
+      ),
+    );
+
+    final bytes = response.data;
+    if (bytes == null || bytes.isEmpty) {
+      throw StateError('Downloaded counseling audio file is empty.');
+    }
+
+    final extension = _audioExtensionFromHeaders(response.headers) ??
+        _audioExtensionFromUrl(url) ??
+        'wav';
+    final file = File(
+      '${directory.path}/counseling_audio_${url.hashCode.abs()}.$extension',
+    );
+
+    final projectedSize = await _directorySize(directory) + bytes.length;
+    if (projectedSize > _maxCounselingAudioCacheBytes) {
+      await _trimAudioCache(directory, requiredFreeBytes: bytes.length);
+    }
+
+    await file.writeAsBytes(bytes, flush: true);
+    return file.path;
+  }
+
+  static const int _maxCounselingAudioCacheBytes = 50 * 1024 * 1024;
+
+  Future<File?> _findCachedAudio(Directory directory, String url) async {
+    final prefix = 'counseling_audio_${url.hashCode.abs()}.';
+    await for (final entity in directory.list(followLinks: false)) {
+      if (entity is File && entity.uri.pathSegments.last.startsWith(prefix)) {
+        if (await entity.length() > 0) return entity;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _trimAudioCache(
+    Directory directory, {
+    int requiredFreeBytes = 0,
+  }) async {
+    final fileStats = <_CachedCounselingAudioFile>[];
+    var total = 0;
+
+    await for (final entity in directory.list(followLinks: false)) {
+      if (entity is! File) continue;
+      try {
+        final stat = await entity.stat();
+        total += stat.size;
+        fileStats.add(
+          _CachedCounselingAudioFile(entity, stat.size, stat.changed),
+        );
+      } catch (_) {}
+    }
+
+    final target = _maxCounselingAudioCacheBytes - requiredFreeBytes;
+    if (total <= target) return;
+
+    fileStats.sort((a, b) => a.changed.compareTo(b.changed));
+    for (final item in fileStats) {
+      if (total <= target) break;
+      try {
+        await item.file.delete();
+        total -= item.size;
+      } catch (_) {}
+    }
+  }
+
+  Future<int> _directorySize(Directory directory) async {
+    var total = 0;
+    await for (final entity in directory.list(followLinks: false)) {
+      if (entity is File) {
+        try {
+          total += await entity.length();
+        } catch (_) {}
+      }
+    }
+    return total;
+  }
+
+  String? _audioExtensionFromHeaders(Headers headers) {
+    final disposition = headers.value('content-disposition') ?? '';
+    final filenameMatch = RegExp(r'filename="?([^";]+)"?')
+        .firstMatch(disposition.replaceAll("'", ''));
+    if (filenameMatch != null) {
+      final filename = filenameMatch.group(1) ?? '';
+      final dot = filename.lastIndexOf('.');
+      if (dot >= 0 && dot < filename.length - 1) {
+        return filename.substring(dot + 1).toLowerCase();
+      }
+    }
+
+    final contentType = headers.value('content-type')?.toLowerCase() ?? '';
+    if (contentType.contains('mpeg')) return 'mp3';
+    if (contentType.contains('mp4') || contentType.contains('aac')) {
+      return 'm4a';
+    }
+    if (contentType.contains('ogg')) return 'ogg';
+    if (contentType.contains('webm')) return 'webm';
+    if (contentType.contains('wav') || contentType.contains('wave')) {
+      return 'wav';
+    }
+    return null;
+  }
+
+  String? _audioExtensionFromUrl(String url) {
+    final path = Uri.tryParse(url)?.path.toLowerCase() ?? '';
+    for (final extension in ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'webm']) {
+      if (path.endsWith('.$extension')) return extension;
+    }
+    return null;
   }
 
   @override
@@ -956,6 +1124,14 @@ class _CounselingAudioPlayerState extends State<_CounselingAudioPlayer> {
       ),
     );
   }
+}
+
+class _CachedCounselingAudioFile {
+  const _CachedCounselingAudioFile(this.file, this.size, this.changed);
+
+  final File file;
+  final int size;
+  final DateTime changed;
 }
 
 class _MessageComposer extends StatelessWidget {
