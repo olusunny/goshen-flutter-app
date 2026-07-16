@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../providers/AppStateManager.dart';
 import '../screens/GoshenWalletScreen.dart';
 import '../screens/GoshenWalletTransferScreen.dart';
 import 'wallet_security_controller.dart';
@@ -61,6 +62,7 @@ class WalletSecurityGate extends StatefulWidget {
 
 class _WalletSecurityGateState extends State<WalletSecurityGate> {
   bool _authorized = false;
+  bool _checked = false;
 
   @override
   void initState() {
@@ -69,6 +71,20 @@ class _WalletSecurityGateState extends State<WalletSecurityGate> {
   }
 
   Future<void> _checkCurrentSession() async {
+    final appState = Provider.of<AppStateManager>(context, listen: false);
+    final user = await appState.ensureUserDataLoaded();
+    if (!mounted) return;
+
+    final token = (user?.apiToken ?? '').trim();
+    if (user == null || token.isEmpty) {
+      setState(() {
+        _authorized = true;
+        _checked = true;
+      });
+      return;
+    }
+
+    if (!mounted) return;
     final controller =
         Provider.of<WalletSecurityController>(context, listen: false);
     await controller.load();
@@ -76,11 +92,22 @@ class _WalletSecurityGateState extends State<WalletSecurityGate> {
     final authorized = widget.requireFreshVerification
         ? controller.hasFreshVerification
         : controller.isWalletUnlocked;
-    setState(() => _authorized = authorized);
+    setState(() {
+      _authorized = authorized;
+      _checked = true;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final appState = Provider.of<AppStateManager>(context);
+    if (!appState.isUserDataHydrated || !_checked) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF3F8FB),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (appState.userdata == null) return widget.child;
     if (_authorized) return widget.child;
     return WalletSecurityFlowScreen(
       requireFreshVerification: widget.requireFreshVerification,

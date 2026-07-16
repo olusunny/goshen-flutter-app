@@ -432,9 +432,14 @@ class GoshenWalletApi {
   }
 
   Map<String, dynamic> _authPayload(Userdata user) {
+    final token = (user.apiToken ?? '').trim();
+    if (token.isEmpty) {
+      throw Exception('Please sign in again to manage your Goshen wallet.');
+    }
+
     return {
       'email': user.email,
-      'api_token': user.apiToken,
+      'api_token': token,
     };
   }
 

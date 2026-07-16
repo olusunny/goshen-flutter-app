@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../models/Userdata.dart';
 import '../providers/AppStateManager.dart';
 import '../service/GoshenWalletApi.dart';
 import '../utils/my_colors.dart';
@@ -328,7 +329,7 @@ class _WalletSecurityFlowScreenState extends State<WalletSecurityFlowScreen> {
     WalletSecurityController controller,
     WalletSecurityConfig config,
   ) async {
-    final user = Provider.of<AppStateManager>(context, listen: false).userdata;
+    final user = await _currentUser();
     final token = (user?.apiToken ?? '').trim();
     if (user == null || token.isEmpty) {
       return config;
@@ -361,7 +362,7 @@ class _WalletSecurityFlowScreenState extends State<WalletSecurityFlowScreen> {
       return true;
     }
 
-    final user = Provider.of<AppStateManager>(context, listen: false).userdata;
+    final user = await _currentUser();
     final token = (user?.apiToken ?? '').trim();
     if (user == null || token.isEmpty) {
       if (!mounted) return false;
@@ -384,6 +385,11 @@ class _WalletSecurityFlowScreenState extends State<WalletSecurityFlowScreen> {
       });
       return false;
     }
+  }
+
+  Future<Userdata?> _currentUser() async {
+    final appState = Provider.of<AppStateManager>(context, listen: false);
+    return appState.userdata ?? await appState.ensureUserDataLoaded();
   }
 }
 

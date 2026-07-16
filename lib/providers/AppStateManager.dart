@@ -15,6 +15,8 @@ import '../service/MoreMenuPreloadService.dart';
 
 class AppStateManager with ChangeNotifier {
   Userdata? userdata;
+  bool isUserDataHydrated = false;
+  Future<Userdata?>? _userDataLoadFuture;
   bool? isUserSeenOnboardingPage = false;
   ThemeData? _themeData;
   int preferredLanguage = 0;
@@ -157,8 +159,25 @@ class AppStateManager with ChangeNotifier {
     prefs.setBool("user_seen_onboarding_page", seen);
   }
 
-  getUserData() async {
+  Future<Userdata?> getUserData() {
+    _userDataLoadFuture ??= _loadUserData();
+    return _userDataLoadFuture!;
+  }
+
+  Future<Userdata?> ensureUserDataLoaded({bool force = false}) {
+    if (!force && isUserDataHydrated) {
+      return Future.value(userdata);
+    }
+    if (force) {
+      _userDataLoadFuture = null;
+      isUserDataHydrated = false;
+    }
+    return getUserData();
+  }
+
+  Future<Userdata?> _loadUserData() async {
     userdata = await SQLiteDbProvider.db.getUserData();
+    isUserDataHydrated = true;
     print("userdata " + userdata.toString());
     notifyListeners();
     if (userdata != null && userdata!.activated == 0) {
@@ -169,6 +188,7 @@ class AppStateManager with ChangeNotifier {
     } else {
       MoreMenuPreloadService.instance.warmQuietly();
     }
+    return userdata;
   }
 
   Future<void> _syncCachedUserSession(Userdata cachedUser) async {
@@ -187,6 +207,8 @@ class AppStateManager with ChangeNotifier {
     await SQLiteDbProvider.db.deleteUserData();
     await SQLiteDbProvider.db.insertUser(_userdata);
     userdata = _userdata;
+    isUserDataHydrated = true;
+    _userDataLoadFuture = Future.value(userdata);
     if (userdata != null && userdata!.activated == 0) {
       eventBus.fire(UserLoggedInEvent(userdata));
       updateUserToken();
@@ -199,6 +221,8 @@ class AppStateManager with ChangeNotifier {
     await SQLiteDbProvider.db.deleteUserData();
     await SQLiteDbProvider.db.insertUser(_userdata);
     this.userdata = _userdata;
+    isUserDataHydrated = true;
+    _userDataLoadFuture = Future.value(userdata);
     if (userdata != null && userdata!.activated == 0) {
       eventBus.fire(UserLoggedInEvent(userdata));
       updateUserToken();
@@ -210,6 +234,8 @@ class AppStateManager with ChangeNotifier {
   Future<void> unsetUserData() async {
     await SQLiteDbProvider.db.deleteUserData();
     this.userdata = null;
+    isUserDataHydrated = true;
+    _userDataLoadFuture = Future.value(null);
     eventBus.fire(AppEvents.LOGOUT);
     MoreMenuPreloadService.instance.warmQuietly(force: true);
     notifyListeners();
