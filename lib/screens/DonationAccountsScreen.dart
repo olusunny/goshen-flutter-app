@@ -135,6 +135,7 @@ class _DonationAccountsScreenState extends State<DonationAccountsScreen> {
             'email': _emailController.text.trim(),
             'phone': _phoneController.text.trim(),
             'purpose': _selectedCategory?.name ?? 'Goshen Retreat Giving',
+            'return_to_app': true,
           },
         }),
       );

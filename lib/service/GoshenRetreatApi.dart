@@ -815,6 +815,7 @@ class GoshenRetreatApi {
         'data': {
           'email': user.email,
           'api_token': user.apiToken,
+          'return_to_app': true,
         }
       },
     );

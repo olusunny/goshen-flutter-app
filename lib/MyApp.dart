@@ -92,6 +92,7 @@ import './prayers/prayer_points_screen.dart';
 import './testimonies/testimony_wall_screen.dart';
 import './wallet_security/wallet_security_controller.dart';
 import './wallet_security/wallet_security_guard.dart';
+import './utils/goshen_payment_return_link.dart';
 
 class MyApp extends StatefulWidget {
   const MyApp({
@@ -235,19 +236,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   void _handleIncomingPaymentLink(Uri? uri) {
     if (uri == null) return;
-    final isGoshenPaymentLink =
-        uri.scheme == 'covenantofmercy' && uri.host == 'goshen-payment';
-    final isGoshenWalletLink =
-        uri.scheme == 'covenantofmercy' && uri.host == 'goshen-wallet';
-    if (!isGoshenPaymentLink && !isGoshenWalletLink) return;
+    final paymentReturn = parseGoshenPaymentReturnLink(uri);
+    if (paymentReturn == null) return;
 
     final linkKey = uri.toString();
     if (_lastHandledPaymentLink == linkKey) return;
     _lastHandledPaymentLink = linkKey;
 
-    final status =
-        uri.pathSegments.isNotEmpty ? uri.pathSegments.first.toLowerCase() : '';
-    final success = status == 'success';
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final navigator = navigatorKey.currentState;
       if (navigator == null) return;
@@ -255,10 +250,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         MaterialPageRoute(
           builder: (_) {
             final screen = GoshenPaymentReturnScreen(
-              success: success,
-              wallet: isGoshenWalletLink,
+              success: paymentReturn.success,
+              wallet: paymentReturn.wallet,
+              flow: paymentReturn.flow,
             );
-            return isGoshenWalletLink
+            return paymentReturn.wallet
                 ? WalletSecurityGate(child: screen)
                 : screen;
           },
@@ -723,13 +719,19 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                     ? args
                     : true;
             final wallet = args is Map && args['wallet'] == true;
+            final flow = args is Map
+                ? _paymentReturnFlowFromArgument(args['flow'])
+                : null;
             return MaterialPageRoute(
               builder: (context) {
                 final screen = GoshenPaymentReturnScreen(
                   success: success,
                   wallet: wallet,
+                  flow: flow,
                 );
-                return wallet ? WalletSecurityGate(child: screen) : screen;
+                return (flow == GoshenPaymentReturnFlow.wallet || wallet)
+                    ? WalletSecurityGate(child: screen)
+                    : screen;
               },
             );
           }
@@ -1045,5 +1047,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         },
       ),
     );
+  }
+
+  GoshenPaymentReturnFlow? _paymentReturnFlowFromArgument(Object? value) {
+    if (value is GoshenPaymentReturnFlow) return value;
+    if (value is! String) return null;
+
+    return switch (value) {
+      'wallet' => GoshenPaymentReturnFlow.wallet,
+      'giving' => GoshenPaymentReturnFlow.giving,
+      'retreat' || 'checkout' || 'payment' => GoshenPaymentReturnFlow.retreat,
+      _ => null,
+    };
   }
 }

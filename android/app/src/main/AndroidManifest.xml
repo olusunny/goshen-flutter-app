@@ -79,13 +79,13 @@ xmlns:tools="http://schemas.android.com/tools"
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="covenantofmercy" android:host="goshen-payment" />
+                <data android:scheme="triumphant" android:host="goshen-payment" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="covenantofmercy" android:host="goshen-wallet" />
+                <data android:scheme="triumphant" android:host="goshen-wallet" />
             </intent-filter>
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />

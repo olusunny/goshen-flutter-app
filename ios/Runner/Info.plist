@@ -32,6 +32,12 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
+				<string>triumphant</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
 				<string>fb253623069306546</string>
 			</array>
 		</dict>

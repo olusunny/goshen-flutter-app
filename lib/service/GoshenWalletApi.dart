@@ -212,6 +212,7 @@ class GoshenWalletApi {
           'currency': currency,
           'save_payment_method': savePaymentMethod,
           if (savingsPlanId != null) 'savings_plan_id': savingsPlanId,
+          'return_to_app': true,
         }
       },
     );
