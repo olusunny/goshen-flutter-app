@@ -925,6 +925,7 @@ class GoshenRetreatApi {
     required String currency,
     required int quantity,
     required String purpose,
+    String redemptionType = GoshenVoucherInfo.redemptionFixed,
     int maxUses = 1,
   }) async {
     final response = await _dio.post(
@@ -938,6 +939,7 @@ class GoshenRetreatApi {
         quantity: quantity,
         maxUses: maxUses,
         purpose: purpose,
+        redemptionType: redemptionType,
         event: event,
       ),
     );
@@ -961,6 +963,7 @@ class GoshenRetreatApi {
     required int quantity,
     required int maxUses,
     required String purpose,
+    required String redemptionType,
     GoshenRetreatEvent? event,
   }) =>
       {
@@ -973,6 +976,7 @@ class GoshenRetreatApi {
           'quantity': quantity,
           'max_uses': maxUses,
           'purpose': purpose,
+          'redemption_type': redemptionType,
           if (event != null) 'event_id': event.publicId,
         }
       };

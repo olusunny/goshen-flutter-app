@@ -1307,11 +1307,15 @@ class GoshenVoucherInfo {
     required this.id,
     required this.eventId,
     required this.purpose,
+    required this.redemptionType,
+    required this.redemptionTypeLabel,
     required this.label,
     required this.batchReference,
     required this.codeSuffix,
     required this.currency,
     required this.amount,
+    required this.remainingAmount,
+    required this.availableAmount,
     required this.maxUses,
     required this.usedCount,
     required this.remainingUses,
@@ -1323,15 +1327,21 @@ class GoshenVoucherInfo {
 
   static const purposePayments = 'payments';
   static const purposeWalletFunding = 'wallet_funding';
+  static const redemptionFixed = 'fixed';
+  static const redemptionPool = 'pool';
 
   final int id;
   final int eventId;
   final String purpose;
+  final String redemptionType;
+  final String redemptionTypeLabel;
   final String label;
   final String batchReference;
   final String codeSuffix;
   final String currency;
   final double amount;
+  final double remainingAmount;
+  final double availableAmount;
   final int maxUses;
   final int usedCount;
   final int remainingUses;
@@ -1345,11 +1355,17 @@ class GoshenVoucherInfo {
       id: int.tryParse('${json['id'] ?? 0}') ?? 0,
       eventId: int.tryParse('${json['event_id'] ?? 0}') ?? 0,
       purpose: '${json['purpose'] ?? purposePayments}',
+      redemptionType: '${json['redemption_type'] ?? redemptionFixed}',
+      redemptionTypeLabel: '${json['redemption_type_label'] ?? ''}',
       label: '${json['label'] ?? ''}',
       batchReference: '${json['batch_reference'] ?? ''}',
       codeSuffix: '${json['code_suffix'] ?? ''}',
       currency: '${json['currency'] ?? 'GBP'}',
       amount: double.tryParse('${json['amount'] ?? 0}') ?? 0,
+      remainingAmount: double.tryParse('${json['remaining_amount'] ?? 0}') ?? 0,
+      availableAmount: double.tryParse(
+              '${json['available_amount'] ?? json['amount'] ?? 0}') ??
+          0,
       maxUses: int.tryParse('${json['max_uses'] ?? 0}') ?? 0,
       usedCount: int.tryParse('${json['used_count'] ?? 0}') ?? 0,
       remainingUses: int.tryParse('${json['remaining_uses'] ?? 0}') ?? 0,
@@ -1361,9 +1377,20 @@ class GoshenVoucherInfo {
   }
 
   String get amountLabel => '$currency ${_money(amount)}'.trim();
+  String get availableAmountLabel =>
+      '$currency ${_money(availableAmount)}'.trim();
+  String get remainingAmountLabel =>
+      '$currency ${_money(remainingAmount)}'.trim();
   String get purposeLabel =>
       purpose == purposeWalletFunding ? 'Wallet Funding' : 'For Payments';
+  bool get isPoolVoucher => redemptionType == redemptionPool;
+  String get categoryLabel => redemptionTypeLabel.trim().isNotEmpty
+      ? redemptionTypeLabel
+      : (isPoolVoucher ? 'Pool balance voucher' : 'Fixed amount voucher');
   String get statusLabel => _humanStatus(status, fallback: 'Active');
+  String get redemptionSummary => isPoolVoucher
+      ? '$categoryLabel · $remainingAmountLabel balance left · $remainingUses use(s) left'
+      : '$categoryLabel · $amountLabel per use · $remainingUses use(s) left';
 }
 
 class GoshenGeneratedVoucher {

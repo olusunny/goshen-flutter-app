@@ -1594,6 +1594,7 @@ class _GoshenVoucherManagementScreenState
   late GoshenRetreatEvent _selectedEvent;
   late Future<List<GoshenVoucherUsage>> _usageFuture;
   String _purpose = GoshenVoucherInfo.purposePayments;
+  String _redemptionType = GoshenVoucherInfo.redemptionFixed;
   bool _generating = false;
   bool _verifying = false;
   GoshenVoucherVerification? _verification;
@@ -1653,6 +1654,21 @@ class _GoshenVoucherManagementScreenState
   void _selectPurpose(String purpose) {
     setState(() {
       _purpose = purpose;
+      if (purpose == GoshenVoucherInfo.purposeWalletFunding) {
+        _redemptionType = GoshenVoucherInfo.redemptionFixed;
+        _maxUsesController.text = '1';
+      }
+      _generated = const [];
+    });
+  }
+
+  void _selectRedemptionType(String redemptionType) {
+    setState(() {
+      _redemptionType = redemptionType;
+      if (redemptionType == GoshenVoucherInfo.redemptionPool &&
+          _maxUsesController.text.trim() == '1') {
+        _maxUsesController.text = '1000';
+      }
       _generated = const [];
     });
   }
@@ -1689,7 +1705,11 @@ class _GoshenVoucherManagementScreenState
     final amount = double.tryParse(_amountController.text.trim()) ?? 0;
     final currency = _currencyController.text.trim().toUpperCase();
     final quantity = int.tryParse(_quantityController.text.trim()) ?? 1;
-    final maxUses = int.tryParse(_maxUsesController.text.trim()) ?? 1;
+    final enteredMaxUses = int.tryParse(_maxUsesController.text.trim()) ?? 1;
+    final maxUses = _redemptionType == GoshenVoucherInfo.redemptionPool &&
+            enteredMaxUses <= 1
+        ? 1000
+        : enteredMaxUses;
 
     if (amount <= 0 || currency.length != 3) {
       _showSnack('Enter a valid amount and 3-letter currency.');
@@ -1714,7 +1734,8 @@ class _GoshenVoucherManagementScreenState
         currency: currency,
         quantity: quantity.clamp(1, 200).toInt(),
         purpose: _purpose,
-        maxUses: maxUses.clamp(1, 100).toInt(),
+        redemptionType: _redemptionType,
+        maxUses: maxUses.clamp(1, 1000).toInt(),
       );
       if (!mounted) return;
       setState(() {
@@ -1788,9 +1809,11 @@ class _GoshenVoucherManagementScreenState
               quantityController: _quantityController,
               maxUsesController: _maxUsesController,
               purpose: _purpose,
+              redemptionType: _redemptionType,
               generating: _generating,
               generated: _generated,
               onPurposeChanged: _selectPurpose,
+              onRedemptionTypeChanged: _selectRedemptionType,
               onGenerate: _generateVouchers,
               onCopyGenerated: _copyGeneratedCodes,
             ),
@@ -8265,7 +8288,7 @@ class _VoucherVerifyPanel extends StatelessWidget {
               child: Text(
                 result.voucher == null
                     ? result.message
-                    : '${result.message}\n${result.voucher!.amountLabel} · ${result.voucher!.statusLabel} · ${result.voucher!.remainingUses} use(s) left',
+                    : '${result.message}\n${result.voucher!.statusLabel} · ${result.voucher!.redemptionSummary}',
                 style: TextStyle(
                   color: colors.text,
                   fontWeight: FontWeight.w800,
@@ -8289,9 +8312,11 @@ class _VoucherGeneratePanel extends StatelessWidget {
     required this.quantityController,
     required this.maxUsesController,
     required this.purpose,
+    required this.redemptionType,
     required this.generating,
     required this.generated,
     required this.onPurposeChanged,
+    required this.onRedemptionTypeChanged,
     required this.onGenerate,
     required this.onCopyGenerated,
   });
@@ -8303,9 +8328,11 @@ class _VoucherGeneratePanel extends StatelessWidget {
   final TextEditingController quantityController;
   final TextEditingController maxUsesController;
   final String purpose;
+  final String redemptionType;
   final bool generating;
   final List<GoshenGeneratedVoucher> generated;
   final ValueChanged<String> onPurposeChanged;
+  final ValueChanged<String> onRedemptionTypeChanged;
   final VoidCallback onGenerate;
   final VoidCallback onCopyGenerated;
 
@@ -8335,6 +8362,26 @@ class _VoucherGeneratePanel extends StatelessWidget {
             onChanged: onPurposeChanged,
           ),
           const SizedBox(height: 10),
+          if (purpose == GoshenVoucherInfo.purposePayments) ...[
+            _ManagedDropdown(
+              colors: colors,
+              label: 'Voucher category',
+              value: redemptionType,
+              items: const {
+                GoshenVoucherInfo.redemptionFixed: 'Fixed amount voucher',
+                GoshenVoucherInfo.redemptionPool: 'Pool balance voucher',
+              },
+              onChanged: onRedemptionTypeChanged,
+            ),
+            const SizedBox(height: 8),
+            _EmptyInline(
+              colors: colors,
+              text: redemptionType == GoshenVoucherInfo.redemptionPool
+                  ? 'Pool balance: one shared pot. A family booking deducts the full attendee total; each individual ticket deducts its own total until the pool reaches zero.'
+                  : 'Fixed amount: each redemption can cover up to this amount and consumes one use. This is the current voucher behaviour.',
+            ),
+            const SizedBox(height: 10),
+          ],
           Row(
             children: [
               Expanded(
@@ -8342,7 +8389,9 @@ class _VoucherGeneratePanel extends StatelessWidget {
                 child: _VoucherTextField(
                   colors: colors,
                   controller: amountController,
-                  label: 'Amount',
+                  label: redemptionType == GoshenVoucherInfo.redemptionPool
+                      ? 'Pool budget'
+                      : 'Amount',
                   keyboardType: TextInputType.number,
                 ),
               ),
@@ -8372,7 +8421,9 @@ class _VoucherGeneratePanel extends StatelessWidget {
                 child: _VoucherTextField(
                   colors: colors,
                   controller: maxUsesController,
-                  label: 'Uses/code',
+                  label: redemptionType == GoshenVoucherInfo.redemptionPool
+                      ? 'Max redemptions'
+                      : 'Uses/code',
                   keyboardType: TextInputType.number,
                 ),
               ),
@@ -8429,7 +8480,7 @@ class _VoucherGeneratePanel extends StatelessWidget {
                       border: Border.all(color: colors.border),
                     ),
                     child: SelectableText(
-                      '${item.code}  ·  ${item.voucher.amountLabel}  ·  ${item.voucher.purposeLabel}',
+                      '${item.code}  ·  ${item.voucher.amountLabel}  ·  ${item.voucher.purposeLabel}  ·  ${item.voucher.categoryLabel}${item.voucher.isPoolVoucher ? '  ·  balance ${item.voucher.remainingAmountLabel}' : ''}',
                       style: TextStyle(
                         color: colors.text,
                         fontWeight: FontWeight.w900,
