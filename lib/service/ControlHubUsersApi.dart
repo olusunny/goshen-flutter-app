@@ -96,6 +96,31 @@ class ControlHubUsersApi {
     }
   }
 
+  Future<ControlHubWalletVoucherRedemption> redeemWalletVoucher({
+    required Userdata user,
+    required int userId,
+    required String code,
+  }) async {
+    final response = await _dio.post(
+      ApiUrl.controlHubMobileUserWalletVoucher('$userId'),
+      options: _mobileOptions(user),
+      data: {
+        'data': {
+          ..._authPayload(user),
+          'code': code.trim(),
+        }
+      },
+    );
+    final data = _decodedResponse(response);
+    _throwWhenUnavailable(response, data);
+    if (data['status'] == 'error') {
+      throw Exception(
+          data['message'] ?? 'Unable to redeem the wallet voucher.');
+    }
+
+    return ControlHubWalletVoucherRedemption.fromJson(data);
+  }
+
   ControlHubMobileUser _userFromResponse(
     Map<String, dynamic> data,
     String fallback,
@@ -159,6 +184,38 @@ class ControlHubUsersUnavailableException implements Exception {
   const ControlHubUsersUnavailableException();
 }
 
+class ControlHubWalletVoucherRedemption {
+  const ControlHubWalletVoucherRedemption({
+    required this.message,
+    required this.amount,
+    required this.currency,
+    required this.balance,
+  });
+
+  final String message;
+  final double amount;
+  final String currency;
+  final double balance;
+
+  factory ControlHubWalletVoucherRedemption.fromJson(
+      Map<String, dynamic> json) {
+    final usage = json['usage'] is Map
+        ? Map<String, dynamic>.from(json['usage'] as Map)
+        : const <String, dynamic>{};
+    final wallet = json['data'] is Map
+        ? Map<String, dynamic>.from(json['data'] as Map)
+        : const <String, dynamic>{};
+    return ControlHubWalletVoucherRedemption(
+      message: '${json['message'] ?? 'Wallet voucher redeemed.'}',
+      amount: _readDouble(usage['amount']),
+      currency: _readString(wallet, const ['currency']).isNotEmpty
+          ? _readString(wallet, const ['currency'])
+          : _readString(usage, const ['currency']),
+      balance: _readDouble(wallet['balance']),
+    );
+  }
+}
+
 class ControlHubMobileUser {
   const ControlHubMobileUser({
     required this.id,
@@ -212,3 +269,6 @@ String _readString(Map<String, dynamic> json, List<String> keys) {
   }
   return '';
 }
+
+double _readDouble(Object? value) =>
+    value is num ? value.toDouble() : double.tryParse('$value') ?? 0;

@@ -9708,6 +9708,29 @@ class _ControlHubMobileUsersScreenState
     }
   }
 
+  Future<void> _redeemWalletVoucher(ControlHubMobileUser user) async {
+    final result =
+        await showModalBottomSheet<ControlHubWalletVoucherRedemption>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _WalletVoucherRedemptionSheet(
+        manager: widget.user,
+        mobileUser: user,
+        api: _api,
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '${result.message} New balance: ${_managementMoney(result.balance, result.currency)}.',
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = _ManagementPalette.of(context);
@@ -9799,6 +9822,9 @@ class _ControlHubMobileUsersScreenState
                         colors: colors,
                         onEdit: () => _openForm(user),
                         onDelete: () => _delete(user),
+                        canRedeemWalletVoucher:
+                            widget.user.canManageWalletWithdrawalTools,
+                        onRedeemWalletVoucher: () => _redeemWalletVoucher(user),
                       ),
                     ),
                   ),
@@ -9855,12 +9881,16 @@ class _MobileUserTile extends StatelessWidget {
     required this.colors,
     required this.onEdit,
     required this.onDelete,
+    required this.canRedeemWalletVoucher,
+    required this.onRedeemWalletVoucher,
   });
 
   final ControlHubMobileUser user;
   final _ManagementPalette colors;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final bool canRedeemWalletVoucher;
+  final VoidCallback onRedeemWalletVoucher;
 
   @override
   Widget build(BuildContext context) {
@@ -9902,15 +9932,152 @@ class _MobileUserTile extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            tooltip: 'Edit',
-            onPressed: onEdit,
-            icon: const Icon(Icons.edit_outlined),
+          PopupMenuButton<_MobileUserAction>(
+            tooltip: 'User actions',
+            onSelected: (action) {
+              switch (action) {
+                case _MobileUserAction.redeemWalletVoucher:
+                  onRedeemWalletVoucher();
+                  break;
+                case _MobileUserAction.edit:
+                  onEdit();
+                  break;
+                case _MobileUserAction.delete:
+                  onDelete();
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              if (canRedeemWalletVoucher)
+                const PopupMenuItem(
+                  value: _MobileUserAction.redeemWalletVoucher,
+                  child: ListTile(
+                    leading: Icon(Icons.confirmation_number_outlined),
+                    title: Text('Redeem wallet voucher'),
+                  ),
+                ),
+              const PopupMenuItem(
+                value: _MobileUserAction.edit,
+                child: ListTile(
+                  leading: Icon(Icons.edit_outlined),
+                  title: Text('Edit user'),
+                ),
+              ),
+              PopupMenuItem(
+                value: _MobileUserAction.delete,
+                child: ListTile(
+                  leading:
+                      Icon(Icons.delete_outline_rounded, color: colors.danger),
+                  title: Text('Delete user',
+                      style: TextStyle(color: colors.danger)),
+                ),
+              ),
+            ],
+            icon: const Icon(Icons.more_vert_rounded),
           ),
-          IconButton(
-            tooltip: 'Delete',
-            onPressed: onDelete,
-            icon: Icon(Icons.delete_outline_rounded, color: colors.danger),
+        ],
+      ),
+    );
+  }
+}
+
+enum _MobileUserAction { redeemWalletVoucher, edit, delete }
+
+class _WalletVoucherRedemptionSheet extends StatefulWidget {
+  const _WalletVoucherRedemptionSheet({
+    required this.manager,
+    required this.mobileUser,
+    required this.api,
+  });
+
+  final Userdata manager;
+  final ControlHubMobileUser mobileUser;
+  final ControlHubUsersApi api;
+
+  @override
+  State<_WalletVoucherRedemptionSheet> createState() =>
+      _WalletVoucherRedemptionSheetState();
+}
+
+class _WalletVoucherRedemptionSheetState
+    extends State<_WalletVoucherRedemptionSheet> {
+  final _codeController = TextEditingController();
+  bool _redeeming = false;
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _redeem() async {
+    final code = _codeController.text.trim();
+    if (code.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter the voucher code.')),
+      );
+      return;
+    }
+
+    setState(() => _redeeming = true);
+    try {
+      final result = await widget.api.redeemWalletVoucher(
+        user: widget.manager,
+        userId: widget.mobileUser.id,
+        code: code,
+      );
+      if (mounted) Navigator.pop(context, result);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_mobileUsersError(error))),
+      );
+    } finally {
+      if (mounted) setState(() => _redeeming = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = _ManagementPalette.of(context);
+    return _setupSheet(
+      context: context,
+      colors: colors,
+      title: 'Redeem wallet voucher',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Credit ${widget.mobileUser.displayName} with a Wallet Funding voucher.',
+            style: TextStyle(color: colors.muted, height: 1.4),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _codeController,
+            textCapitalization: TextCapitalization.characters,
+            autocorrect: false,
+            enableSuggestions: false,
+            decoration: _managementInputDecoration(colors, 'Voucher code'),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _redeeming ? null : _redeem,
+              icon: _redeeming
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.confirmation_number_outlined),
+              label: Text(_redeeming ? 'Redeeming...' : 'Redeem voucher'),
+              style: FilledButton.styleFrom(
+                backgroundColor: colors.gold,
+                foregroundColor: colors.deep,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
           ),
         ],
       ),

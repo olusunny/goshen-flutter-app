@@ -198,6 +198,8 @@ class ApiUrl {
       BASEURL + "api/control-hub/mobile-users/search";
   static String controlHubMobileUser(String userId) =>
       BASEURL + "api/control-hub/mobile-users/$userId";
+  static String controlHubMobileUserWalletVoucher(String userId) =>
+      "${controlHubMobileUser(userId)}/wallet/voucher";
   static const String CONTROL_HUB_CHURCH_EVENTS =
       BASEURL + "api/control-hub/church-events";
   static const String CONTROL_HUB_CHURCH_EVENTS_SEARCH =
