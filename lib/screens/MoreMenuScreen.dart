@@ -177,10 +177,6 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
                 ),
             accent: const Color(0xFFFFC857),
             featured: true),
-      if (_counselingEnabled)
-        _MoreMenuItem('Private Counseling', Icons.health_and_safety_outlined,
-            () => Navigator.pushNamed(context, CounselingScreen.routeName),
-            accent: const Color(0xFFFFC857), featured: true),
       _MoreMenuItem('Giving', Icons.volunteer_activism_outlined,
           () => Navigator.pushNamed(context, DonationAccountsScreen.routeName),
           accent: const Color(0xFFE1A63B)),
@@ -188,6 +184,10 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
         _MoreMenuItem('Forms', Icons.dynamic_form_rounded,
             () => Navigator.pushNamed(context, DynamicFormsScreen.routeName),
             accent: const Color(0xFF2C9B88)),
+      if (_counselingEnabled)
+        _MoreMenuItem('Counselling', Icons.health_and_safety_outlined,
+            () => Navigator.pushNamed(context, CounselingScreen.routeName),
+            accent: const Color(0xFFFFC857)),
       if (_fundraisingEnabled)
         _MoreMenuItem('Project support', Icons.campaign_rounded,
             () => Navigator.pushNamed(context, FundraisingScreen.routeName),
