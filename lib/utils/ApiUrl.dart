@@ -15,6 +15,7 @@ class ApiUrl {
   static const String GIVING_STRIPE_CHECKOUT =
       BASEURL + "api/giving/stripe/checkout";
   static const String GIVING_WALLET_PAY = BASEURL + "api/giving/wallet/pay";
+  static const String APP_SPLASH_MEDIA = BASEURL + "api/v1/app/splash-media";
   static const String DYNAMIC_FORMS = BASEURL + "api/dynamic-forms";
   static const String DYNAMIC_FORMS_MANAGEMENT =
       BASEURL + "api/dynamic-forms/management";

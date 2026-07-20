@@ -22,6 +22,7 @@ import './wallet_security/wallet_security_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import './screens/OnboardingPage.dart';
 import './screens/HomePage.dart';
+import './screens/ManagedSplashScreen.dart';
 import 'package:isolated_download_manager/isolated_download_manager.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 
@@ -64,7 +65,11 @@ void main() async {
           future: getFirstScreen(), //returns bool
           builder: (BuildContext context, AsyncSnapshot<Widget> snapshot) {
             if (snapshot.connectionState == ConnectionState.done) {
-              return MyApp(defaultHome: snapshot.data);
+              return MyApp(
+                defaultHome: ManagedSplashScreen(
+                  next: snapshot.data ?? HomePage(),
+                ),
+              );
             } else {
               return Center(child: CupertinoActivityIndicator());
             }
