@@ -130,7 +130,7 @@ class _ManagedSplashScreenState extends State<ManagedSplashScreen> {
       return Image.file(
         File(cached.localPath),
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _brandFallback(),
+        errorBuilder: (_, __, ___) => _launchSurface(),
       );
     }
 
@@ -146,18 +146,10 @@ class _ManagedSplashScreenState extends State<ManagedSplashScreen> {
       );
     }
 
-    return _brandFallback();
+    return _launchSurface();
   }
 
-  Widget _brandFallback() {
-    return Container(
-      color: MyColors.primaryDark,
-      alignment: Alignment.center,
-      child: Image.asset(
-        'assets/images/app_logo.png',
-        width: 108,
-        fit: BoxFit.contain,
-      ),
-    );
+  Widget _launchSurface() {
+    return ColoredBox(color: MyColors.primaryDark);
   }
 }
