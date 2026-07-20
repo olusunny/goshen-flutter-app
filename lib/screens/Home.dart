@@ -1051,7 +1051,7 @@ class DailyBibleVerseHomeCard extends StatelessWidget {
                         Text(
                           hasPublishedVerse
                               ? text
-                              : 'Admin can publish today\'s verse from the backend. It refreshes daily at midnight Nigerian time.',
+                              : 'Admin can publish today\'s verse from the backend. It refreshes daily at midnight London time.',
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
