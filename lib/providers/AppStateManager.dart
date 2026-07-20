@@ -183,10 +183,7 @@ class AppStateManager with ChangeNotifier {
     if (userdata != null && userdata!.activated == 0) {
       eventBus.fire(UserLoggedInEvent(userdata));
       updateUserToken();
-      MoreMenuPreloadService.instance.warmQuietly(user: userdata);
       _syncCachedUserSession(userdata!);
-    } else {
-      MoreMenuPreloadService.instance.warmQuietly();
     }
     return userdata;
   }

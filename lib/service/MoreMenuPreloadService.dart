@@ -57,6 +57,7 @@ class MoreMenuPreloadService {
 
   MoreMenuPreloadSnapshot? _snapshot;
   Future<MoreMenuPreloadSnapshot>? _inFlight;
+  int _warmCycle = 0;
 
   MoreMenuPreloadSnapshot? get snapshot => _snapshot;
 
@@ -83,11 +84,21 @@ class MoreMenuPreloadService {
     final active = _inFlight;
     if (!force && active != null) return active;
 
-    _inFlight = _warm(user: user, homeData: homeData).whenComplete(() {
-      _inFlight = null;
+    final warmCycle = ++_warmCycle;
+    late final Future<MoreMenuPreloadSnapshot> warmFuture;
+    warmFuture = _warm(user: user, homeData: homeData).then((snapshot) {
+      if (warmCycle == _warmCycle) {
+        _snapshot = snapshot;
+      }
+      return snapshot;
+    }).whenComplete(() {
+      if (identical(_inFlight, warmFuture)) {
+        _inFlight = null;
+      }
     });
 
-    return _inFlight!;
+    _inFlight = warmFuture;
+    return warmFuture;
   }
 
   Future<MoreMenuPreloadSnapshot> _warm({
@@ -131,15 +142,23 @@ class MoreMenuPreloadService {
     final retreatApi = GoshenRetreatApi(dio: dio);
     final fundraisingApi = FundraisingApi(dio: dio);
 
-    final featureResults = await Future.wait<dynamic>([
-      testimonyApi.isEnabled().catchError((_) => testimoniesEnabled),
-      retreatApi.isEnabled().catchError((_) => goshenRetreatEnabled),
-      fundraisingApi.hasActiveCampaign().catchError((_) => fundraisingEnabled),
-    ]);
+    // The home response already contains these values. Reusing it prevents the
+    // menu warmer from immediately repeating the same network calls during
+    // application launch. When the menu is opened independently, retain the
+    // live checks as its source of truth.
+    if (homeData == null) {
+      final featureResults = await Future.wait<dynamic>([
+        testimonyApi.isEnabled().catchError((_) => testimoniesEnabled),
+        retreatApi.isEnabled().catchError((_) => goshenRetreatEnabled),
+        fundraisingApi
+            .hasActiveCampaign()
+            .catchError((_) => fundraisingEnabled),
+      ]);
 
-    testimoniesEnabled = featureResults[0] == true;
-    goshenRetreatEnabled = featureResults[1] == true;
-    fundraisingEnabled = featureResults[2] == true;
+      testimoniesEnabled = featureResults[0] == true;
+      goshenRetreatEnabled = featureResults[1] == true;
+      fundraisingEnabled = featureResults[2] == true;
+    }
 
     GoshenScannerStatus? scannerStatus;
     if (goshenRetreatEnabled &&
@@ -212,7 +231,6 @@ class MoreMenuPreloadService {
       scannerConsoleEnabled: scannerConsoleEnabled,
       warmedAt: DateTime.now(),
     );
-    _snapshot = next;
     return next;
   }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:churchapp_flutter/firebase_options.dart';
 import 'package:churchapp_flutter/i18n/strings.g.dart';
 import 'package:firebase_core/firebase_core.dart' as firebase_core;
@@ -27,14 +29,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   LocaleSettings.useDeviceLocale();
   await _initializeFirebase();
-  await DownloadManager.instance.init(
-    isolates: 5,
-  );
-  await JustAudioBackground.init(
-      androidNotificationChannelId: 'com.ryanheise.bg_demo.channel.audio',
-      androidNotificationChannelName: 'Audio playback',
-      androidNotificationOngoing: true,
-      notificationColor: MyColors.primary);
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: MyColors.primaryDark,
@@ -79,6 +73,30 @@ void main() async {
       ),
     ),
   );
+
+  // Download and audio background services are not needed to draw the home
+  // screen. Start them after the first frame so cold starts stay responsive.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(_initializeDeferredServices());
+  });
+}
+
+Future<void> _initializeDeferredServices() async {
+  try {
+    await DownloadManager.instance.init(
+      isolates: 2,
+    );
+    await JustAudioBackground.init(
+      androidNotificationChannelId: 'com.ryanheise.bg_demo.channel.audio',
+      androidNotificationChannelName: 'Audio playback',
+      androidNotificationOngoing: true,
+      notificationColor: MyColors.primary,
+    );
+  } catch (error) {
+    // These are optional at launch and will be initialized again by their
+    // feature flows if necessary. Never block the home screen on them.
+    print('Deferred app services could not initialize: $error');
+  }
 }
 
 Future<void> _initializeFirebase() async {

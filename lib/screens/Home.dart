@@ -65,14 +65,21 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     _heroController = PageController(viewportFraction: 0.94);
-    final appState = Provider.of<AppStateManager>(context, listen: false);
-    Provider.of<HomeProvider>(context, listen: false).loadItems(
-      user: appState.userdata,
-    );
+    _loadHomeForCurrentSession();
     _inboxSubscription = eventBus.on<InboxNotificationsChanged>().listen((_) {
       if (!mounted) return;
       Provider.of<HomeProvider>(context, listen: false).fetchItems();
     });
+  }
+
+  Future<void> _loadHomeForCurrentSession() async {
+    final appState = Provider.of<AppStateManager>(context, listen: false);
+    final user = await appState.ensureUserDataLoaded();
+    if (!mounted) return;
+
+    await Provider.of<HomeProvider>(context, listen: false).loadItems(
+      user: user,
+    );
   }
 
   @override
@@ -663,7 +670,11 @@ class HomeHeader extends StatelessWidget {
                     radius: 24,
                     backgroundColor: Colors.white.withValues(alpha: 0.12),
                     backgroundImage: _hasRemoteImage(user?.avatar)
-                        ? NetworkImage(user!.avatar!)
+                        ? CachedNetworkImageProvider(
+                            user!.avatar!,
+                            maxWidth: 144,
+                            maxHeight: 144,
+                          )
                         : null,
                     child: !_hasRemoteImage(user?.avatar)
                         ? const Icon(Icons.person_outline, color: Colors.white)
@@ -1904,9 +1915,14 @@ class _AdaptiveBannerImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (_hasRemoteImage(remoteUrl)) {
+      final cacheWidth = (MediaQuery.sizeOf(context).width *
+              MediaQuery.devicePixelRatioOf(context))
+          .round();
       return CachedNetworkImage(
         imageUrl: remoteUrl!,
         fit: BoxFit.cover,
+        memCacheWidth: cacheWidth,
+        maxWidthDiskCache: cacheWidth,
         placeholder: (_, __) => _placeholder(),
         errorWidget: (_, __, ___) => _fallback(),
       );

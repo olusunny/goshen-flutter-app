@@ -10,9 +10,18 @@ import '../models/Media.dart';
 import '../models/Radios.dart';
 import '../models/LiveStreams.dart';
 import '../utils/inbox_read_store.dart';
-import '../service/MoreMenuPreloadService.dart';
 
 class HomeProvider with ChangeNotifier {
+  HomeProvider()
+      : _dio = Dio(
+          BaseOptions(
+            connectTimeout: const Duration(seconds: 8),
+            receiveTimeout: const Duration(seconds: 15),
+            sendTimeout: const Duration(seconds: 8),
+          ),
+        );
+
+  final Dio _dio;
   final Map<String, dynamic> data = {
     "sliders": [],
     "update_banners": [],
@@ -63,10 +72,10 @@ class HomeProvider with ChangeNotifier {
   Userdata? userdata;
   bool isLoading = true;
   Future<void>? _fetchFuture;
+  int _fetchCycle = 0;
 
-  void loadItems({Userdata? user}) {
-    print("Initializing home fragment");
-    fetchItems(user: user);
+  Future<void> loadItems({Userdata? user}) {
+    return fetchItems(user: user);
   }
 
   Future<void> fetchItems({
@@ -80,18 +89,20 @@ class HomeProvider with ChangeNotifier {
       return _fetchFuture!;
     }
 
-    _fetchFuture = _fetchItems().whenComplete(() {
-      _fetchFuture = null;
+    final fetchCycle = ++_fetchCycle;
+    late final Future<void> fetchFuture;
+    fetchFuture = _fetchItems(fetchCycle).whenComplete(() {
+      if (identical(_fetchFuture, fetchFuture)) {
+        _fetchFuture = null;
+      }
     });
-    return _fetchFuture!;
+    _fetchFuture = fetchFuture;
+    return fetchFuture;
   }
 
-  Future<void> _fetchItems() async {
+  Future<void> _fetchItems(int fetchCycle) async {
     try {
-      final dio = Dio();
-      // Adding an interceptor to enable caching.
-
-      final response = await dio.post(
+      final response = await _dio.post(
         ApiUrl.DISCOVER,
         data: jsonEncode({
           "data": {
@@ -102,13 +113,14 @@ class HomeProvider with ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
+        if (fetchCycle != _fetchCycle) return;
+
         // If the server did return a 200 OK response,
         // then parse the JSON.
         isLoading = false;
         isError = false;
 
         dynamic res = decodeApiResponse(response.data);
-        print(res);
         data['sliders'] = parseSliderMedia(res, "slider_media");
         data['update_banners'] = parseSliderMedia(res, "update_banners");
         data['website'] = res['website_url'] ?? "";
@@ -162,29 +174,53 @@ class HomeProvider with ChangeNotifier {
         data['counseling_enabled'] =
             _readBool(res['counseling_enabled'], fallback: true);
         data['testimonies_count'] = res['testimonies_count'] ?? 0;
-        data['goshen_retreat_enabled'] = await _fetchGoshenRetreatFlag(dio);
-        data['fundraising_enabled'] =
-            _readBool(res['fundraising_enabled'], fallback: true) &&
-                await FundraisingApi(dio: dio).hasActiveCampaign();
-        data['inbox_latest_ids'] = (res['inbox_latest_ids'] as List?) ?? [];
-        data['inbox'] =
-            await InboxReadStore.unreadCount(data['inbox_latest_ids'] as List);
-        MoreMenuPreloadService.instance.warmQuietly(
-          user: userdata,
-          homeData: data,
-        );
-        print(data);
+        final inboxLatestIds = (res['inbox_latest_ids'] as List?) ?? const [];
+        data['inbox_latest_ids'] = inboxLatestIds;
+
+        // Render the main home response immediately. These checks are useful,
+        // but are independent secondary data and must not hold the first paint.
         notifyListeners();
+
+        unawaited(_refreshDeferredHomeData(
+          fetchCycle: fetchCycle,
+          fundraisingConfigured:
+              _readBool(res['fundraising_enabled'], fallback: true),
+          inboxLatestIds: inboxLatestIds,
+        ));
       } else {
         // If the server did not return a 200 OK response,
         // then throw an exception.
-        setFetchError();
+        setFetchError(fetchCycle: fetchCycle);
       }
     } catch (exception) {
       // I get no exception here
       print(exception);
-      setFetchError();
+      setFetchError(fetchCycle: fetchCycle);
     }
+  }
+
+  Future<void> _refreshDeferredHomeData({
+    required int fetchCycle,
+    required bool fundraisingConfigured,
+    required List inboxLatestIds,
+  }) async {
+    final results = await Future.wait<dynamic>([
+      _fetchGoshenRetreatFlag(_dio),
+      fundraisingConfigured
+          ? FundraisingApi(dio: _dio).hasActiveCampaign()
+          : Future<bool>.value(false),
+      InboxReadStore.unreadCount(inboxLatestIds)
+          .catchError((_) => data['inbox'] ?? 0),
+    ]);
+
+    // A pull-to-refresh may have completed while these background checks were
+    // running. Never allow an older response to replace fresher home data.
+    if (fetchCycle != _fetchCycle) return;
+
+    data['goshen_retreat_enabled'] = results[0] == true;
+    data['fundraising_enabled'] = results[1] == true;
+    data['inbox'] = results[2] ?? 0;
+    notifyListeners();
   }
 
   Future<bool> _fetchGoshenRetreatFlag(Dio dio) async {
@@ -217,7 +253,8 @@ class HomeProvider with ChangeNotifier {
     return parsed.map<Media>((json) => Media.fromJson(json)).toList();
   }
 
-  setFetchError() {
+  void setFetchError({int? fetchCycle}) {
+    if (fetchCycle != null && fetchCycle != _fetchCycle) return;
     isError = true;
     isLoading = false;
     notifyListeners();
