@@ -74,6 +74,8 @@ class SQLiteDbProvider {
         await _addColumnIfMissing(
             db, Userdata.TABLE, 'canManageGoshenVouchers', 'INTEGER');
         await _addColumnIfMissing(
+            db, Userdata.TABLE, 'canChargeGoshenMemberWallet', 'INTEGER');
+        await _addColumnIfMissing(
             db, Userdata.TABLE, 'canManageQuiz', 'INTEGER');
         await _addColumnIfMissing(
             db, Userdata.TABLE, 'canManageWalletWithdrawals', 'INTEGER');
@@ -267,6 +269,7 @@ class SQLiteDbProvider {
           "canManageGroups INTEGER,"
           "canManageGoshenRegistration INTEGER,"
           "canManageGoshenVouchers INTEGER,"
+          "canChargeGoshenMemberWallet INTEGER,"
           "canManageQuiz INTEGER,"
           "canManageFundraising INTEGER,"
           "canManageWalletWithdrawals INTEGER,"
@@ -315,6 +318,8 @@ class SQLiteDbProvider {
         db, Userdata.TABLE, 'canManageGoshenRegistration', 'INTEGER');
     await _addColumnIfMissing(
         db, Userdata.TABLE, 'canManageGoshenVouchers', 'INTEGER');
+    await _addColumnIfMissing(
+        db, Userdata.TABLE, 'canChargeGoshenMemberWallet', 'INTEGER');
     await _addColumnIfMissing(db, Userdata.TABLE, 'canManageQuiz', 'INTEGER');
     await _addColumnIfMissing(
         db, Userdata.TABLE, 'canManageFundraising', 'INTEGER');

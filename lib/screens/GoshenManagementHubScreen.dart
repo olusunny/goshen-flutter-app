@@ -1947,16 +1947,8 @@ class _GoshenManagedMemberRegistrationScreenState
     });
   }
 
-  bool get _canChargeManagedMemberWallet {
-    final normalizedRoles = [
-      ...widget.user.roles,
-      if ((widget.user.role ?? '').trim().isNotEmpty) widget.user.role!,
-    ].map((role) => role.toLowerCase().replaceAll(RegExp(r'[^a-z]'), ''));
-
-    return normalizedRoles.any(
-      (role) => role == 'admin' || role == 'superadmin',
-    );
-  }
+  bool get _canChargeManagedMemberWallet =>
+      widget.user.canChargeManagedMemberWallet;
 
   Future<void> _searchMembers() async {
     final messenger = ScaffoldMessenger.of(context);

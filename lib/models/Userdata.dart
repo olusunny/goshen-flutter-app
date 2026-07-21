@@ -29,6 +29,7 @@ class Userdata {
   bool canManageGroups = false;
   bool canManageGoshenRegistration = false;
   bool canManageGoshenVouchers = false;
+  bool canChargeGoshenMemberWallet = false;
   bool canManageQuiz = false;
   bool canManageFundraising = false;
   bool canManageWalletWithdrawals = false;
@@ -76,6 +77,7 @@ class Userdata {
     "canManageGroups",
     "canManageGoshenRegistration",
     "canManageGoshenVouchers",
+    "canChargeGoshenMemberWallet",
     "canManageQuiz",
     "canManageFundraising",
     "canManageWalletWithdrawals",
@@ -124,6 +126,7 @@ class Userdata {
     this.canManageGroups = false,
     this.canManageGoshenRegistration = false,
     this.canManageGoshenVouchers = false,
+    this.canChargeGoshenMemberWallet = false,
     this.canManageQuiz = false,
     this.canManageFundraising = false,
     this.canManageWalletWithdrawals = false,
@@ -203,6 +206,7 @@ class Userdata {
         canManageGoshenVouchers: _readBool(
           json['can_manage_goshen_vouchers'] ?? json['canManageGoshenVouchers'],
         ),
+        canChargeGoshenMemberWallet: _readMemberWalletChargeCapability(json),
         canManageQuiz: _readBool(
           json['can_manage_goshen_quiz'] ?? json['canManageQuiz'],
         ),
@@ -280,6 +284,7 @@ class Userdata {
       canManageGoshenVouchers: _readBool(
         json['can_manage_goshen_vouchers'] ?? json['canManageGoshenVouchers'],
       ),
+      canChargeGoshenMemberWallet: _readMemberWalletChargeCapability(json),
       canManageQuiz: _readBool(
         json['can_manage_goshen_quiz'] ?? json['canManageQuiz'],
       ),
@@ -357,6 +362,7 @@ class Userdata {
         canManageGoshenVouchers: _readBool(
           json['can_manage_goshen_vouchers'] ?? json['canManageGoshenVouchers'],
         ),
+        canChargeGoshenMemberWallet: _readMemberWalletChargeCapability(json),
         canManageQuiz: _readBool(
           json['can_manage_goshen_quiz'] ?? json['canManageQuiz'],
         ),
@@ -433,6 +439,7 @@ class Userdata {
       canManageGoshenVouchers: _readBool(
         json['can_manage_goshen_vouchers'] ?? json['canManageGoshenVouchers'],
       ),
+      canChargeGoshenMemberWallet: _readMemberWalletChargeCapability(json),
       canManageQuiz: _readBool(
         json['can_manage_goshen_quiz'] ?? json['canManageQuiz'],
       ),
@@ -503,6 +510,8 @@ class Userdata {
       canManageGoshenRegistration:
           _readBool(data['canManageGoshenRegistration']),
       canManageGoshenVouchers: _readBool(data['canManageGoshenVouchers']),
+      canChargeGoshenMemberWallet:
+          _readBool(data['canChargeGoshenMemberWallet']),
       canManageQuiz: _readBool(data['canManageQuiz']),
       canManageFundraising: _readBool(data['canManageFundraising']),
       canManageWalletWithdrawals: _readBool(data['canManageWalletWithdrawals']),
@@ -551,6 +560,7 @@ class Userdata {
         "canManageGroups": canManageGroups ? 1 : 0,
         "canManageGoshenRegistration": canManageGoshenRegistration ? 1 : 0,
         "canManageGoshenVouchers": canManageGoshenVouchers ? 1 : 0,
+        "canChargeGoshenMemberWallet": canChargeGoshenMemberWallet ? 1 : 0,
         "canManageQuiz": canManageQuiz ? 1 : 0,
         "canManageFundraising": canManageFundraising ? 1 : 0,
         "canManageWalletWithdrawals": canManageWalletWithdrawals ? 1 : 0,
@@ -612,6 +622,10 @@ class Userdata {
         _hasRole(_isVoucherManagerRoleName);
   }
 
+  /// This is deliberately capability-only. Roles can open the Control Hub but
+  /// must not implicitly gain authority to debit another member's wallet.
+  bool get canChargeManagedMemberWallet => canChargeGoshenMemberWallet;
+
   bool get canManageFundraisingTools {
     if (canManageFundraising) return true;
     final normalizedRoles = roles
@@ -664,6 +678,40 @@ class Userdata {
         (role ?? '').toLowerCase().replaceAll(RegExp(r'[^a-z]'), '');
     return normalizedRoles.any(matcher) || matcher(normalized);
   }
+}
+
+bool _readMemberWalletChargeCapability(Map<String, dynamic> json) {
+  if (_readBool(
+    json['can_charge_goshen_member_wallet'] ??
+        json['canChargeGoshenMemberWallet'],
+  )) {
+    return true;
+  }
+
+  return _containsMemberWalletChargeCapability(json['permissions']) ||
+      _containsMemberWalletChargeCapability(json['capabilities']) ||
+      _containsMemberWalletChargeCapability(json['abilities']);
+}
+
+bool _containsMemberWalletChargeCapability(dynamic value) {
+  const capability = 'chargegoshenmemberwallet';
+  if (value is String) {
+    return value.toLowerCase().replaceAll(RegExp(r'[^a-z]'), '') == capability;
+  }
+  if (value is Iterable) {
+    return value.any(_containsMemberWalletChargeCapability);
+  }
+  if (value is Map) {
+    return value.entries.any((entry) {
+      final key = entry.key.toString().toLowerCase().replaceAll(
+            RegExp(r'[^a-z]'),
+            '',
+          );
+      if (key == capability) return _readBool(entry.value);
+      return _containsMemberWalletChargeCapability(entry.value);
+    });
+  }
+  return false;
 }
 
 bool _isGoRoleName(String normalized) {
