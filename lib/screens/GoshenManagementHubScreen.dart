@@ -1884,6 +1884,7 @@ class _GoshenManagedMemberRegistrationScreenState
   final _stateController = TextEditingController();
   final _addressController = TextEditingController();
   final _voucherController = TextEditingController();
+  final _adminAuthorizationNoteController = TextEditingController();
 
   late List<GoshenRetreatEvent> _events;
   late GoshenRetreatEvent _selectedEvent;
@@ -1897,6 +1898,11 @@ class _GoshenManagedMemberRegistrationScreenState
   String _ageGroup = 'adult';
   String _busInterest = 'no_thanks';
   String _volunteerDepartment = 'no_chance_at_the_moment';
+  String _paymentMode = 'voucher';
+  bool _adminAuthorizationConfirmed = false;
+  final _memberWalletChargeRandom = math.Random.secure();
+  String? _memberWalletChargeKey;
+  String? _memberWalletChargeFingerprint;
   bool _searching = false;
   bool _savingMember = false;
   bool _registering = false;
@@ -1925,6 +1931,7 @@ class _GoshenManagedMemberRegistrationScreenState
     _stateController.dispose();
     _addressController.dispose();
     _voucherController.dispose();
+    _adminAuthorizationNoteController.dispose();
     super.dispose();
   }
 
@@ -1938,6 +1945,17 @@ class _GoshenManagedMemberRegistrationScreenState
       _selectedTicketType =
           selected.ticketTypes.isEmpty ? null : selected.ticketTypes.first;
     });
+  }
+
+  bool get _canChargeManagedMemberWallet {
+    final normalizedRoles = [
+      ...widget.user.roles,
+      if ((widget.user.role ?? '').trim().isNotEmpty) widget.user.role!,
+    ].map((role) => role.toLowerCase().replaceAll(RegExp(r'[^a-z]'), ''));
+
+    return normalizedRoles.any(
+      (role) => role == 'admin' || role == 'superadmin',
+    );
   }
 
   Future<void> _searchMembers() async {
@@ -2032,23 +2050,62 @@ class _GoshenManagedMemberRegistrationScreenState
       );
       return;
     }
-    if (_voucherController.text.trim().isEmpty) {
+    if (_paymentMode == 'voucher' && _voucherController.text.trim().isEmpty) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Enter a voucher code.')),
+      );
+      return;
+    }
+    if (_paymentMode == 'wallet' && !_adminAuthorizationConfirmed) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content:
+              Text('Confirm that the member authorized this wallet charge.'),
+        ),
+      );
+      return;
+    }
+    if (_paymentMode == 'wallet' && !_canChargeManagedMemberWallet) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Your account is not authorized to charge member wallets.',
+          ),
+        ),
+      );
+      return;
+    }
+    if (_paymentMode == 'wallet' &&
+        _adminAuthorizationNoteController.text.trim().length < 20) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Enter a meaningful member authorization note of at least 20 characters.',
+          ),
+        ),
       );
       return;
     }
 
     setState(() => _registering = true);
     try {
+      final memberWalletChargeKey = _paymentMode == 'wallet'
+          ? _memberWalletChargeKeyFor(member, ticketType)
+          : '';
       await _api.startBooking(
         event: _selectedEvent,
         ticketType: ticketType,
         quantity: 1,
         user: widget.user,
         managedMemberId: member.id,
-        paymentMode: 'voucher',
-        voucherCode: _voucherController.text,
+        paymentMode: _paymentMode,
+        voucherCode: _paymentMode == 'voucher' ? _voucherController.text : '',
+        adminAuthorization:
+            _paymentMode == 'wallet' && _adminAuthorizationConfirmed,
+        adminAuthorizationNote: _paymentMode == 'wallet'
+            ? _adminAuthorizationNoteController.text
+            : '',
+        memberWalletChargeKey: memberWalletChargeKey,
         ukPrivacyConsent: true,
         freeChurchBusConsent: _busInterest == 'yes',
         attendees: [
@@ -2066,6 +2123,12 @@ class _GoshenManagedMemberRegistrationScreenState
       );
       if (!mounted) return;
       _voucherController.clear();
+      _adminAuthorizationNoteController.clear();
+      setState(() {
+        _adminAuthorizationConfirmed = false;
+        _memberWalletChargeKey = null;
+        _memberWalletChargeFingerprint = null;
+      });
       messenger.showSnackBar(
         SnackBar(
           content: Text('${member.displayName} has been registered.'),
@@ -2081,6 +2144,34 @@ class _GoshenManagedMemberRegistrationScreenState
     } finally {
       if (mounted) setState(() => _registering = false);
     }
+  }
+
+  String _memberWalletChargeKeyFor(
+    GoshenManagedMember member,
+    GoshenTicketType ticketType,
+  ) {
+    final fingerprint = [
+      member.id,
+      _selectedEvent.publicId,
+      ticketType.publicId,
+      _ageGroup,
+      _busInterest,
+      _volunteerDepartment,
+      _adminAuthorizationNoteController.text.trim(),
+    ].join('|');
+    if (_memberWalletChargeKey != null &&
+        _memberWalletChargeFingerprint == fingerprint) {
+      return _memberWalletChargeKey!;
+    }
+
+    final entropy = List.generate(
+      24,
+      (_) => _memberWalletChargeRandom.nextInt(36).toRadixString(36),
+    ).join();
+    _memberWalletChargeFingerprint = fingerprint;
+    _memberWalletChargeKey =
+        'mwc_${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}_$entropy';
+    return _memberWalletChargeKey!;
   }
 
   @override
@@ -2281,12 +2372,27 @@ class _GoshenManagedMemberRegistrationScreenState
           const SizedBox(height: 14),
           _Panel(
             colors: colors,
-            title: 'Register with voucher',
+            title: 'Register member',
             subtitle: _selectedMember == null
                 ? 'Select or create a member first.'
-                : 'Selected: ${_selectedMember!.displayName}',
+                : 'Selected: ${_selectedMember!.displayName}.',
             child: Column(
               children: [
+                _ManagedDropdown(
+                  colors: colors,
+                  label: 'Payment method',
+                  value: _paymentMode,
+                  items: {
+                    'voucher': 'Voucher',
+                    if (_canChargeManagedMemberWallet)
+                      'wallet': 'Charge selected member wallet',
+                  },
+                  onChanged: (value) => setState(() {
+                    _paymentMode = value;
+                    _adminAuthorizationConfirmed = false;
+                  }),
+                ),
+                const SizedBox(height: 12),
                 _ManagedDropdown(
                   colors: colors,
                   label: 'Ticket type',
@@ -2344,12 +2450,17 @@ class _GoshenManagedMemberRegistrationScreenState
                   onChanged: (value) =>
                       setState(() => _volunteerDepartment = value),
                 ),
-                const SizedBox(height: 10),
-                _VoucherTextField(
-                  controller: _voucherController,
-                  label: 'Voucher code',
-                  icon: Icons.confirmation_number_outlined,
-                ),
+                if (_paymentMode == 'voucher') ...[
+                  const SizedBox(height: 10),
+                  _VoucherTextField(
+                    controller: _voucherController,
+                    label: 'Voucher code',
+                    icon: Icons.confirmation_number_outlined,
+                  ),
+                ] else ...[
+                  const SizedBox(height: 12),
+                  _memberWalletAuthorizationPanel(colors),
+                ],
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
@@ -2362,7 +2473,11 @@ class _GoshenManagedMemberRegistrationScreenState
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.how_to_reg_rounded),
-                    label: const Text('Register and pay voucher'),
+                    label: Text(
+                      _paymentMode == 'wallet'
+                          ? 'Register and charge member wallet'
+                          : 'Register and pay voucher',
+                    ),
                     style: FilledButton.styleFrom(
                       backgroundColor: colors.gold,
                       foregroundColor: colors.deep,
@@ -2371,6 +2486,75 @@ class _GoshenManagedMemberRegistrationScreenState
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _memberWalletAuthorizationPanel(_ManagementPalette colors) {
+    final member = _selectedMember;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colors.deep.withValues(alpha: colors.isDark ? 0.28 : 0.06),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colors.gold.withValues(alpha: 0.55)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.account_balance_wallet_outlined, color: colors.gold),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Charge selected member wallet',
+                  style: TextStyle(
+                    color: colors.text,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            member == null
+                ? 'Select a member before charging a wallet.'
+                : '${member.displayName}\'s Goshen wallet will be confirmed before payment.',
+            style: TextStyle(color: colors.text, height: 1.35),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            'This charge uses the selected member\'s wallet, never your admin wallet. The server checks the current balance and records the authorization.',
+            style: TextStyle(color: colors.muted, height: 1.35),
+          ),
+          const SizedBox(height: 10),
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+            value: _adminAuthorizationConfirmed,
+            onChanged: member == null
+                ? null
+                : (value) => setState(
+                      () => _adminAuthorizationConfirmed = value ?? false,
+                    ),
+            title: Text(
+              'I confirm the member authorized this wallet payment.',
+              style: TextStyle(color: colors.text, fontWeight: FontWeight.w800),
+            ),
+          ),
+          const SizedBox(height: 4),
+          _VoucherTextField(
+            controller: _adminAuthorizationNoteController,
+            label: 'Authorization reason or reference',
+            icon: Icons.verified_user_outlined,
+            maxLines: 3,
+            textCapitalization: TextCapitalization.sentences,
           ),
         ],
       ),
@@ -8507,6 +8691,8 @@ class _VoucherTextField extends StatelessWidget {
     this.colors,
     this.icon,
     this.keyboardType,
+    this.maxLines = 1,
+    this.textCapitalization = TextCapitalization.characters,
   });
 
   final _ManagementPalette? colors;
@@ -8514,6 +8700,8 @@ class _VoucherTextField extends StatelessWidget {
   final String label;
   final IconData? icon;
   final TextInputType? keyboardType;
+  final int maxLines;
+  final TextCapitalization textCapitalization;
 
   @override
   Widget build(BuildContext context) {
@@ -8521,7 +8709,8 @@ class _VoucherTextField extends StatelessWidget {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
-      textCapitalization: TextCapitalization.characters,
+      textCapitalization: textCapitalization,
+      maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label,
         filled: true,

@@ -626,32 +626,33 @@ class GoshenRetreatApi {
     List<Map<String, dynamic>> fieldOptionFees = const [],
     String referralCode = '',
     String voucherCode = '',
+    bool adminAuthorization = false,
+    String adminAuthorizationNote = '',
+    String memberWalletChargeKey = '',
     List<Map<String, dynamic>> attendees = const [],
   }) async {
     final response = await _dio.post(
       ApiUrl.GOSHEN_RETREAT_BOOKINGS,
       options: _mobileOptions(user),
-      data: {
-        'data': {
-          'email': user.email,
-          'api_token': user.apiToken,
-          'event_id': event.publicId,
-          if (managedMemberId != null) 'managed_member_id': managedMemberId,
-          'ticket_type_id': ticketType.publicId,
-          'payment_mode': paymentMode,
-          if (voucherCode.trim().isNotEmpty) 'voucher_code': voucherCode.trim(),
-          'quantity': quantity,
-          'free_church_bus_consent': freeChurchBusConsent,
-          'uk_privacy_consent': ukPrivacyConsent,
-          'privacy_policy_version': 'uk-gdpr-2026-06',
-          'apply_pay_in_full_discount': applyPayInFullDiscount,
-          'field_option_fee_total': fieldOptionFeeTotal,
-          'field_option_fees': fieldOptionFees,
-          if (referralCode.trim().isNotEmpty)
-            'referral_code': referralCode.trim(),
-          'attendees': attendees,
-        }
-      },
+      data: bookingPayload(
+        event: event,
+        ticketType: ticketType,
+        quantity: quantity,
+        user: user,
+        managedMemberId: managedMemberId,
+        paymentMode: paymentMode,
+        freeChurchBusConsent: freeChurchBusConsent,
+        ukPrivacyConsent: ukPrivacyConsent,
+        applyPayInFullDiscount: applyPayInFullDiscount,
+        fieldOptionFeeTotal: fieldOptionFeeTotal,
+        fieldOptionFees: fieldOptionFees,
+        referralCode: referralCode,
+        voucherCode: voucherCode,
+        adminAuthorization: adminAuthorization,
+        adminAuthorizationNote: adminAuthorizationNote,
+        memberWalletChargeKey: memberWalletChargeKey,
+        attendees: attendees,
+      ),
     );
 
     final data = Map<String, dynamic>.from(decodeApiResponse(response.data));
@@ -660,6 +661,70 @@ class GoshenRetreatApi {
     }
 
     return Map<String, dynamic>.from(data['booking'] as Map);
+  }
+
+  static Map<String, dynamic> bookingPayload({
+    required GoshenRetreatEvent event,
+    required GoshenTicketType ticketType,
+    required int quantity,
+    required Userdata user,
+    int? managedMemberId,
+    String paymentMode = 'outright',
+    bool freeChurchBusConsent = false,
+    bool ukPrivacyConsent = false,
+    bool applyPayInFullDiscount = true,
+    double fieldOptionFeeTotal = 0,
+    List<Map<String, dynamic>> fieldOptionFees = const [],
+    String referralCode = '',
+    String voucherCode = '',
+    bool adminAuthorization = false,
+    String adminAuthorizationNote = '',
+    String memberWalletChargeKey = '',
+    List<Map<String, dynamic>> attendees = const [],
+  }) {
+    final normalizedPaymentMode = paymentMode.trim().toLowerCase();
+    final normalizedAuthorizationNote = adminAuthorizationNote.trim();
+    final normalizedMemberWalletChargeKey = memberWalletChargeKey.trim();
+    final isManagedWalletPayment =
+        normalizedPaymentMode == 'wallet' && managedMemberId != null;
+    if (isManagedWalletPayment &&
+        (!adminAuthorization || normalizedAuthorizationNote.length < 20)) {
+      throw ArgumentError(
+        'Member wallet payments require admin authorization and a meaningful note of at least 20 characters.',
+      );
+    }
+    if (isManagedWalletPayment && normalizedMemberWalletChargeKey.isEmpty) {
+      throw ArgumentError(
+        'Member wallet payments require an idempotency charge key.',
+      );
+    }
+
+    return {
+      'data': {
+        'email': user.email,
+        'api_token': user.apiToken,
+        'event_id': event.publicId,
+        if (managedMemberId != null) 'managed_member_id': managedMemberId,
+        'ticket_type_id': ticketType.publicId,
+        'payment_mode': normalizedPaymentMode,
+        if (voucherCode.trim().isNotEmpty) 'voucher_code': voucherCode.trim(),
+        if (isManagedWalletPayment) ...{
+          'admin_authorization': adminAuthorization,
+          'admin_authorization_note': normalizedAuthorizationNote,
+          'member_wallet_charge_key': normalizedMemberWalletChargeKey,
+        },
+        'quantity': quantity,
+        'free_church_bus_consent': freeChurchBusConsent,
+        'uk_privacy_consent': ukPrivacyConsent,
+        'privacy_policy_version': 'uk-gdpr-2026-06',
+        'apply_pay_in_full_discount': applyPayInFullDiscount,
+        'field_option_fee_total': fieldOptionFeeTotal,
+        'field_option_fees': fieldOptionFees,
+        if (referralCode.trim().isNotEmpty)
+          'referral_code': referralCode.trim(),
+        'attendees': attendees,
+      },
+    };
   }
 
   Future<List<GoshenManagedMember>> searchManagedMembers({
