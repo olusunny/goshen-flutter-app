@@ -17,6 +17,7 @@ import '../utils/Alerts.dart';
 import '../utils/ApiUrl.dart';
 import '../utils/Utility.dart';
 import '../utils/img.dart';
+import '../utils/member_profile_requirements.dart';
 import '../utils/my_colors.dart';
 import '../widgets/country_selector.dart';
 
@@ -104,7 +105,9 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
       if (!mounted) return;
       setState(() {
         groups = parsed;
-        groupId ??= _defaultGroupId(parsed);
+        if (!isVisitorMemberType(memberType)) {
+          groupId ??= _defaultGroupId(parsed);
+        }
         groupsLoading = false;
       });
     } catch (_) {
@@ -160,18 +163,23 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
     final about = aboutController.text.trim();
 
     if (firstName.isEmpty ||
-        profileTitle.isEmpty ||
         lastName.isEmpty ||
         phone.isEmpty ||
         gender.isEmpty ||
-        maritalStatus.isEmpty ||
         memberType.isEmpty ||
-        groupId == null ||
-        countryOfResidence.isEmpty ||
-        stateCountyProvince.isEmpty ||
-        address.isEmpty) {
-      Alerts.show(context, t.error,
-          'Please fill your title, first name, last name, gender, marital status, member type, church group, country, state/county/province, address and phone number before saving.');
+        (!isVisitorMemberType(memberType) &&
+            (profileTitle.isEmpty ||
+                maritalStatus.isEmpty ||
+                groupId == null ||
+                countryOfResidence.isEmpty ||
+                stateCountyProvince.isEmpty ||
+                address.isEmpty))) {
+      Alerts.show(
+          context,
+          t.error,
+          isVisitorMemberType(memberType)
+              ? 'Please fill your first name, last name, gender, member type and phone number before saving.'
+              : 'Please fill your title, first name, last name, gender, marital status, member type, church group, country, state/county/province, address and phone number before saving.');
       return;
     }
 
@@ -192,28 +200,33 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
     final fullName = [firstName, middleName, lastName]
         .where((part) => part.trim().isNotEmpty)
         .join(' ');
-    final formData = FormData.fromMap({
+    final fields = <String, dynamic>{
       "email": userdata!.email,
       "fullname": fullName,
-      "title": profileTitle,
-      "profile_title": profileTitle,
-      "salutation": profileTitle,
       "first_name": firstName,
       "middle_name": middleName,
       "last_name": lastName,
       "phone": phone,
       "gender": gender,
-      "marital_status": maritalStatus,
       "member_type": memberType,
-      "group_id": groupId,
-      "country_of_residence": countryOfResidence,
-      "state_county_province": stateCountyProvince,
-      "address": address,
-      "address_latitude": userdata?.addressLatitude,
-      "address_longitude": userdata?.addressLongitude,
       "about_me": Utility.getBase64EncodedString(aboutme),
       "notify_token": token,
-    });
+    };
+    if (!isVisitorMemberType(memberType)) {
+      fields.addAll({
+        "title": profileTitle,
+        "profile_title": profileTitle,
+        "salutation": profileTitle,
+        "marital_status": maritalStatus,
+        "group_id": groupId,
+        "country_of_residence": countryOfResidence,
+        "state_county_province": stateCountyProvince,
+        "address": address,
+        "address_latitude": userdata?.addressLatitude,
+        "address_longitude": userdata?.addressLongitude,
+      });
+    }
+    final formData = FormData.fromMap(fields);
 
     if (avatar.isNotEmpty) {
       formData.files
@@ -337,71 +350,81 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
                       muted: muted,
                     ),
                     const SizedBox(height: 14),
-                    _ProfileDropdown(
-                      value: profileTitle,
-                      label: 'Title',
-                      icon: Icons.badge_outlined,
-                      items: const {
-                        'Mr.': 'Mr.',
-                        'Mrs.': 'Mrs.',
-                        'Miss': 'Miss',
-                      },
-                      text: text,
-                      muted: muted,
-                      onChanged: (value) =>
-                          setState(() => profileTitle = value),
-                    ),
-                    const SizedBox(height: 14),
+                    if (!isVisitorMemberType(memberType)) ...[
+                      _ProfileDropdown(
+                        value: profileTitle,
+                        label: 'Title',
+                        icon: Icons.badge_outlined,
+                        items: const {
+                          'Mr.': 'Mr.',
+                          'Mrs.': 'Mrs.',
+                          'Miss': 'Miss',
+                        },
+                        text: text,
+                        muted: muted,
+                        onChanged: (value) =>
+                            setState(() => profileTitle = value),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
                     _GenderSelector(
                       value: gender,
                       onChanged: (value) => setState(() => gender = value),
                     ),
                     const SizedBox(height: 14),
-                    _ProfileDropdown(
-                      value: maritalStatus,
-                      label: 'Marital status',
-                      icon: Icons.favorite_border_rounded,
-                      items: const {
-                        'Single': 'Single',
-                        'Married': 'Married',
-                        'Widowed': 'Widowed',
-                        'Divorced/Separated': 'Divorced/Separated',
-                        'Prefer not to say': 'Prefer not to say',
-                      },
-                      text: text,
-                      muted: muted,
-                      onChanged: (value) =>
-                          setState(() => maritalStatus = value),
-                    ),
-                    const SizedBox(height: 14),
                     _MemberTypeSelector(
                       value: memberType,
-                      onChanged: (value) => setState(() => memberType = value),
-                    ),
-                    const SizedBox(height: 14),
-                    _ProfileGroupSelector(
-                      groups: groups,
-                      value: groupId,
-                      isLoading: groupsLoading,
-                      onChanged: (value) => setState(() => groupId = value),
-                      text: text,
-                      muted: muted,
-                    ),
-                    const SizedBox(height: 14),
-                    CountrySelector(
-                      value: countryOfResidence,
                       onChanged: (value) => setState(() {
-                        countryOfResidence = value;
-                        stateCountyProvince = '';
+                        memberType = value;
+                        if (!isVisitorMemberType(value)) {
+                          groupId ??= _defaultGroupId(groups);
+                        }
                       }),
                     ),
                     const SizedBox(height: 14),
-                    StateProvinceSelector(
-                      country: countryOfResidence,
-                      value: stateCountyProvince,
-                      onChanged: (value) =>
-                          setState(() => stateCountyProvince = value),
-                    ),
+                    if (!isVisitorMemberType(memberType)) ...[
+                      _ProfileDropdown(
+                        value: maritalStatus,
+                        label: 'Marital status',
+                        icon: Icons.favorite_border_rounded,
+                        items: const {
+                          'Single': 'Single',
+                          'Married': 'Married',
+                          'Widowed': 'Widowed',
+                          'Divorced/Separated': 'Divorced/Separated',
+                          'Prefer not to say': 'Prefer not to say',
+                        },
+                        text: text,
+                        muted: muted,
+                        onChanged: (value) =>
+                            setState(() => maritalStatus = value),
+                      ),
+                      const SizedBox(height: 14),
+                      _ProfileGroupSelector(
+                        groups: groups,
+                        value: groupId,
+                        isLoading: groupsLoading,
+                        onChanged: (value) => setState(() => groupId = value),
+                        text: text,
+                        muted: muted,
+                      ),
+                      const SizedBox(height: 14),
+                      CountrySelector(
+                        value: countryOfResidence,
+                        onChanged: (value) => setState(() {
+                          countryOfResidence = value;
+                          stateCountyProvince = '';
+                        }),
+                      ),
+                      const SizedBox(height: 14),
+                      StateProvinceSelector(
+                        country: countryOfResidence,
+                        value: stateCountyProvince,
+                        onChanged: (value) =>
+                            setState(() => stateCountyProvince = value),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
                     const SizedBox(height: 14),
                     _ProfileField(
                       controller: phoneController,
@@ -412,15 +435,17 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
                       muted: muted,
                     ),
                     const SizedBox(height: 14),
-                    _ProfileField(
-                      controller: addressController,
-                      label: 'Address',
-                      icon: Icons.home_work_outlined,
-                      maxLines: 2,
-                      text: text,
-                      muted: muted,
-                    ),
-                    const SizedBox(height: 14),
+                    if (!isVisitorMemberType(memberType)) ...[
+                      _ProfileField(
+                        controller: addressController,
+                        label: 'Address',
+                        icon: Icons.home_work_outlined,
+                        maxLines: 2,
+                        text: text,
+                        muted: muted,
+                      ),
+                      const SizedBox(height: 14),
+                    ],
                     _ProfileField(
                       controller: aboutController,
                       label: t.aboutme,

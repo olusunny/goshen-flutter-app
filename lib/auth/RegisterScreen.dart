@@ -10,6 +10,7 @@ import '../i18n/strings.g.dart';
 import '../models/ChurchGroup.dart';
 import '../utils/Alerts.dart';
 import '../utils/ApiUrl.dart';
+import '../utils/member_profile_requirements.dart';
 import '../utils/my_colors.dart';
 import '../widgets/country_selector.dart';
 import '../socials/UpdateUserProfile.dart';
@@ -100,22 +101,27 @@ class RegisterScreenRouteState extends State<RegisterScreen> {
     final repeatPassword = repeatPasswordController.text;
 
     if (firstName.isEmpty ||
-        profileTitle.trim().isEmpty ||
         lastName.isEmpty ||
         name.isEmpty ||
         email.isEmpty ||
         phoneController.text.trim().isEmpty ||
         gender.trim().isEmpty ||
-        maritalStatus.trim().isEmpty ||
         memberType.trim().isEmpty ||
-        groupId == null ||
-        countryOfResidence.isEmpty ||
-        stateCountyProvince.isEmpty ||
-        addressController.text.trim().isEmpty ||
+        (!isVisitorMemberType(memberType) &&
+            (profileTitle.trim().isEmpty ||
+                maritalStatus.trim().isEmpty ||
+                groupId == null ||
+                countryOfResidence.isEmpty ||
+                stateCountyProvince.isEmpty ||
+                addressController.text.trim().isEmpty)) ||
         password.isEmpty ||
         repeatPassword.isEmpty) {
-      Alerts.show(context, t.error,
-          'Please fill your title, first name, last name, email, phone number, marital status, member status, gender, church group, country, state/county/province, address and password.');
+      Alerts.show(
+          context,
+          t.error,
+          isVisitorMemberType(memberType)
+              ? 'Please fill your first name, last name, email, phone number, member status, gender and password.'
+              : 'Please fill your title, first name, last name, email, phone number, marital status, member status, gender, church group, country, state/county/province, address and password.');
     } else if (!EmailValidator.validate(email)) {
       Alerts.show(context, t.error, t.invalidemailerrorhint);
     } else if (password.length < 8) {
@@ -148,15 +154,18 @@ class RegisterScreenRouteState extends State<RegisterScreen> {
             "phone": phone,
             "gender": gender,
             "marital_status": maritalStatus,
-            "group_id": groupId,
             "member_type": memberType,
-            "country_of_residence": countryOfResidence,
-            "state_county_province": stateCountyProvince,
-            "address": addressController.text.trim(),
-            "address_latitude": addressLatitude,
-            "address_longitude": addressLongitude,
             "password": password
-          }
+          }..addAll(isVisitorMemberType(memberType)
+              ? const <String, dynamic>{}
+              : {
+                  "group_id": groupId,
+                  "country_of_residence": countryOfResidence,
+                  "state_county_province": stateCountyProvince,
+                  "address": addressController.text.trim(),
+                  "address_latitude": addressLatitude,
+                  "address_longitude": addressLongitude,
+                })
         }),
       );
       Navigator.of(context).pop();
@@ -320,11 +329,13 @@ class RegisterScreenRouteState extends State<RegisterScreen> {
             textInputAction: TextInputAction.next,
           ),
           const SizedBox(height: 14),
-          _TitleSelector(
-            value: profileTitle,
-            onChanged: (value) => setState(() => profileTitle = value),
-          ),
-          const SizedBox(height: 14),
+          if (!isVisitorMemberType(memberType)) ...[
+            _TitleSelector(
+              value: profileTitle,
+              onChanged: (value) => setState(() => profileTitle = value),
+            ),
+            const SizedBox(height: 14),
+          ],
           AuthTextField(
             controller: emailController,
             label: t.emailaddress,
@@ -346,63 +357,70 @@ class RegisterScreenRouteState extends State<RegisterScreen> {
             onChanged: (value) => setState(() => gender = value),
           ),
           const SizedBox(height: 14),
-          _MaritalStatusSelector(
-            value: maritalStatus,
-            onChanged: (value) => setState(() => maritalStatus = value),
-          ),
-          const SizedBox(height: 14),
           _MemberTypeSelector(
             value: memberType,
-            onChanged: (value) => setState(() => memberType = value),
-          ),
-          const SizedBox(height: 14),
-          _GroupSelector(
-            groups: groups,
-            value: groupId,
-            isLoading: groupsLoading,
-            onChanged: (value) => setState(() => groupId = value),
-          ),
-          const SizedBox(height: 14),
-          CountrySelector(
-            value: countryOfResidence,
             onChanged: (value) => setState(() {
-              countryOfResidence = value;
-              stateCountyProvince = '';
+              memberType = value;
+              if (!isVisitorMemberType(value)) {
+                groupId ??= _defaultGroupId(groups);
+              }
             }),
           ),
           const SizedBox(height: 14),
-          StateProvinceSelector(
-            country: countryOfResidence,
-            value: stateCountyProvince,
-            onChanged: (value) => setState(() => stateCountyProvince = value),
-          ),
-          const SizedBox(height: 14),
-          AuthTextField(
-            controller: addressController,
-            label: 'Residential address',
-            icon: Icons.home_work_outlined,
-            textInputAction: TextInputAction.next,
-          ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: locatingAddress ? null : _useCurrentLocation,
-              icon: locatingAddress
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.my_location_rounded),
-              label: Text(
-                locatingAddress
-                    ? 'Detecting address...'
-                    : 'Use current location',
+          if (!isVisitorMemberType(memberType)) ...[
+            _MaritalStatusSelector(
+              value: maritalStatus,
+              onChanged: (value) => setState(() => maritalStatus = value),
+            ),
+            const SizedBox(height: 14),
+            _GroupSelector(
+              groups: groups,
+              value: groupId,
+              isLoading: groupsLoading,
+              onChanged: (value) => setState(() => groupId = value),
+            ),
+            const SizedBox(height: 14),
+            CountrySelector(
+              value: countryOfResidence,
+              onChanged: (value) => setState(() {
+                countryOfResidence = value;
+                stateCountyProvince = '';
+              }),
+            ),
+            const SizedBox(height: 14),
+            StateProvinceSelector(
+              country: countryOfResidence,
+              value: stateCountyProvince,
+              onChanged: (value) => setState(() => stateCountyProvince = value),
+            ),
+            const SizedBox(height: 14),
+            AuthTextField(
+              controller: addressController,
+              label: 'Residential address',
+              icon: Icons.home_work_outlined,
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: locatingAddress ? null : _useCurrentLocation,
+                icon: locatingAddress
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.my_location_rounded),
+                label: Text(
+                  locatingAddress
+                      ? 'Detecting address...'
+                      : 'Use current location',
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 14),
+            const SizedBox(height: 14),
+          ],
           AuthTextField(
             controller: passwordController,
             label: t.password,

@@ -21,6 +21,7 @@ import '../service/GoshenRetreatApi.dart';
 import '../service/GoshenWalletApi.dart';
 import '../socials/UpdateUserProfile.dart';
 import '../utils/ApiUrl.dart';
+import '../utils/member_profile_requirements.dart';
 import '../video_player/VideoPlayer.dart';
 import '../wallet_security/wallet_security_guard.dart';
 
@@ -434,23 +435,18 @@ class GoshenRetreatDetailScreen extends StatelessWidget {
   }
 
   List<String> _missingGoshenProfileFields(Userdata user) {
-    final checks = <String, String?>{
-      'title': user.profileTitle,
-      'full name': user.name,
-      'email address': user.email,
-      'phone number': user.phone,
-      'gender': user.gender,
-      'marital status': user.maritalStatus,
-      'church member or visitor status': user.memberType,
-      'country of residence': user.countryOfResidence,
-      'state/county/province': user.stateCountyProvince,
-      'address': user.address,
-    };
-
-    return checks.entries
-        .where((entry) => (entry.value ?? '').trim().isEmpty)
-        .map((entry) => entry.key)
-        .toList();
+    return missingGoshenProfileFields(
+      memberType: user.memberType,
+      title: user.profileTitle,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      gender: user.gender,
+      maritalStatus: user.maritalStatus,
+      countryOfResidence: user.countryOfResidence,
+      stateCountyProvince: user.stateCountyProvince,
+      address: user.address,
+    );
   }
 
   void _showProfilePrompt(BuildContext context, List<String> fields) {
