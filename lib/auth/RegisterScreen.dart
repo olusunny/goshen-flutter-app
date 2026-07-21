@@ -142,7 +142,7 @@ class RegisterScreenRouteState extends State<RegisterScreen> {
         Uri.parse(ApiUrl.REGISTER),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          "data": {
+          "data": <String, dynamic>{
             "email": email,
             "name": name,
             "title": profileTitle,
