@@ -12,6 +12,7 @@ import '../utils/Alerts.dart';
 import '../utils/ApiUrl.dart';
 import '../utils/member_profile_requirements.dart';
 import '../utils/my_colors.dart';
+import '../widgets/birthday_month_day_field.dart';
 import '../widgets/country_selector.dart';
 import '../socials/UpdateUserProfile.dart';
 import 'LoginScreen.dart';
@@ -39,6 +40,7 @@ class RegisterScreenRouteState extends State<RegisterScreen> {
   String gender = 'Male';
   String maritalStatus = '';
   String memberType = 'church_member';
+  String birthdayMonthDay = '';
   String countryOfResidence = '';
   String stateCountyProvince = '';
   double? addressLatitude;
@@ -110,6 +112,7 @@ class RegisterScreenRouteState extends State<RegisterScreen> {
         (!isVisitorMemberType(memberType) &&
             (profileTitle.trim().isEmpty ||
                 maritalStatus.trim().isEmpty ||
+                birthdayMonthDay.isEmpty ||
                 groupId == null ||
                 countryOfResidence.isEmpty ||
                 stateCountyProvince.isEmpty ||
@@ -121,7 +124,7 @@ class RegisterScreenRouteState extends State<RegisterScreen> {
           t.error,
           isVisitorMemberType(memberType)
               ? 'Please fill your first name, last name, email, phone number, member status, gender and password.'
-              : 'Please fill your title, first name, last name, email, phone number, marital status, member status, gender, church group, country, state/county/province, address and password.');
+              : 'Please fill your title, first name, last name, birthday, email, phone number, marital status, member status, gender, church group, country, state/county/province, address and password.');
     } else if (!EmailValidator.validate(email)) {
       Alerts.show(context, t.error, t.invalidemailerrorhint);
     } else if (password.length < 8) {
@@ -160,6 +163,7 @@ class RegisterScreenRouteState extends State<RegisterScreen> {
               ? const <String, dynamic>{}
               : {
                   "group_id": groupId,
+                  "birthday_month_day": birthdayMonthDay,
                   "country_of_residence": countryOfResidence,
                   "state_county_province": stateCountyProvince,
                   "address": addressController.text.trim(),
@@ -368,6 +372,19 @@ class RegisterScreenRouteState extends State<RegisterScreen> {
           ),
           const SizedBox(height: 14),
           if (!isVisitorMemberType(memberType)) ...[
+            BirthdayMonthDayField(
+              value: birthdayMonthDay,
+              onTap: () async {
+                final selected =
+                    await pickBirthdayMonthDay(context, birthdayMonthDay);
+                if (selected != null && mounted) {
+                  setState(() => birthdayMonthDay = selected);
+                }
+              },
+              text: isDark ? Colors.white : const Color(0xFF102532),
+              muted: isDark ? Colors.white60 : const Color(0xFF60707A),
+            ),
+            const SizedBox(height: 14),
             _MaritalStatusSelector(
               value: maritalStatus,
               onChanged: (value) => setState(() => maritalStatus = value),

@@ -18,8 +18,10 @@ import '../utils/ApiUrl.dart';
 import '../utils/Utility.dart';
 import '../utils/img.dart';
 import '../utils/member_profile_requirements.dart';
+import '../utils/member_profile_presentation.dart';
 import '../utils/my_colors.dart';
 import '../widgets/country_selector.dart';
+import '../widgets/birthday_month_day_field.dart';
 
 class UpdateUserProfile extends StatefulWidget {
   static const routeName = "/updateprofile";
@@ -38,6 +40,7 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
   String gender = "Male";
   String maritalStatus = "";
   String memberType = "church_member";
+  String birthdayMonthDay = '';
   String countryOfResidence = "";
   String stateCountyProvince = "";
   int? groupId;
@@ -67,6 +70,11 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
     memberType = (userdata?.memberType?.isNotEmpty ?? false)
         ? userdata!.memberType!
         : 'church_member';
+    birthdayMonthDay = normalizeBirthdayMonthDay(
+      userdata?.birthdayMonthDay?.isNotEmpty ?? false
+          ? userdata?.birthdayMonthDay
+          : userdata?.dateOfBirth,
+    );
     groupId = userdata?.groupId;
     countryOfResidence = userdata?.countryOfResidence ?? "";
     stateCountyProvince = userdata?.stateCountyProvince ?? "";
@@ -170,6 +178,7 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
         (!isVisitorMemberType(memberType) &&
             (profileTitle.isEmpty ||
                 maritalStatus.isEmpty ||
+                birthdayMonthDay.isEmpty ||
                 groupId == null ||
                 countryOfResidence.isEmpty ||
                 stateCountyProvince.isEmpty ||
@@ -179,7 +188,7 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
           t.error,
           isVisitorMemberType(memberType)
               ? 'Please fill your first name, last name, gender, member type and phone number before saving.'
-              : 'Please fill your title, first name, last name, gender, marital status, member type, church group, country, state/county/province, address and phone number before saving.');
+              : 'Please fill your title, first name, last name, birthday, gender, marital status, member type, church group, country, state/county/province, address and phone number before saving.');
       return;
     }
 
@@ -218,6 +227,7 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
         "profile_title": profileTitle,
         "salutation": profileTitle,
         "marital_status": maritalStatus,
+        "birthday_month_day": birthdayMonthDay,
         "group_id": groupId,
         "country_of_residence": countryOfResidence,
         "state_county_province": stateCountyProvince,
@@ -250,6 +260,9 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
       }
 
       final updatedUser = Userdata.fromJsonActivated(res["user"]);
+      if ((updatedUser.birthdayMonthDay ?? '').trim().isEmpty) {
+        updatedUser.birthdayMonthDay = birthdayMonthDay;
+      }
       Provider.of<AppStateManager>(context, listen: false)
           .setUserData(updatedUser);
 
@@ -262,6 +275,13 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
       Navigator.of(context).pop();
       Alerts.show(
           context, t.error, e.message ?? 'Unable to update profile right now.');
+    }
+  }
+
+  Future<void> _pickBirthday() async {
+    final selected = await pickBirthdayMonthDay(context, birthdayMonthDay);
+    if (selected != null && mounted) {
+      setState(() => birthdayMonthDay = selected);
     }
   }
 
@@ -374,6 +394,7 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
                     const SizedBox(height: 14),
                     _MemberTypeSelector(
                       value: memberType,
+                      lockedUntil: userdata?.memberTypeEditableAt,
                       onChanged: (value) => setState(() {
                         memberType = value;
                         if (!isVisitorMemberType(value)) {
@@ -383,6 +404,13 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
                     ),
                     const SizedBox(height: 14),
                     if (!isVisitorMemberType(memberType)) ...[
+                      BirthdayMonthDayField(
+                        value: birthdayMonthDay,
+                        onTap: _pickBirthday,
+                        text: text,
+                        muted: muted,
+                      ),
+                      const SizedBox(height: 14),
                       _ProfileDropdown(
                         value: maritalStatus,
                         label: 'Marital status',
@@ -829,42 +857,76 @@ class _GenderSelector extends StatelessWidget {
 }
 
 class _MemberTypeSelector extends StatelessWidget {
-  const _MemberTypeSelector({required this.value, required this.onChanged});
+  const _MemberTypeSelector({
+    required this.value,
+    required this.lockedUntil,
+    required this.onChanged,
+  });
 
   final String value;
+  final String? lockedUntil;
   final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final selectedValue = value == 'visitor' ? 'visitor' : 'church_member';
-    return SegmentedButton<String>(
-      segments: const [
-        ButtonSegment(
-          value: 'church_member',
-          label: Text('Church member'),
-          icon: Icon(Icons.church_outlined),
+    final isLocked = isMembershipStatusLocked(lockedUntil);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Membership status',
+          style: TextStyle(
+            color: isDark ? Colors.white70 : const Color(0xFF60707A),
+            fontWeight: FontWeight.w700,
+          ),
         ),
-        ButtonSegment(
-          value: 'visitor',
-          label: Text('Visitor'),
-          icon: Icon(Icons.person_pin_circle_outlined),
+        const SizedBox(height: 8),
+        SegmentedButton<String>(
+          segments: const [
+            ButtonSegment(
+              value: 'church_member',
+              label: Text('Church member'),
+              icon: Icon(Icons.church_outlined),
+            ),
+            ButtonSegment(
+              value: 'visitor',
+              label: Text('Visitor'),
+              icon: Icon(Icons.person_pin_circle_outlined),
+            ),
+          ],
+          selected: {selectedValue},
+          onSelectionChanged:
+              isLocked ? null : (values) => onChanged(values.first),
+          style: ButtonStyle(
+            backgroundColor: WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.selected)
+                  ? const Color(0xFFFFB522)
+                  : (isDark
+                      ? const Color(0xFF071720)
+                      : const Color(0xFFF5F8FA)),
+            ),
+            foregroundColor: WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.selected)
+                  ? MyColors.primary
+                  : (isDark ? Colors.white70 : const Color(0xFF60707A)),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          membershipStatusLockMessage(lockedUntil),
+          style: TextStyle(
+            color: isLocked
+                ? (isDark ? const Color(0xFFFFC857) : MyColors.primary)
+                : (isDark ? Colors.white60 : const Color(0xFF60707A)),
+            fontSize: 12,
+            height: 1.35,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
-      selected: {selectedValue},
-      onSelectionChanged: (values) => onChanged(values.first),
-      style: ButtonStyle(
-        backgroundColor: WidgetStateProperty.resolveWith(
-          (states) => states.contains(WidgetState.selected)
-              ? const Color(0xFFFFB522)
-              : (isDark ? const Color(0xFF071720) : const Color(0xFFF5F8FA)),
-        ),
-        foregroundColor: WidgetStateProperty.resolveWith(
-          (states) => states.contains(WidgetState.selected)
-              ? MyColors.primary
-              : (isDark ? Colors.white70 : const Color(0xFF60707A)),
-        ),
-      ),
     );
   }
 }

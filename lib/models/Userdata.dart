@@ -4,6 +4,8 @@ class Userdata {
   String? email = "";
   String? name = "";
   String? triumphantId = "";
+  String? birthdayMonthDay = "";
+  String? memberTypeEditableAt = "";
   String? avatar = "", coverPhoto = "", gender = "";
   String? dateOfBirth = "",
       phone = "",
@@ -51,6 +53,8 @@ class Userdata {
     "email",
     "name",
     "triumphantId",
+    "birthdayMonthDay",
+    "memberTypeEditableAt",
     "coverPhoto",
     "avatar",
     "gender",
@@ -99,6 +103,8 @@ class Userdata {
     this.email,
     this.name,
     this.triumphantId,
+    this.birthdayMonthDay,
+    this.memberTypeEditableAt,
     this.coverPhoto,
     this.avatar,
     this.gender,
@@ -154,6 +160,15 @@ class Userdata {
         email: _readString(json, const ['email']),
         triumphantId:
             _readString(json, const ['triumphant_id', 'triumphantId']),
+        birthdayMonthDay: _readBirthdayMonthDay(json),
+        memberTypeEditableAt: _readString(
+          json,
+          const [
+            'member_type_editable_at',
+            'memberTypeEditableAt',
+            'member_type_change_available_at',
+          ],
+        ),
         avatar: activated == 1 ? "" : _readString(json, const ['avatar']),
         coverPhoto: activated == 1
             ? ""
@@ -253,6 +268,15 @@ class Userdata {
       name: json['name'] as String?,
       email: json['email'] as String?,
       triumphantId: _readString(json, const ['triumphant_id', 'triumphantId']),
+      birthdayMonthDay: _readBirthdayMonthDay(json),
+      memberTypeEditableAt: _readString(
+        json,
+        const [
+          'member_type_editable_at',
+          'memberTypeEditableAt',
+          'member_type_change_available_at',
+        ],
+      ),
       avatar: json['avatar'] as String?,
       coverPhoto: json['cover_photo'] as String?,
       gender: "",
@@ -331,6 +355,15 @@ class Userdata {
         email: json['email'] as String?,
         triumphantId:
             _readString(json, const ['triumphant_id', 'triumphantId']),
+        birthdayMonthDay: _readBirthdayMonthDay(json),
+        memberTypeEditableAt: _readString(
+          json,
+          const [
+            'member_type_editable_at',
+            'memberTypeEditableAt',
+            'member_type_change_available_at',
+          ],
+        ),
         avatar: json['avatar'] as String?,
         coverPhoto: json['cover_photo'] as String?,
         gender: json['gender'] as String?,
@@ -408,6 +441,15 @@ class Userdata {
       name: json['name'] as String?,
       email: json['email'] as String?,
       triumphantId: _readString(json, const ['triumphant_id', 'triumphantId']),
+      birthdayMonthDay: _readBirthdayMonthDay(json),
+      memberTypeEditableAt: _readString(
+        json,
+        const [
+          'member_type_editable_at',
+          'memberTypeEditableAt',
+          'member_type_change_available_at',
+        ],
+      ),
       avatar: json['avatar'] as String?,
       coverPhoto: json['cover_photo'] as String?,
       gender: json['gender'] as String?,
@@ -483,6 +525,8 @@ class Userdata {
       name: data['name'],
       email: data['email'],
       triumphantId: data['triumphantId'],
+      birthdayMonthDay: data['birthdayMonthDay'],
+      memberTypeEditableAt: data['memberTypeEditableAt'],
       avatar: data['avatar'],
       coverPhoto: data['coverPhoto'],
       gender: data['gender'],
@@ -534,6 +578,8 @@ class Userdata {
         "name": name,
         "email": email,
         "triumphantId": triumphantId,
+        "birthdayMonthDay": birthdayMonthDay,
+        "memberTypeEditableAt": memberTypeEditableAt,
         "avatar": avatar,
         "coverPhoto": coverPhoto,
         "gender": gender,
@@ -811,6 +857,13 @@ String _readString(Map<String, dynamic> json, List<String> keys) {
     if (raw.isNotEmpty && raw.toLowerCase() != 'null') return raw;
   }
   return '';
+}
+
+String _readBirthdayMonthDay(Map<String, dynamic> json) {
+  final birthday =
+      _readString(json, const ['birthday_month_day', 'birthdayMonthDay']);
+  if (birthday.isNotEmpty) return birthday;
+  return _readString(json, const ['date_of_birth', 'dateOfBirth']);
 }
 
 String _readRole(Map<String, dynamic> json) {

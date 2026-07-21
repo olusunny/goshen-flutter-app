@@ -26,7 +26,7 @@ class SQLiteDbProvider {
   initDB() async {
     return await openDatabase(
         join(await getDatabasesPath(), 'streamit_database.db'),
-        version: 17, onOpen: (db) async {
+        version: 18, onOpen: (db) async {
       await _ensureUserdataSchema(db);
     }, onUpgrade: (Database db, int oldVersion, int newVersion) async {
       if (oldVersion < 2) {
@@ -108,6 +108,12 @@ class SQLiteDbProvider {
       if (oldVersion < 17) {
         await _addColumnIfMissing(
             db, Userdata.TABLE, 'canManageCounseling', 'INTEGER');
+      }
+      if (oldVersion < 18) {
+        await _addColumnIfMissing(
+            db, Userdata.TABLE, 'birthdayMonthDay', 'TEXT');
+        await _addColumnIfMissing(
+            db, Userdata.TABLE, 'memberTypeEditableAt', 'TEXT');
       }
       await _ensureUserdataSchema(db);
     }, onCreate: (Database db, int version) async {
@@ -300,6 +306,9 @@ class SQLiteDbProvider {
     await _addColumnIfMissing(db, Userdata.TABLE, 'middleName', 'TEXT');
     await _addColumnIfMissing(db, Userdata.TABLE, 'lastName', 'TEXT');
     await _addColumnIfMissing(db, Userdata.TABLE, 'triumphantId', 'TEXT');
+    await _addColumnIfMissing(db, Userdata.TABLE, 'birthdayMonthDay', 'TEXT');
+    await _addColumnIfMissing(
+        db, Userdata.TABLE, 'memberTypeEditableAt', 'TEXT');
     await _addColumnIfMissing(db, Userdata.TABLE, 'groupId', 'INTEGER');
     await _addColumnIfMissing(db, Userdata.TABLE, 'groupName', 'TEXT');
     await _addColumnIfMissing(db, Userdata.TABLE, 'countryOfResidence', 'TEXT');

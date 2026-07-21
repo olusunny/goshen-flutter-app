@@ -12,6 +12,7 @@ import '../socials/UpdateUserProfile.dart';
 import '../utils/Utility.dart';
 import '../utils/img.dart';
 import '../utils/my_colors.dart';
+import '../utils/member_profile_presentation.dart';
 import '../widgets/country_selector.dart';
 
 class UserProfileScreen extends StatelessWidget {
@@ -141,6 +142,7 @@ class UserProfileScreen extends StatelessWidget {
                                     const SizedBox(height: 12),
                                     _TriumphantIdBadge(
                                       id: profile.triumphantId ?? '',
+                                      memberType: profile.memberType ?? '',
                                       text: text,
                                       muted: muted,
                                     ),
@@ -447,18 +449,27 @@ class _ProfileActionCard extends StatelessWidget {
 class _TriumphantIdBadge extends StatelessWidget {
   const _TriumphantIdBadge({
     required this.id,
+    required this.memberType,
     required this.text,
     required this.muted,
   });
 
   final String id;
+  final String memberType;
   final Color text;
   final Color muted;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final value = id.trim().isEmpty ? 'Not assigned' : id.trim();
+    final value = triumphantIdStatusMessage(
+      memberType: memberType,
+      triumphantId: id,
+    );
+    final detail = triumphantIdStatusDetail(
+      memberType: memberType,
+      triumphantId: id,
+    );
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -507,8 +518,6 @@ class _TriumphantIdBadge extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: text,
@@ -516,6 +525,19 @@ class _TriumphantIdBadge extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
+                if (detail.isNotEmpty) ...[
+                  const SizedBox(height: 5),
+                  Text(
+                    detail,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: muted,
+                      fontSize: 12,
+                      height: 1.35,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
