@@ -60,6 +60,22 @@ String normalizeBirthdayMonthDay(String? value) {
   return '${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
 }
 
+bool isValidBirthdayMonthDay(String? value) {
+  final raw = value?.trim() ?? '';
+  return RegExp(r'^\d{2}-\d{2}$').hasMatch(raw) &&
+      normalizeBirthdayMonthDay(raw) == raw;
+}
+
+Map<String, int>? birthdayMonthDayApiFields(String? value) {
+  if (!isValidBirthdayMonthDay(value)) return null;
+
+  final parts = value!.trim().split('-');
+  return {
+    'birthday_month': int.parse(parts.first),
+    'birthday_day': int.parse(parts.last),
+  };
+}
+
 String formatBirthdayMonthDay(String? value) {
   final normalized = normalizeBirthdayMonthDay(value);
   if (normalized.isEmpty) return '';

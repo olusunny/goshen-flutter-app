@@ -109,7 +109,7 @@ class BirthdayMonthDayField extends StatelessWidget {
         child: InputDecorator(
           decoration: InputDecoration(
             labelText: 'Birthday',
-            helperText: 'Day and month only',
+            helperText: 'Use MM-DD. Your birth year is not requested.',
             prefixIcon: Icon(
               Icons.cake_outlined,
               color: isDark ? const Color(0xFFFFC857) : MyColors.primary,
@@ -121,7 +121,9 @@ class BirthdayMonthDayField extends StatelessWidget {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
           ),
           child: Text(
-            displayValue.isEmpty ? 'Select your birthday' : displayValue,
+            displayValue.isEmpty
+                ? 'Select your birthday (MM-DD)'
+                : normalizeBirthdayMonthDay(value),
             style: TextStyle(
               color: displayValue.isEmpty ? muted : text,
               fontWeight: FontWeight.w700,

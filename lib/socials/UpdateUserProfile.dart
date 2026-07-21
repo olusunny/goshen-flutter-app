@@ -178,7 +178,7 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
         (!isVisitorMemberType(memberType) &&
             (profileTitle.isEmpty ||
                 maritalStatus.isEmpty ||
-                birthdayMonthDay.isEmpty ||
+                !isValidBirthdayMonthDay(birthdayMonthDay) ||
                 groupId == null ||
                 countryOfResidence.isEmpty ||
                 stateCountyProvince.isEmpty ||
@@ -227,7 +227,7 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
         "profile_title": profileTitle,
         "salutation": profileTitle,
         "marital_status": maritalStatus,
-        "birthday_month_day": birthdayMonthDay,
+        ...?birthdayMonthDayApiFields(birthdayMonthDay),
         "group_id": groupId,
         "country_of_residence": countryOfResidence,
         "state_county_province": stateCountyProvince,

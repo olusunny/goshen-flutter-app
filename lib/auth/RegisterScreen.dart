@@ -10,6 +10,7 @@ import '../i18n/strings.g.dart';
 import '../models/ChurchGroup.dart';
 import '../utils/Alerts.dart';
 import '../utils/ApiUrl.dart';
+import '../utils/member_profile_presentation.dart';
 import '../utils/member_profile_requirements.dart';
 import '../utils/my_colors.dart';
 import '../widgets/birthday_month_day_field.dart';
@@ -112,7 +113,7 @@ class RegisterScreenRouteState extends State<RegisterScreen> {
         (!isVisitorMemberType(memberType) &&
             (profileTitle.trim().isEmpty ||
                 maritalStatus.trim().isEmpty ||
-                birthdayMonthDay.isEmpty ||
+                !isValidBirthdayMonthDay(birthdayMonthDay) ||
                 groupId == null ||
                 countryOfResidence.isEmpty ||
                 stateCountyProvince.isEmpty ||
@@ -163,7 +164,7 @@ class RegisterScreenRouteState extends State<RegisterScreen> {
               ? const <String, dynamic>{}
               : {
                   "group_id": groupId,
-                  "birthday_month_day": birthdayMonthDay,
+                  ...?birthdayMonthDayApiFields(birthdayMonthDay),
                   "country_of_residence": countryOfResidence,
                   "state_county_province": stateCountyProvince,
                   "address": addressController.text.trim(),
