@@ -181,7 +181,9 @@ class PrayerSessionAttendanceApi {
   Map<String, dynamic> _map(dynamic value) {
     final decoded = decodeApiResponse(value);
     final data = Map<String, dynamic>.from(decoded as Map? ?? const {});
-    if (data['status'] != 'ok') {
+    // Capability discovery originally shipped without the standard status
+    // envelope. Accept that legacy success shape while production migrates.
+    if (data['status'] != null && data['status'] != 'ok') {
       throw Exception(
           '${data['message'] ?? 'Prayer attendance is unavailable.'}');
     }

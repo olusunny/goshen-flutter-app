@@ -1,6 +1,9 @@
+import 'package:churchapp_flutter/features/prayer_session_attendance/prayer_session_attendance_api.dart';
 import 'package:churchapp_flutter/features/prayer_session_attendance/prayer_session_attendance_models.dart';
 import 'package:churchapp_flutter/features/prayer_session_attendance/prayer_session_attendance_link.dart';
+import 'package:churchapp_flutter/models/Userdata.dart';
 import 'package:churchapp_flutter/utils/ApiUrl.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -21,6 +24,29 @@ void main() {
     const inactive = PrayerAttendanceCapability(active: false);
 
     expect(inactive.canOpenMemberExperience, isFalse);
+  });
+
+  test('capability discovery accepts the legacy successful API envelope',
+      () async {
+    final dio = Dio();
+    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(Response(
+        requestOptions: options,
+        statusCode: 200,
+        data: const {
+          'data': {
+            'capabilities': [
+              {'key': 'prayer_session_attendance', 'permissions': []},
+            ],
+          },
+        },
+      ));
+    }));
+
+    final capability = await PrayerSessionAttendanceApi(dio: dio)
+        .fetchCapability(Userdata(apiToken: 'member-token'));
+
+    expect(capability.canOpenMemberExperience, isTrue);
   });
 
   test('report-only staff can open the control hub without attendance tools',
