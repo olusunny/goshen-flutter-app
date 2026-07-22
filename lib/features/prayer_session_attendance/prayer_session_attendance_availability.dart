@@ -2,6 +2,9 @@ import '../../models/Userdata.dart';
 import 'prayer_session_attendance_api.dart';
 import 'prayer_session_attendance_models.dart';
 
+bool shouldShowPrayerSessionAttendanceMemberEntry(Userdata? user) =>
+    user != null;
+
 class PrayerSessionAttendanceAvailability {
   PrayerSessionAttendanceAvailability({PrayerSessionAttendanceApi? api})
       : _api = api ?? PrayerSessionAttendanceApi();

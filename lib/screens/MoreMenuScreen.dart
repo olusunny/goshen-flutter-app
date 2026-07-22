@@ -7,6 +7,7 @@ import '../features/fundraising/fundraising_screen.dart';
 import '../features/counseling/counseling_screen.dart';
 import '../features/prayer_session_attendance/prayer_session_attendance_models.dart';
 import '../features/prayer_session_attendance/prayer_session_attendance_screen.dart';
+import '../features/prayer_session_attendance/prayer_session_attendance_availability.dart';
 import '../i18n/strings.g.dart';
 import '../prayers/prayer_community_screen.dart';
 import '../prayers/prayer_guest_prompt.dart';
@@ -224,14 +225,17 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
             () =>
                 Navigator.pushNamed(context, GoshenExperienceScreen.routeName),
             accent: const Color(0xFF2C9B88)),
-      if (_prayerAttendanceCapability.canOpenMemberExperience && user != null)
+      // Keep the member entry visible after sign-in. Availability, active
+      // sessions, and ticket eligibility are enforced by the server after it
+      // opens, rather than silently hiding a church feature on a stale cache.
+      if (shouldShowPrayerSessionAttendanceMemberEntry(user))
         _MoreMenuItem(
           'Prayer Session Attendance',
           Icons.volunteer_activism_rounded,
           () => Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => PrayerSessionAttendanceScreen(user: user),
+              builder: (_) => PrayerSessionAttendanceScreen(user: user!),
             ),
           ),
           accent: const Color(0xFF2C9B88),

@@ -1,4 +1,5 @@
 import 'package:churchapp_flutter/features/prayer_session_attendance/prayer_session_attendance_api.dart';
+import 'package:churchapp_flutter/features/prayer_session_attendance/prayer_session_attendance_availability.dart';
 import 'package:churchapp_flutter/features/prayer_session_attendance/prayer_session_attendance_models.dart';
 import 'package:churchapp_flutter/features/prayer_session_attendance/prayer_session_attendance_link.dart';
 import 'package:churchapp_flutter/models/Userdata.dart';
@@ -24,6 +25,16 @@ void main() {
     const inactive = PrayerAttendanceCapability(active: false);
 
     expect(inactive.canOpenMemberExperience, isFalse);
+  });
+
+  test('a signed-in member entry remains available while capability refreshes',
+      () {
+    expect(shouldShowPrayerSessionAttendanceMemberEntry(null), isFalse);
+    expect(
+      shouldShowPrayerSessionAttendanceMemberEntry(
+          Userdata(apiToken: 'member-token')),
+      isTrue,
+    );
   });
 
   test('capability discovery accepts the legacy successful API envelope',
