@@ -4,15 +4,23 @@ import 'package:churchapp_flutter/utils/ApiUrl.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('attendee entry requires verified active-session eligibility', () {
+  test('members can discover an active attendance feature before eligibility',
+      () {
     const unavailable = PrayerAttendanceCapability(
       active: true,
       permissions: ['prayer_session_attendance.view'],
     );
+    expect(unavailable.canOpenMemberExperience, isTrue);
     expect(unavailable.canAttend, isFalse);
 
     expect(unavailable.withAttendeeEligibility(0).canAttend, isFalse);
     expect(unavailable.withAttendeeEligibility(1).canAttend, isTrue);
+  });
+
+  test('members cannot discover an inactive attendance feature', () {
+    const inactive = PrayerAttendanceCapability(active: false);
+
+    expect(inactive.canOpenMemberExperience, isFalse);
   });
 
   test('report-only staff can open the control hub without attendance tools',

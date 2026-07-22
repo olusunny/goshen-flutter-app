@@ -21,6 +21,9 @@ class PrayerAttendanceCapability {
       canCoordinate || allows('prayer_session_attendance.report');
   bool get canOpenControlHub => active && (canConfirm || canReport);
   bool get canUseStaffAttendanceTools => canConfirm;
+  // Members should be able to find an active church feature. Ticket and active
+  // session eligibility remain server-enforced when they open it.
+  bool get canOpenMemberExperience => active;
   bool get canAttend =>
       active && eligibilityVerified && eligibleActiveSessionCount > 0;
 

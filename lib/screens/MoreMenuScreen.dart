@@ -224,7 +224,7 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
             () =>
                 Navigator.pushNamed(context, GoshenExperienceScreen.routeName),
             accent: const Color(0xFF2C9B88)),
-      if (_prayerAttendanceCapability.canAttend && user != null)
+      if (_prayerAttendanceCapability.canOpenMemberExperience && user != null)
         _MoreMenuItem(
           'Prayer Session Attendance',
           Icons.volunteer_activism_rounded,
