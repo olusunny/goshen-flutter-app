@@ -58,6 +58,7 @@ void main() {
       quantity: 1,
       maxUses: 1,
       purpose: GoshenVoucherInfo.purposeWalletFunding,
+      redemptionType: GoshenVoucherInfo.redemptionFixed,
     );
     final data = Map<String, dynamic>.from(payload['data'] as Map);
 

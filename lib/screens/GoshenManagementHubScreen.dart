@@ -7,6 +7,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../features/counseling/counseling_screen.dart';
 import '../features/fundraising/fundraising_api.dart';
 import '../features/fundraising/fundraising_models.dart';
+import '../features/prayer_session_attendance/prayer_session_attendance_control_hub_screen.dart';
+import '../features/prayer_session_attendance/prayer_session_attendance_models.dart';
 import '../models/GoshenExperience.dart';
 import '../models/GoshenQuiz.dart';
 import '../models/GoshenRetreat.dart';
@@ -40,6 +42,7 @@ class GoshenManagementHubScreen extends StatefulWidget {
     required this.canManageChurchEvents,
     required this.canManageCounseling,
     required this.canSendAdminMessages,
+    required this.prayerAttendanceCapability,
   });
 
   final Userdata user;
@@ -53,6 +56,7 @@ class GoshenManagementHubScreen extends StatefulWidget {
   final bool canManageChurchEvents;
   final bool canManageCounseling;
   final bool canSendAdminMessages;
+  final PrayerAttendanceCapability prayerAttendanceCapability;
 
   @override
   State<GoshenManagementHubScreen> createState() =>
@@ -154,6 +158,30 @@ class _GoshenManagementHubScreenState extends State<GoshenManagementHubScreen> {
                   ),
                 ],
                 const SizedBox(height: 18),
+                if (widget.prayerAttendanceCapability.canOpenControlHub) ...[
+                  _HubActionCard(
+                    colors: colors,
+                    title: 'Prayer session attendance',
+                    subtitle: widget.prayerAttendanceCapability.canCoordinate
+                        ? 'Operate sessions, share the active QR, and record attendance.'
+                        : widget.prayerAttendanceCapability
+                                .canUseStaffAttendanceTools
+                            ? 'Select an active session and confirm attendees by ticket scan.'
+                            : 'View attendance reports for available prayer sessions.',
+                    icon: Icons.volunteer_activism_rounded,
+                    accent: colors.teal,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PrayerSessionAttendanceControlHubScreen(
+                          user: widget.user,
+                          capability: widget.prayerAttendanceCapability,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 if (widget.canManageCounseling) ...[
                   _HubActionCard(
                     colors: colors,

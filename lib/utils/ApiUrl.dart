@@ -259,6 +259,30 @@ class ApiUrl {
       BASEURL + "api/goshen-retreat/events/$eventId/scanner-stats";
   static String goshenScannerManifest(String eventId) =>
       BASEURL + "api/goshen-retreat/events/$eventId/scanner-manifest";
+  static const String ADDON_CAPABILITIES =
+      BASEURL + "api/v1/mobile/capabilities";
+  static const String PRAYER_SESSION_ATTENDANCE =
+      BASEURL + "api/v1/prayer-session-attendance";
+  static const String PRAYER_SESSION_ATTENDANCE_ACTIVE_SESSIONS =
+      "$PRAYER_SESSION_ATTENDANCE/sessions/active";
+  static const String PRAYER_SESSION_ATTENDANCE_SELF_CONFIRMATIONS =
+      "$PRAYER_SESSION_ATTENDANCE/confirmations/self";
+  static const String PRAYER_SESSION_ATTENDANCE_CONTROL_SESSIONS =
+      "$PRAYER_SESSION_ATTENDANCE/control/sessions";
+  static String prayerSessionAttendanceStaffConfirmation(String sessionId) =>
+      "$PRAYER_SESSION_ATTENDANCE/sessions/$sessionId/staff/confirmations";
+  static const String PRAYER_SESSION_ATTENDANCE_STAFF_SYNC =
+      "$PRAYER_SESSION_ATTENDANCE/staff/sync";
+  static String prayerSessionAttendanceSessionQr(String sessionId) =>
+      "$PRAYER_SESSION_ATTENDANCE/sessions/$sessionId/qr";
+    static String prayerSessionAttendanceControlSessionAction(
+            String sessionId, String action) =>
+        "$PRAYER_SESSION_ATTENDANCE/control/sessions/$sessionId/$action";
+    static String prayerSessionAttendanceStaffTicket(
+            String sessionId, String identifier) =>
+        "$PRAYER_SESSION_ATTENDANCE/sessions/$sessionId/staff/tickets/${Uri.encodeComponent(identifier)}";
+    static String prayerSessionAttendanceReport(String sessionId) =>
+        "$PRAYER_SESSION_ATTENDANCE/control/sessions/$sessionId/report";
   static const String INBOX = BASEURL + "fetch_inbox";
   static const String DELETE_INBOX = BASEURL + "delete_inbox";
   static const String HYMNS = BASEURL + "fetch_hymns";

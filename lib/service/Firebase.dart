@@ -16,6 +16,7 @@ import '../models/Media.dart';
 import '../utils/my_colors.dart';
 import '../providers/events.dart';
 import '../models/UserEvents.dart';
+import '../features/prayer_session_attendance/prayer_session_attendance_link.dart';
 
 var flutterLocalNotificationsPlugin = new FlutterLocalNotificationsPlugin();
 const AndroidNotificationChannel _defaultNotificationChannel =
@@ -41,6 +42,7 @@ class Firebase {
   late Function navigateLivestreams;
   late Function navigateEvents;
   late Function navigateDevotional;
+  late Function navigatePrayerSessionAttendance;
   static String appState = "idle";
 
   Firebase(
@@ -49,12 +51,14 @@ class Firebase {
     Function navigateLivestreams,
     Function navigateEvents,
     Function navigateDevotional,
+    Function navigatePrayerSessionAttendance,
   ) {
     this.navigateMedia = navigateMedia;
     this.navigateLivestreams = navigateLivestreams;
     this.navigateInbox = navigateInbox;
     this.navigateEvents = navigateEvents;
     this.navigateDevotional = navigateDevotional;
+    this.navigatePrayerSessionAttendance = navigatePrayerSessionAttendance;
   }
 
   //updated myBackgroundMessageHandler
@@ -333,6 +337,10 @@ class Firebase {
 
     if (action == "devotional" || action == "devotionals") {
       navigateDevotional(_devotionalNavigationData(data));
+    }
+
+    if (isPrayerSessionAttendanceNotification(data)) {
+      navigatePrayerSessionAttendance();
     }
 
     return null;

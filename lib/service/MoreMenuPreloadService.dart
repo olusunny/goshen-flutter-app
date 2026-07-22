@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 
 import '../features/fundraising/fundraising_api.dart';
+import '../features/prayer_session_attendance/prayer_session_attendance_availability.dart';
+import '../features/prayer_session_attendance/prayer_session_attendance_models.dart';
 import '../models/GoshenRetreat.dart';
 import '../models/Userdata.dart';
 import '../prayers/prayer_api_client.dart';
@@ -28,6 +30,7 @@ class MoreMenuPreloadSnapshot {
     required this.goshenQuizEnabled,
     required this.scannerManagerEnabled,
     required this.scannerConsoleEnabled,
+    required this.prayerAttendanceCapability,
     required this.warmedAt,
   });
 
@@ -44,6 +47,7 @@ class MoreMenuPreloadSnapshot {
   final bool goshenQuizEnabled;
   final bool scannerManagerEnabled;
   final bool scannerConsoleEnabled;
+  final PrayerAttendanceCapability prayerAttendanceCapability;
   final DateTime warmedAt;
 
   bool get isFresh =>
@@ -58,6 +62,8 @@ class MoreMenuPreloadService {
   MoreMenuPreloadSnapshot? _snapshot;
   Future<MoreMenuPreloadSnapshot>? _inFlight;
   int _warmCycle = 0;
+  final PrayerSessionAttendanceAvailability _prayerAttendance =
+      PrayerSessionAttendanceAvailability();
 
   MoreMenuPreloadSnapshot? get snapshot => _snapshot;
 
@@ -137,6 +143,8 @@ class MoreMenuPreloadService {
         homeData, 'goshen_quiz_enabled', _snapshot?.goshenQuizEnabled);
     var scannerManagerEnabled = _snapshot?.scannerManagerEnabled ?? false;
     var scannerConsoleEnabled = _snapshot?.scannerConsoleEnabled ?? false;
+    var prayerAttendanceCapability =
+        const PrayerAttendanceCapability(active: false);
 
     final testimonyApi = TestimonyApiClient(dio: dio);
     final retreatApi = GoshenRetreatApi(dio: dio);
@@ -171,6 +179,10 @@ class MoreMenuPreloadService {
             scannerStatus.scannerEnabled &&
             !scannerStatus.scannerSuspended;
       } catch (_) {}
+    }
+
+    if (user != null && (user.apiToken ?? '').trim().isNotEmpty) {
+      prayerAttendanceCapability = await _prayerAttendance.check(user);
     }
 
     final warmers = <Future<void>>[
@@ -229,6 +241,7 @@ class MoreMenuPreloadService {
       goshenQuizEnabled: goshenQuizEnabled,
       scannerManagerEnabled: scannerManagerEnabled,
       scannerConsoleEnabled: scannerConsoleEnabled,
+      prayerAttendanceCapability: prayerAttendanceCapability,
       warmedAt: DateTime.now(),
     );
     return next;

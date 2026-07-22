@@ -93,6 +93,8 @@ import './testimonies/testimony_wall_screen.dart';
 import './wallet_security/wallet_security_controller.dart';
 import './wallet_security/wallet_security_guard.dart';
 import './utils/goshen_payment_return_link.dart';
+import './features/prayer_session_attendance/prayer_session_attendance_link.dart';
+import './features/prayer_session_attendance/prayer_session_attendance_screen.dart';
 
 class MyApp extends StatefulWidget {
   const MyApp({
@@ -197,6 +199,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       navigateLivestreams,
       navigateEvents,
       navigateDevotional,
+      navigatePrayerSessionAttendance,
     ).init();
     super.initState();
     WidgetsBinding.instance.addObserver(this);
@@ -236,6 +239,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   void _handleIncomingPaymentLink(Uri? uri) {
     if (uri == null) return;
+    final attendanceLink = parsePrayerSessionAttendanceLink(uri);
+    if (attendanceLink != null) {
+      navigatePrayerSessionAttendance();
+      return;
+    }
     final paymentReturn = parseGoshenPaymentReturnLink(uri);
     if (paymentReturn == null) return;
 
@@ -260,6 +268,16 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           },
         ),
       );
+    });
+  }
+
+  Future<void> navigatePrayerSessionAttendance() async {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final user = await appStateManager.ensureUserDataLoaded();
+      if (user == null || user.activated != 0 || !mounted) return;
+      navigatorKey.currentState?.push(MaterialPageRoute(
+        builder: (_) => PrayerSessionAttendanceScreen(user: user),
+      ));
     });
   }
 

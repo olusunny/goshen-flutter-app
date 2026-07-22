@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 
 import '../features/fundraising/fundraising_screen.dart';
 import '../features/counseling/counseling_screen.dart';
+import '../features/prayer_session_attendance/prayer_session_attendance_models.dart';
+import '../features/prayer_session_attendance/prayer_session_attendance_screen.dart';
 import '../i18n/strings.g.dart';
 import '../prayers/prayer_community_screen.dart';
 import '../prayers/prayer_guest_prompt.dart';
@@ -59,6 +61,8 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
   bool _goshenQuizEnabled = true;
   bool _scannerManagerEnabled = false;
   bool _scannerConsoleEnabled = false;
+  PrayerAttendanceCapability _prayerAttendanceCapability =
+      const PrayerAttendanceCapability(active: false);
 
   @override
   void initState() {
@@ -80,6 +84,7 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
     final snapshot = await MoreMenuPreloadService.instance.warm(
       user: user,
       homeData: homeData,
+      force: true,
     );
     _applySnapshot(snapshot);
   }
@@ -101,7 +106,16 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
             _dynamicFormsEnabled != snapshot.dynamicFormsEnabled ||
             _goshenQuizEnabled != snapshot.goshenQuizEnabled ||
             _scannerManagerEnabled != snapshot.scannerManagerEnabled ||
-            _scannerConsoleEnabled != snapshot.scannerConsoleEnabled)) {
+            _scannerConsoleEnabled != snapshot.scannerConsoleEnabled ||
+            _prayerAttendanceCapability.active !=
+                snapshot.prayerAttendanceCapability.active ||
+            _prayerAttendanceCapability.permissions.join(',') !=
+                snapshot.prayerAttendanceCapability.permissions.join(',') ||
+            _prayerAttendanceCapability.eligibleActiveSessionCount !=
+                snapshot
+                    .prayerAttendanceCapability.eligibleActiveSessionCount ||
+            _prayerAttendanceCapability.eligibilityVerified !=
+                snapshot.prayerAttendanceCapability.eligibilityVerified)) {
       setState(() {
         _testimoniesEnabled = snapshot.testimoniesEnabled;
         _goshenRetreatEnabled = snapshot.goshenRetreatEnabled;
@@ -116,6 +130,7 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
         _goshenQuizEnabled = snapshot.goshenQuizEnabled;
         _scannerManagerEnabled = snapshot.scannerManagerEnabled;
         _scannerConsoleEnabled = snapshot.scannerConsoleEnabled;
+        _prayerAttendanceCapability = snapshot.prayerAttendanceCapability;
       });
     }
   }
@@ -141,6 +156,7 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
     final canOpenGoshenManagement = user != null &&
         (_scannerManagerEnabled ||
             _scannerConsoleEnabled ||
+            _prayerAttendanceCapability.canOpenControlHub ||
             canManageGoshenRegistration ||
             canManageGoshenVouchers ||
             canManageFundraising ||
@@ -172,6 +188,7 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
                       canManageChurchEvents: canManageChurchEvents,
                       canManageCounseling: canManageCounseling,
                       canSendAdminMessages: canSendAdminMessages,
+                      prayerAttendanceCapability: _prayerAttendanceCapability,
                     ),
                   ),
                 ),
@@ -207,6 +224,18 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
             () =>
                 Navigator.pushNamed(context, GoshenExperienceScreen.routeName),
             accent: const Color(0xFF2C9B88)),
+      if (_prayerAttendanceCapability.canAttend && user != null)
+        _MoreMenuItem(
+          'Prayer Session Attendance',
+          Icons.volunteer_activism_rounded,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PrayerSessionAttendanceScreen(user: user),
+            ),
+          ),
+          accent: const Color(0xFF2C9B88),
+        ),
       if (_goshenRetreatEnabled && _goshenQuizEnabled && user != null)
         _MoreMenuItem('Goshen Quiz', Icons.quiz_rounded,
             () => Navigator.pushNamed(context, GoshenQuizScreen.routeName),
