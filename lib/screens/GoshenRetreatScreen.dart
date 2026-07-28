@@ -5106,7 +5106,10 @@ class _GoshenRegistrationSheetState extends State<_GoshenRegistrationSheet> {
   @override
   void initState() {
     super.initState();
-    _ticketType = widget.event.ticketTypes.first;
+    _ticketType = widget.event.ticketTypes.firstWhere(
+      (ticket) => !_isFamilyTicket(ticket),
+      orElse: () => widget.event.ticketTypes.first,
+    );
     _quantity =
         _ticketType.minPerBooking.clamp(1, _ticketType.maxPerBooking).toInt();
     _attendees = [
@@ -5137,6 +5140,9 @@ class _GoshenRegistrationSheetState extends State<_GoshenRegistrationSheet> {
     final total = ((ticketSubtotal - discount) + optionFees)
         .clamp(0, ticketSubtotal + optionFees)
         .toDouble();
+    final ticketTypes = widget.event.ticketTypes
+        .where((ticket) => !_isFamilyTicket(ticket))
+        .toList();
 
     return Padding(
       padding: EdgeInsets.only(bottom: keyboardInset),
@@ -5194,7 +5200,7 @@ class _GoshenRegistrationSheetState extends State<_GoshenRegistrationSheet> {
                         _SheetSelect<GoshenTicketType>(
                           label: 'Ticket type',
                           value: _ticketType,
-                          values: widget.event.ticketTypes,
+                          values: ticketTypes,
                           colors: colors,
                           text: (ticket) =>
                               '${ticket.name} · ${ticket.currency} ${ticket.price.toStringAsFixed(ticket.price == ticket.price.roundToDouble() ? 0 : 2)}',
@@ -5747,6 +5753,9 @@ class _GoshenRegistrationSheetState extends State<_GoshenRegistrationSheet> {
     final parts = (user.name ?? '').trim().split(RegExp(r'\s+'));
     return parts.isEmpty ? '' : parts.first;
   }
+
+  bool _isFamilyTicket(GoshenTicketType ticket) =>
+      ticket.name.toLowerCase().contains('family');
 
   String _fallbackLastName(Userdata user) {
     final explicit = (user.lastName ?? '').trim();
