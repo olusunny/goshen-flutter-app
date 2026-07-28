@@ -41,6 +41,7 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
   String maritalStatus = "";
   String memberType = "church_member";
   String birthdayMonthDay = '';
+  bool adultConfirmation = true;
   String countryOfResidence = "";
   String stateCountyProvince = "";
   int? groupId;
@@ -179,6 +180,7 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
             (profileTitle.isEmpty ||
                 maritalStatus.isEmpty ||
                 !isValidBirthdayMonthDay(birthdayMonthDay) ||
+                !adultConfirmation ||
                 groupId == null ||
                 countryOfResidence.isEmpty ||
                 stateCountyProvince.isEmpty ||
@@ -218,6 +220,7 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
       "phone": phone,
       "gender": gender,
       "member_type": memberType,
+      "adult_confirmation": adultConfirmation,
       "about_me": Utility.getBase64EncodedString(aboutme),
       "notify_token": token,
     };
@@ -409,6 +412,25 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
                         onTap: _pickBirthday,
                         text: text,
                         muted: muted,
+                      ),
+                      const SizedBox(height: 14),
+                      CheckboxListTile.adaptive(
+                        value: adultConfirmation,
+                        onChanged: (value) => setState(
+                          () => adultConfirmation = value ?? false,
+                        ),
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          'I confirm that I am 18 years or older.',
+                          style: TextStyle(
+                            color: text,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'This helps us keep adult retreat registrations accurate.',
+                          style: TextStyle(color: muted),
+                        ),
                       ),
                       const SizedBox(height: 14),
                       _ProfileDropdown(

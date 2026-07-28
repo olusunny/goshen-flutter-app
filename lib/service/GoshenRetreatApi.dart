@@ -630,6 +630,7 @@ class GoshenRetreatApi {
     String adminAuthorizationNote = '',
     String memberWalletChargeKey = '',
     List<Map<String, dynamic>> attendees = const [],
+    Map<String, dynamic>? family,
   }) async {
     final response = await _dio.post(
       ApiUrl.GOSHEN_RETREAT_BOOKINGS,
@@ -652,6 +653,7 @@ class GoshenRetreatApi {
         adminAuthorizationNote: adminAuthorizationNote,
         memberWalletChargeKey: memberWalletChargeKey,
         attendees: attendees,
+        family: family,
       ),
     );
 
@@ -681,6 +683,7 @@ class GoshenRetreatApi {
     String adminAuthorizationNote = '',
     String memberWalletChargeKey = '',
     List<Map<String, dynamic>> attendees = const [],
+    Map<String, dynamic>? family,
   }) {
     final normalizedPaymentMode = paymentMode.trim().toLowerCase();
     final normalizedAuthorizationNote = adminAuthorizationNote.trim();
@@ -722,6 +725,7 @@ class GoshenRetreatApi {
         'field_option_fees': fieldOptionFees,
         if (referralCode.trim().isNotEmpty)
           'referral_code': referralCode.trim(),
+        if (family != null) 'family': family,
         'attendees': attendees,
       },
     };
