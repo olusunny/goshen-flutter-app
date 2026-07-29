@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../auth/LoginScreen.dart';
 import '../database/SQLiteDbProvider.dart';
 import '../models/GoshenRetreat.dart';
+import '../models/GoshenFamilyRegistration.dart';
 import '../models/GoshenWallet.dart';
 import '../models/Media.dart';
 import '../models/ScreenArguements.dart';
@@ -5298,6 +5299,7 @@ class _GoshenRegistrationSheetState extends State<_GoshenRegistrationSheet> {
   late GoshenTicketType _ticketType;
   late int _quantity;
   late List<_AttendeeDraft> _attendees;
+  late GoshenFamilyRegistrationDraft _family;
   Future<GoshenWallet?>? _walletFuture;
   bool _walletAccessGranted = false;
   bool _payWithWallet = false;
@@ -5326,6 +5328,15 @@ class _GoshenRegistrationSheetState extends State<_GoshenRegistrationSheet> {
         phone: widget.user.phone ?? '',
       ),
     ];
+    _family = GoshenFamilyRegistrationDraft(
+      father: GoshenFamilyParentDraft(
+        included: true,
+        firstName: _fallbackFirstName(widget.user),
+        lastName: _fallbackLastName(widget.user),
+        email: widget.user.email ?? '',
+        phone: widget.user.phone ?? '',
+      ),
+    );
     _syncAttendees();
   }
 
@@ -5338,17 +5349,17 @@ class _GoshenRegistrationSheetState extends State<_GoshenRegistrationSheet> {
     final bottomSafeInset = media.viewPadding.bottom;
     final maxSheetHeight =
         media.size.height - topSafeInset - keyboardInset - 12;
-    final ticketSubtotal = _ticketType.price * _quantity;
-    final optionFees = _selectedOptionFeeTotal();
+    final isFamilyTicket = _isFamilyTicket(_ticketType);
+    final payableCount = isFamilyTicket ? _family.payableCount : _quantity;
+    final ticketSubtotal = _ticketType.price * payableCount;
+    final optionFees = isFamilyTicket ? 0.0 : _selectedOptionFeeTotal();
     final discount = _applyPayInFullDiscount
         ? widget.event.payInFullDiscount.amountFor(ticketSubtotal)
         : 0.0;
     final total = ((ticketSubtotal - discount) + optionFees)
         .clamp(0, ticketSubtotal + optionFees)
         .toDouble();
-    final ticketTypes = widget.event.ticketTypes
-        .where((ticket) => !_isFamilyTicket(ticket))
-        .toList();
+    final ticketTypes = widget.event.ticketTypes;
 
     return Padding(
       padding: EdgeInsets.only(bottom: keyboardInset),
@@ -5416,13 +5427,15 @@ class _GoshenRegistrationSheetState extends State<_GoshenRegistrationSheet> {
                               _ticketType = ticket;
                               _payWithWallet = false;
                               _payWithVoucher = false;
-                              _quantity = _quantity
-                                  .clamp(
-                                    ticket.minPerBooking,
-                                    ticket.maxPerBooking,
-                                  )
-                                  .toInt();
-                              _syncAttendees();
+                              if (!_isFamilyTicket(ticket)) {
+                                _quantity = _quantity
+                                    .clamp(
+                                      ticket.minPerBooking,
+                                      ticket.maxPerBooking,
+                                    )
+                                    .toInt();
+                                _syncAttendees();
+                              }
                             });
                           },
                         ),
@@ -5480,93 +5493,42 @@ class _GoshenRegistrationSheetState extends State<_GoshenRegistrationSheet> {
                           onChanged: (value) => _referralCode = value,
                         ),
                         const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: colors.innerCard,
-                            borderRadius: BorderRadius.circular(18),
+                        if (isFamilyTicket)
+                          _FamilyRegistrationFields(
+                            family: _family,
+                            ticketType: _ticketType,
+                            colors: colors,
+                            onChanged: () => setState(() {}),
+                          )
+                        else ...[
+                          _AttendeeQuantityControl(
+                            quantity: _quantity,
+                            ticketType: _ticketType,
+                            colors: colors,
+                            onChanged: (nextQuantity) => setState(() {
+                              _quantity = nextQuantity;
+                              _syncAttendees();
+                            }),
                           ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Attendees',
-                                      style: TextStyle(
-                                        color: colors.text,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Add names for everyone covered by this registration.',
-                                      style: TextStyle(
-                                        color: colors.muted,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                          const SizedBox(height: 14),
+                          ...List.generate(
+                            _attendees.length,
+                            (index) => Padding(
+                              padding: EdgeInsets.only(
+                                bottom: index == _attendees.length - 1 ? 0 : 12,
                               ),
-                              IconButton.filledTonal(
-                                onPressed:
-                                    _quantity <= _ticketType.minPerBooking
-                                        ? null
-                                        : () => setState(() {
-                                              _quantity--;
-                                              _syncAttendees();
-                                            }),
-                                icon: const Icon(Icons.remove_rounded),
+                              child: _AttendeeFields(
+                                index: index,
+                                attendee: _attendees[index],
+                                registrationFields:
+                                    widget.event.registrationFields,
+                                currency: _ticketType.currency,
+                                colors: colors,
+                                onChanged: () => setState(() {}),
                               ),
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 12),
-                                child: Text(
-                                  '$_quantity',
-                                  style: TextStyle(
-                                    color: colors.text,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ),
-                              IconButton.filled(
-                                style: IconButton.styleFrom(
-                                  backgroundColor: const Color(0xFFFFB522),
-                                  foregroundColor: const Color(0xFF0C2230),
-                                ),
-                                onPressed:
-                                    _quantity >= _ticketType.maxPerBooking
-                                        ? null
-                                        : () => setState(() {
-                                              _quantity++;
-                                              _syncAttendees();
-                                            }),
-                                icon: const Icon(Icons.add_rounded),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        ...List.generate(
-                          _attendees.length,
-                          (index) => Padding(
-                            padding: EdgeInsets.only(
-                              bottom: index == _attendees.length - 1 ? 0 : 12,
-                            ),
-                            child: _AttendeeFields(
-                              index: index,
-                              attendee: _attendees[index],
-                              registrationFields:
-                                  widget.event.registrationFields,
-                              currency: _ticketType.currency,
-                              colors: colors,
-                              onChanged: () => setState(() {}),
                             ),
                           ),
-                        ),
+                        ],
                         const SizedBox(height: 14),
                         _RegistrationConsentTile(
                           value: _ukPrivacyConsent,
@@ -5663,10 +5625,15 @@ class _GoshenRegistrationSheetState extends State<_GoshenRegistrationSheet> {
   }
 
   Future<void> _submit() async {
-    final missingChoiceMessage = _missingAttendeeChoiceMessage();
-    if (missingChoiceMessage != null) {
+    final validationMessage = _isFamilyTicket(_ticketType)
+        ? _family.validationMessage(
+            minimumMembers: _ticketType.minPerBooking,
+            maximumMembers: _ticketType.maxPerBooking,
+          )
+        : _missingAttendeeChoiceMessage();
+    if (validationMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(missingChoiceMessage)),
+        SnackBar(content: Text(validationMessage)),
       );
       return;
     }
@@ -5682,8 +5649,11 @@ class _GoshenRegistrationSheetState extends State<_GoshenRegistrationSheet> {
 
     setState(() => _submitting = true);
     try {
-      final ticketSubtotal = _ticketType.price * _quantity;
-      final optionFees = _selectedOptionFeeTotal();
+      final isFamilyTicket = _isFamilyTicket(_ticketType);
+      final quantity = isFamilyTicket ? _family.memberCount : _quantity;
+      final payableCount = isFamilyTicket ? _family.payableCount : _quantity;
+      final ticketSubtotal = _ticketType.price * payableCount;
+      final optionFees = isFamilyTicket ? 0.0 : _selectedOptionFeeTotal();
       final discount = _applyPayInFullDiscount
           ? widget.event.payInFullDiscount.amountFor(ticketSubtotal)
           : 0.0;
@@ -5717,21 +5687,26 @@ class _GoshenRegistrationSheetState extends State<_GoshenRegistrationSheet> {
           await GoshenRetreatApi().startBooking(
             event: widget.event,
             ticketType: _ticketType,
-            quantity: _quantity,
+            quantity: quantity,
             user: widget.user,
             paymentMode: _payWithWallet
                 ? 'wallet'
                 : (_payWithVoucher ? 'voucher' : 'outright'),
             voucherCode: _payWithVoucher ? _voucherCode : '',
-            freeChurchBusConsent: _attendees.any(
-              (attendee) => attendee.freeChurchBusInterest == 'yes',
-            ),
+            freeChurchBusConsent: !isFamilyTicket &&
+                _attendees.any(
+                  (attendee) => attendee.freeChurchBusInterest == 'yes',
+                ),
             ukPrivacyConsent: _ukPrivacyConsent,
             applyPayInFullDiscount: _applyPayInFullDiscount,
             fieldOptionFeeTotal: optionFees,
-            fieldOptionFees: _selectedOptionFeesPayload(),
+            fieldOptionFees:
+                isFamilyTicket ? const [] : _selectedOptionFeesPayload(),
             referralCode: _referralCode,
-            attendees: _attendees.map((attendee) => attendee.toJson()).toList(),
+            attendees: isFamilyTicket
+                ? const []
+                : _attendees.map((attendee) => attendee.toJson()).toList(),
+            family: isFamilyTicket ? _family.toPayload() : null,
           );
       _pendingBooking = booking;
       if (!mounted) return;
@@ -5808,8 +5783,10 @@ class _GoshenRegistrationSheetState extends State<_GoshenRegistrationSheet> {
 
     final wallet = await future;
     if (!mounted) return;
-    final ticketSubtotal = _ticketType.price * _quantity;
-    final optionFees = _selectedOptionFeeTotal();
+    final isFamilyTicket = _isFamilyTicket(_ticketType);
+    final payableCount = isFamilyTicket ? _family.payableCount : _quantity;
+    final ticketSubtotal = _ticketType.price * payableCount;
+    final optionFees = isFamilyTicket ? 0.0 : _selectedOptionFeeTotal();
     final discount = _applyPayInFullDiscount
         ? widget.event.payInFullDiscount.amountFor(ticketSubtotal)
         : 0.0;
@@ -6208,6 +6185,474 @@ class _PaymentChoiceButton extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _AttendeeQuantityControl extends StatelessWidget {
+  const _AttendeeQuantityControl({
+    required this.quantity,
+    required this.ticketType,
+    required this.colors,
+    required this.onChanged,
+  });
+
+  final int quantity;
+  final GoshenTicketType ticketType;
+  final _GoshenPalette colors;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colors.innerCard,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Attendees',
+                    style: TextStyle(
+                        color: colors.text, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 4),
+                Text('Add names for everyone covered by this registration.',
+                    style: TextStyle(color: colors.muted, fontSize: 12)),
+              ],
+            ),
+          ),
+          IconButton.filledTonal(
+            onPressed: quantity <= ticketType.minPerBooking
+                ? null
+                : () => onChanged(quantity - 1),
+            icon: const Icon(Icons.remove_rounded),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text('$quantity',
+                style: TextStyle(
+                    color: colors.text,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900)),
+          ),
+          IconButton.filled(
+            style: IconButton.styleFrom(
+              backgroundColor: const Color(0xFFFFB522),
+              foregroundColor: const Color(0xFF0C2230),
+            ),
+            onPressed: quantity >= ticketType.maxPerBooking
+                ? null
+                : () => onChanged(quantity + 1),
+            icon: const Icon(Icons.add_rounded),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FamilyRegistrationFields extends StatelessWidget {
+  const _FamilyRegistrationFields({
+    required this.family,
+    required this.ticketType,
+    required this.colors,
+    required this.onChanged,
+  });
+
+  final GoshenFamilyRegistrationDraft family;
+  final GoshenTicketType ticketType;
+  final _GoshenPalette colors;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final canAddChild = family.children.length < 18 &&
+        family.memberCount < ticketType.maxPerBooking;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFB522).withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: const Color(0xFFFFB522).withValues(alpha: 0.3),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Family registration',
+                  style: TextStyle(
+                      color: colors.text,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16)),
+              const SizedBox(height: 5),
+              Text(
+                'Children aged 1-14 receive a complimentary ticket. Children aged 15 and above need a paid ticket. Children aged 18 and above also need email, phone, and adult confirmation.',
+                style: TextStyle(
+                  color: colors.muted,
+                  height: 1.35,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${family.payableCount} paid ticket${family.payableCount == 1 ? '' : 's'} · ${family.complimentaryCount} complimentary child ticket${family.complimentaryCount == 1 ? '' : 's'} · ${family.memberCount}/${ticketType.maxPerBooking} family members',
+                style: TextStyle(
+                    color: colors.text,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _SheetTextField(
+          initialValue: family.name,
+          label: 'Family name',
+          colors: colors,
+          onChanged: (value) {
+            family.name = value;
+            onChanged();
+          },
+        ),
+        const SizedBox(height: 12),
+        _FamilyParentFields(
+          label: 'Father details',
+          parent: family.father,
+          colors: colors,
+          onChanged: onChanged,
+        ),
+        const SizedBox(height: 12),
+        _FamilyParentFields(
+          label: 'Mother details',
+          parent: family.mother,
+          colors: colors,
+          onChanged: onChanged,
+        ),
+        const SizedBox(height: 14),
+        Text('Children',
+            style: TextStyle(
+                color: colors.text, fontSize: 16, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 4),
+        Text(
+            'Add each child separately so every child receives the right ticket.',
+            style: TextStyle(
+                color: colors.muted,
+                fontSize: 12,
+                fontWeight: FontWeight.w700)),
+        const SizedBox(height: 10),
+        ...family.children.asMap().entries.map(
+              (entry) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _FamilyChildFields(
+                  index: entry.key,
+                  child: entry.value,
+                  colors: colors,
+                  onChanged: onChanged,
+                  onRemove: () {
+                    family.children.removeAt(entry.key);
+                    onChanged();
+                  },
+                ),
+              ),
+            ),
+        OutlinedButton.icon(
+          onPressed: canAddChild
+              ? () {
+                  family.children.add(GoshenFamilyChildDraft());
+                  onChanged();
+                }
+              : null,
+          icon: const Icon(Icons.person_add_alt_1_rounded),
+          label: Text(
+              canAddChild ? 'Add child' : 'Family ticket capacity reached'),
+        ),
+      ],
+    );
+  }
+}
+
+class _FamilyParentFields extends StatelessWidget {
+  const _FamilyParentFields({
+    required this.label,
+    required this.parent,
+    required this.colors,
+    required this.onChanged,
+  });
+
+  final String label;
+  final GoshenFamilyParentDraft parent;
+  final _GoshenPalette colors;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.innerCard,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colors.border),
+      ),
+      child: Column(
+        children: [
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            value: parent.included,
+            activeColor: const Color(0xFF14513F),
+            title: Text(label,
+                style:
+                    TextStyle(color: colors.text, fontWeight: FontWeight.w900)),
+            subtitle: Text('Optional. Add at least one parent to continue.',
+                style: TextStyle(color: colors.muted, fontSize: 12)),
+            onChanged: (value) {
+              parent.included = value;
+              onChanged();
+            },
+          ),
+          if (parent.included) ...[
+            const SizedBox(height: 8),
+            _FamilyNameFields(
+              firstName: parent.firstName,
+              lastName: parent.lastName,
+              colors: colors,
+              onFirstNameChanged: (value) {
+                parent.firstName = value;
+                onChanged();
+              },
+              onLastNameChanged: (value) {
+                parent.lastName = value;
+                onChanged();
+              },
+            ),
+            const SizedBox(height: 10),
+            _SheetTextField(
+              initialValue: parent.email,
+              label: 'Email (optional)',
+              keyboardType: TextInputType.emailAddress,
+              colors: colors,
+              onChanged: (value) {
+                parent.email = value;
+                onChanged();
+              },
+            ),
+            const SizedBox(height: 10),
+            _SheetTextField(
+              initialValue: parent.phone,
+              label: 'Phone (optional)',
+              keyboardType: TextInputType.phone,
+              colors: colors,
+              onChanged: (value) {
+                parent.phone = value;
+                onChanged();
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _FamilyChildFields extends StatelessWidget {
+  const _FamilyChildFields({
+    required this.index,
+    required this.child,
+    required this.colors,
+    required this.onChanged,
+    required this.onRemove,
+  });
+
+  final int index;
+  final GoshenFamilyChildDraft child;
+  final _GoshenPalette colors;
+  final VoidCallback onChanged;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.innerCard,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text('Child ${index + 1}',
+                    style: TextStyle(
+                        color: colors.text, fontWeight: FontWeight.w900)),
+              ),
+              IconButton(
+                tooltip: 'Remove child',
+                onPressed: onRemove,
+                icon: const Icon(Icons.remove_circle_outline_rounded),
+              ),
+            ],
+          ),
+          _FamilyNameFields(
+            firstName: child.firstName,
+            lastName: child.lastName,
+            lastNameRequired: true,
+            colors: colors,
+            onFirstNameChanged: (value) {
+              child.firstName = value;
+              onChanged();
+            },
+            onLastNameChanged: (value) {
+              child.lastName = value;
+              onChanged();
+            },
+          ),
+          const SizedBox(height: 10),
+          _SheetTextField(
+            initialValue: child.age,
+            label: 'Age (1-120)',
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            colors: colors,
+            onChanged: (value) {
+              child.age = value;
+              if (!child.isAdult) child.adultConfirmation = false;
+              onChanged();
+            },
+          ),
+          const SizedBox(height: 10),
+          _SheetSelect<String>(
+            label: 'Gender',
+            value: const ['male', 'female'].contains(child.gender)
+                ? child.gender
+                : null,
+            values: const ['male', 'female'],
+            text: (value) => value == 'male' ? 'Male' : 'Female',
+            colors: colors,
+            onChanged: (value) {
+              child.gender = value ?? '';
+              onChanged();
+            },
+          ),
+          if (child.isAdult) ...[
+            const SizedBox(height: 10),
+            _SheetTextField(
+              initialValue: child.email,
+              label: 'Email',
+              keyboardType: TextInputType.emailAddress,
+              colors: colors,
+              onChanged: (value) {
+                child.email = value;
+                onChanged();
+              },
+            ),
+            const SizedBox(height: 10),
+            _SheetTextField(
+              initialValue: child.phone,
+              label: 'Phone',
+              keyboardType: TextInputType.phone,
+              colors: colors,
+              onChanged: (value) {
+                child.phone = value;
+                onChanged();
+              },
+            ),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              value: child.adultConfirmation,
+              activeColor: const Color(0xFF14513F),
+              title: Text('I confirm this child is 18 or over',
+                  style: TextStyle(
+                      color: colors.text, fontWeight: FontWeight.w900)),
+              subtitle: Text(
+                  'An adult Goshen profile will be linked or created.',
+                  style: TextStyle(color: colors.muted, fontSize: 12)),
+              onChanged: (value) {
+                child.adultConfirmation = value;
+                onChanged();
+              },
+            ),
+          ] else ...[
+            const SizedBox(height: 10),
+            _SheetTextField(
+              initialValue: child.email,
+              label: 'Email (optional)',
+              keyboardType: TextInputType.emailAddress,
+              colors: colors,
+              onChanged: (value) {
+                child.email = value;
+                onChanged();
+              },
+            ),
+            const SizedBox(height: 10),
+            _SheetTextField(
+              initialValue: child.phone,
+              label: 'Phone (optional)',
+              keyboardType: TextInputType.phone,
+              colors: colors,
+              onChanged: (value) {
+                child.phone = value;
+                onChanged();
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _FamilyNameFields extends StatelessWidget {
+  const _FamilyNameFields({
+    required this.firstName,
+    required this.lastName,
+    this.lastNameRequired = false,
+    required this.colors,
+    required this.onFirstNameChanged,
+    required this.onLastNameChanged,
+  });
+
+  final String firstName;
+  final String lastName;
+  final bool lastNameRequired;
+  final _GoshenPalette colors;
+  final ValueChanged<String> onFirstNameChanged;
+  final ValueChanged<String> onLastNameChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final fields = [
+      _SheetTextField(
+        initialValue: firstName,
+        label: 'First name',
+        colors: colors,
+        onChanged: onFirstNameChanged,
+      ),
+      _SheetTextField(
+        initialValue: lastName,
+        label: lastNameRequired ? 'Last name' : 'Last name (optional)',
+        colors: colors,
+        onChanged: onLastNameChanged,
+      ),
+    ];
+    if (MediaQuery.of(context).size.width < 390) {
+      return Column(
+          children: [fields.first, const SizedBox(height: 10), fields.last]);
+    }
+    return Row(children: [
+      Expanded(child: fields.first),
+      const SizedBox(width: 10),
+      Expanded(child: fields.last)
+    ]);
   }
 }
 
@@ -6629,12 +7074,14 @@ class _SheetTextField extends StatelessWidget {
     required this.colors,
     required this.onChanged,
     this.keyboardType,
+    this.inputFormatters,
     this.maxLines = 1,
   });
 
   final String initialValue;
   final String label;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
   final int maxLines;
   final _GoshenPalette colors;
   final ValueChanged<String> onChanged;
@@ -6644,6 +7091,7 @@ class _SheetTextField extends StatelessWidget {
     return TextFormField(
       initialValue: initialValue,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       maxLines: maxLines,
       onChanged: onChanged,
       style: TextStyle(color: colors.text, fontWeight: FontWeight.w700),
