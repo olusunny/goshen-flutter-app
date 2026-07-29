@@ -1509,6 +1509,13 @@ class GoshenTicket {
     required this.attendeeName,
     required this.currency,
     required this.amountPaid,
+    required this.familyName,
+    required this.familyRole,
+    required this.familyAge,
+    required this.gender,
+    required this.fatherName,
+    required this.motherName,
+    required this.paymentExempt,
     required this.qrEncoded,
     required this.documentUrls,
   });
@@ -1523,11 +1530,29 @@ class GoshenTicket {
   final String attendeeName;
   final String currency;
   final double amountPaid;
+  final String familyName;
+  final String familyRole;
+  final int? familyAge;
+  final String gender;
+  final String fatherName;
+  final String motherName;
+  final bool paymentExempt;
   final String qrEncoded;
   final Map<String, String> documentUrls;
 
   factory GoshenTicket.fromJson(Map<String, dynamic> json) {
     final rawDocumentUrls = json['document_urls'];
+    final family = _dynamicMap(json['family']);
+    final customFields = _dynamicMap(
+      json['custom_fields'] ?? json['customFields'],
+    );
+    final attendee = _dynamicMap(json['attendee']);
+    final metadata = <String, dynamic>{
+      ...attendee,
+      ...customFields,
+      ...family,
+      ...json,
+    };
     return GoshenTicket(
       publicId: '${json['public_id'] ?? ''}',
       ticketNumber: '${json['ticket_number'] ?? ''}',
@@ -1542,6 +1567,32 @@ class GoshenTicket {
             '${json['amount_paid'] ?? json['paid_amount'] ?? 0}',
           ) ??
           0,
+      familyName: _stringValue(metadata, const [
+        'family_name',
+        'familyName',
+      ]),
+      familyRole: _stringValue(metadata, const [
+        'family_role',
+        'familyRole',
+        'role',
+      ]),
+      familyAge: _optionalIntValue(metadata, const [
+        'family_age',
+        'familyAge',
+        'age',
+      ]),
+      gender: _stringValue(metadata, const ['gender']),
+      fatherName: _stringValue(metadata, const [
+        'father_name',
+        'fatherName',
+      ]),
+      motherName: _stringValue(metadata, const [
+        'mother_name',
+        'motherName',
+      ]),
+      paymentExempt: _bool(
+        metadata['payment_exempt'] ?? metadata['paymentExempt'],
+      ),
       qrEncoded: '${json['qr_encoded'] ?? ''}',
       documentUrls:
           rawDocumentUrls is Map ? _stringMap(rawDocumentUrls) : const {},
@@ -1567,9 +1618,39 @@ class GoshenTicket {
   String get checkInLabel =>
       checkedInAt == null ? 'Not checked in' : _formatDate(checkedInAt!);
 
-  String get amountPaidLabel => amountPaid <= 0
-      ? 'Not recorded'
-      : '${currency.trim().isEmpty ? 'GBP' : currency.toUpperCase()} ${_money(amountPaid)}';
+  bool get isFamilyMember =>
+      familyName.trim().isNotEmpty || familyRole.trim().isNotEmpty;
+
+  bool get isChild => familyRole.trim().toLowerCase() == 'child';
+
+  String get familyRoleLabel => _labelFor(familyRole, const {
+        'father': 'Father',
+        'mother': 'Mother',
+        'child': 'Child',
+      });
+
+  String get genderLabel => _labelFor(gender, const {
+        'male': 'Male',
+        'female': 'Female',
+        'not_specified': 'Not specified',
+      });
+
+  String get parentLabel {
+    final parents = [
+      if (fatherName.trim().isNotEmpty) 'Father: ${fatherName.trim()}',
+      if (motherName.trim().isNotEmpty) 'Mother: ${motherName.trim()}',
+    ];
+    return parents.join(' · ');
+  }
+
+  String get amountPaidLabel {
+    if (paymentExempt) return 'Children Complementary Ticket';
+    if (amountPaid <= 0) return 'Not recorded';
+    return '${currency.trim().isEmpty ? 'GBP' : currency.toUpperCase()} ${_money(amountPaid)}';
+  }
+
+  String get paymentSummaryLabel =>
+      paymentExempt ? amountPaidLabel : 'Paid $amountPaidLabel';
 }
 
 class GoshenScannerStatus {
@@ -2942,6 +3023,15 @@ int _intValueFromKeys(Map<String, dynamic> json, List<String> keys) {
     if (json.containsKey(key)) return _intValue(json, key);
   }
   return 0;
+}
+
+int? _optionalIntValue(Map<String, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    if (!json.containsKey(key)) continue;
+    final value = int.tryParse('${json[key] ?? ''}'.trim());
+    if (value != null && value > 0) return value;
+  }
+  return null;
 }
 
 double _doubleValue(Map<String, dynamic> json, String key) =>

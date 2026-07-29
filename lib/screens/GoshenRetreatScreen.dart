@@ -876,6 +876,11 @@ class _MyGoshenRegistrationsState extends State<_MyGoshenRegistrations> {
               : const SizedBox.shrink();
         }
 
+        final familyTickets = data.registrations
+            .expand((registration) => registration.tickets)
+            .where((ticket) => ticket.isFamilyMember)
+            .toList();
+
         return Padding(
           padding: widget.margin,
           child: _SectionCard(
@@ -894,6 +899,14 @@ class _MyGoshenRegistrationsState extends State<_MyGoshenRegistrations> {
                   referralPoints: data.referralPoints,
                   colors: colors,
                 ),
+                if (familyTickets.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _FamilyRelationshipsCard(
+                    tickets: familyTickets,
+                    accommodations: data.accommodationAllocations,
+                    colors: colors,
+                  ),
+                ],
                 if (data.referralSummary.hasContent ||
                     data.referralPoints.isNotEmpty) ...[
                   const SizedBox(height: 12),
@@ -1295,6 +1308,163 @@ class _MemberRetreatOverview extends StatelessWidget {
                 ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FamilyRelationshipsCard extends StatelessWidget {
+  const _FamilyRelationshipsCard({
+    required this.tickets,
+    required this.accommodations,
+    required this.colors,
+  });
+
+  final List<GoshenTicket> tickets;
+  final List<GoshenAccommodationAllocation> accommodations;
+  final _GoshenPalette colors;
+
+  @override
+  Widget build(BuildContext context) {
+    final families = <String, List<GoshenTicket>>{};
+    for (final ticket in tickets) {
+      final familyName = ticket.familyName.trim().isEmpty
+          ? 'Your Goshen family'
+          : ticket.familyName.trim();
+      families.putIfAbsent(familyName, () => []).add(ticket);
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF14513F).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF14513F).withValues(alpha: 0.24),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF14513F),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(Icons.family_restroom_rounded,
+                    color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Your Goshen family',
+                      style: TextStyle(
+                        color: colors.text,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Family tickets and parent details linked to your account.',
+                      style: TextStyle(
+                        color: colors.muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...families.entries.expand((entry) sync* {
+            yield Text(
+              entry.key,
+              style: TextStyle(
+                color: colors.text,
+                fontWeight: FontWeight.w900,
+              ),
+            );
+            yield const SizedBox(height: 6);
+            for (final ticket in entry.value) {
+              final details = [
+                if (ticket.familyRole.isNotEmpty) ticket.familyRoleLabel,
+                if (ticket.familyAge != null) 'Age ${ticket.familyAge}',
+                if (ticket.gender.isNotEmpty) ticket.genderLabel,
+                if (ticket.parentLabel.isNotEmpty) ticket.parentLabel,
+              ];
+              yield Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      ticket.isChild
+                          ? Icons.child_care_rounded
+                          : Icons.person_rounded,
+                      color: const Color(0xFFE1A63B),
+                      size: 21,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            ticket.attendeeName.isEmpty
+                                ? 'Family member'
+                                : ticket.attendeeName,
+                            style: TextStyle(
+                              color: colors.text,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          if (details.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              details.join(' · '),
+                              style: TextStyle(
+                                color: colors.muted,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    if (ticket.paymentExempt)
+                      const Icon(
+                        Icons.volunteer_activism_outlined,
+                        color: Color(0xFF14513F),
+                        size: 20,
+                      ),
+                  ],
+                ),
+              );
+            }
+            if (accommodations.isNotEmpty) {
+              yield Text(
+                '${accommodations.length} accommodation record${accommodations.length == 1 ? '' : 's'} available below.',
+                style: TextStyle(
+                  color: colors.muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              );
+            }
+            yield const SizedBox(height: 8);
+          }),
         ],
       ),
     );
@@ -4506,7 +4676,7 @@ class _TicketSummary extends StatelessWidget {
                             if (ticket.attendeeName.isNotEmpty)
                               ticket.attendeeName,
                             if (ticket.ticketType.isNotEmpty) ticket.ticketType,
-                            'Paid ${ticket.amountPaidLabel}',
+                            ticket.paymentSummaryLabel,
                           ].join(' · '),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -4715,6 +4885,42 @@ Future<void> _showTicketDetails(
                           value: ticket.amountPaidLabel,
                           colors: colors,
                         ),
+                        if (ticket.familyName.isNotEmpty)
+                          _TicketMetaRow(
+                            icon: Icons.family_restroom_rounded,
+                            label: 'Family',
+                            value: ticket.familyName,
+                            colors: colors,
+                          ),
+                        if (ticket.familyRole.isNotEmpty)
+                          _TicketMetaRow(
+                            icon: Icons.badge_outlined,
+                            label: 'Family role',
+                            value: ticket.familyRoleLabel,
+                            colors: colors,
+                          ),
+                        if (ticket.familyAge != null)
+                          _TicketMetaRow(
+                            icon: Icons.cake_outlined,
+                            label: 'Age',
+                            value: '${ticket.familyAge}',
+                            colors: colors,
+                          ),
+                        if (ticket.gender.isNotEmpty)
+                          _TicketMetaRow(
+                            icon: Icons.person_outline_rounded,
+                            label: 'Gender',
+                            value: ticket.genderLabel,
+                            colors: colors,
+                          ),
+                        if (ticket.parentLabel.isNotEmpty)
+                          _TicketMetaRow(
+                            icon: Icons.supervisor_account_outlined,
+                            label:
+                                'Parent${ticket.fatherName.isNotEmpty && ticket.motherName.isNotEmpty ? 's' : ''}',
+                            value: ticket.parentLabel,
+                            colors: colors,
+                          ),
                         _TicketMetaRow(
                           icon: Icons.event_available_outlined,
                           label: 'Issued',
