@@ -5629,6 +5629,8 @@ class _GoshenRegistrationSheetState extends State<_GoshenRegistrationSheet> {
         ? _family.validationMessage(
             minimumMembers: _ticketType.minPerBooking,
             maximumMembers: _ticketType.maxPerBooking,
+            registrantEmail: widget.user.email ?? '',
+            registrantPhone: widget.user.phone ?? '',
           )
         : _missingAttendeeChoiceMessage();
     if (validationMessage != null) {
@@ -6419,6 +6421,15 @@ class _FamilyParentFields extends StatelessWidget {
           ),
           if (parent.included) ...[
             const SizedBox(height: 8),
+            Text(
+              'Use the signed-in account email address or phone number for at least one parent.',
+              style: TextStyle(
+                color: colors.muted,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 10),
             _FamilyNameFields(
               firstName: parent.firstName,
               lastName: parent.lastName,

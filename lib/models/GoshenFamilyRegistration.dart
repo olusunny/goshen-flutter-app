@@ -34,6 +34,8 @@ class GoshenFamilyRegistrationDraft {
   String? validationMessage({
     required int minimumMembers,
     required int maximumMembers,
+    required String registrantEmail,
+    required String registrantPhone,
   }) {
     if (name.trim().isEmpty) return 'Enter a family name.';
     if (name.trim().length > 120) {
@@ -52,6 +54,18 @@ class GoshenFamilyRegistrationDraft {
       if (entry.value.email.trim().isNotEmpty && !_isEmail(entry.value.email)) {
         return 'Enter a valid email address for ${entry.key.toLowerCase()}.';
       }
+    }
+    final hasRegistrantParent = [father, mother].any(
+      (parent) =>
+          parent.included &&
+          ((_normalizedEmail(parent.email).isNotEmpty &&
+                  _normalizedEmail(parent.email) ==
+                      _normalizedEmail(registrantEmail)) ||
+              (_phoneDigits(parent.phone).isNotEmpty &&
+                  _phoneDigits(parent.phone) == _phoneDigits(registrantPhone))),
+    );
+    if (!hasRegistrantParent) {
+      return 'Use your signed-in email address or phone number for at least one parent.';
     }
     for (var index = 0; index < children.length; index += 1) {
       final message = children[index].validationMessage(index + 1);
@@ -156,3 +170,7 @@ class GoshenFamilyChildDraft {
 
 bool _isEmail(String value) =>
     RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value.trim());
+
+String _normalizedEmail(String value) => value.trim().toLowerCase();
+
+String _phoneDigits(String value) => value.replaceAll(RegExp(r'\D'), '');

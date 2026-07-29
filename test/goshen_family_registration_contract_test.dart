@@ -27,7 +27,7 @@ void main() {
         included: true,
         firstName: 'David',
         lastName: 'Adeola',
-        email: 'david@example.test',
+        email: 'parent@example.test',
       ),
       children: [
         GoshenFamilyChildDraft(
@@ -49,7 +49,14 @@ void main() {
     );
 
     expect(
-        family.validationMessage(minimumMembers: 2, maximumMembers: 6), isNull);
+      family.validationMessage(
+        minimumMembers: 2,
+        maximumMembers: 6,
+        registrantEmail: 'parent@example.test',
+        registrantPhone: '',
+      ),
+      isNull,
+    );
     expect(family.payableCount, 2);
     expect(family.complimentaryCount, 1);
 
@@ -107,6 +114,35 @@ void main() {
     expect(
       adultWithoutIdentity.validationMessage(2),
       'Children aged 18 or over need an email address and phone number.',
+    );
+  });
+
+  test('requires one selected parent to match the signed-in account', () {
+    final family = GoshenFamilyRegistrationDraft(
+      name: 'Example Family',
+      father: GoshenFamilyParentDraft(
+        included: true,
+        firstName: 'David',
+        email: 'different@example.test',
+      ),
+      children: [
+        GoshenFamilyChildDraft(
+          firstName: 'Joy',
+          lastName: 'Example',
+          age: '12',
+          gender: 'female',
+        ),
+      ],
+    );
+
+    expect(
+      family.validationMessage(
+        minimumMembers: 2,
+        maximumMembers: 6,
+        registrantEmail: 'parent@example.test',
+        registrantPhone: '+447700900001',
+      ),
+      'Use your signed-in email address or phone number for at least one parent.',
     );
   });
 }
