@@ -24,6 +24,7 @@ void main() {
 
     expect(ticket.isFamilyMember, isTrue);
     expect(ticket.isChild, isTrue);
+    expect(ticket.familyName, "Adeola's Family");
     expect(ticket.familyRoleLabel, 'Child');
     expect(ticket.familyAge, 12);
     expect(ticket.genderLabel, 'Female');
@@ -40,6 +41,23 @@ void main() {
     });
 
     expect(ticket.paymentExempt, isFalse);
+    expect(ticket.amountPaidLabel, 'Not recorded');
+    expect(ticket.paymentSummaryLabel, 'Paid Not recorded');
+  });
+
+  test('does not mislabel a non-child exempt ticket as a child ticket', () {
+    final ticket = GoshenTicket.fromJson(const {
+      'public_id': 'ticket_parent_1',
+      'currency': 'GBP',
+      'amount_paid': 0,
+      'family': {
+        'name': "Adeola's Family",
+        'role': 'father',
+        'payment_exempt': true,
+      },
+    });
+
+    expect(ticket.isChild, isFalse);
     expect(ticket.amountPaidLabel, 'Not recorded');
     expect(ticket.paymentSummaryLabel, 'Paid Not recorded');
   });

@@ -1573,6 +1573,7 @@ class GoshenTicket {
       familyName: _stringValue(metadata, const [
         'family_name',
         'familyName',
+        'name',
       ]),
       familyRole: _stringValue(metadata, const [
         'family_role',
@@ -1651,13 +1652,13 @@ class GoshenTicket {
   }
 
   String get amountPaidLabel {
-    if (paymentExempt) return 'Children Complementary Ticket';
+    if (isChild && paymentExempt) return 'Children Complementary Ticket';
     if (amountPaid <= 0) return 'Not recorded';
     return '${currency.trim().isEmpty ? 'GBP' : currency.toUpperCase()} ${_money(amountPaid)}';
   }
 
   String get paymentSummaryLabel =>
-      paymentExempt ? amountPaidLabel : 'Paid $amountPaidLabel';
+      isChild && paymentExempt ? amountPaidLabel : 'Paid $amountPaidLabel';
 }
 
 class GoshenScannerStatus {
