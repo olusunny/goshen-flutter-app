@@ -1543,6 +1543,9 @@ class GoshenTicket {
   factory GoshenTicket.fromJson(Map<String, dynamic> json) {
     final rawDocumentUrls = json['document_urls'];
     final family = _dynamicMap(json['family']);
+    final parentNames = _dynamicMap(
+      family['parent_names'] ?? family['parentNames'],
+    );
     final customFields = _dynamicMap(
       json['custom_fields'] ?? json['customFields'],
     );
@@ -1585,11 +1588,15 @@ class GoshenTicket {
       fatherName: _stringValue(metadata, const [
         'father_name',
         'fatherName',
-      ]),
+      ]).isNotEmpty
+          ? _stringValue(metadata, const ['father_name', 'fatherName'])
+          : _stringValue(parentNames, const ['father']),
       motherName: _stringValue(metadata, const [
         'mother_name',
         'motherName',
-      ]),
+      ]).isNotEmpty
+          ? _stringValue(metadata, const ['mother_name', 'motherName'])
+          : _stringValue(parentNames, const ['mother']),
       paymentExempt: _bool(
         metadata['payment_exempt'] ?? metadata['paymentExempt'],
       ),

@@ -9,13 +9,15 @@ void main() {
       'attendee_name': 'Joy Adeola',
       'currency': 'GBP',
       'amount_paid': 0,
-      'custom_fields': {
-        'family_name': "Adeola's Family",
-        'family_role': 'child',
-        'family_age': 12,
+      'family': {
+        'name': "Adeola's Family",
+        'role': 'child',
+        'age': 12,
         'gender': 'female',
-        'father_name': 'David Adeola',
-        'mother_name': 'Grace Adeola',
+        'parent_names': {
+          'father': 'David Adeola',
+          'mother': 'Grace Adeola',
+        },
         'payment_exempt': true,
       },
     });
