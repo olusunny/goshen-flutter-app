@@ -148,8 +148,8 @@ class ApiUrl {
       BASEURL + "api/goshen-retreat/materials/$materialId/download";
   static String goshenRetreatEventMaterials(String eventId) =>
       BASEURL + "api/goshen-retreat/events/$eventId/materials";
-  static String goshenRetreatEventMaterial(String eventId, String materialId) =>
-      BASEURL + "api/goshen-retreat/events/$eventId/materials/$materialId";
+  static String goshenRetreatEventMaterialsSave(String eventId) =>
+      BASEURL + "api/goshen-retreat/events/$eventId/materials/save";
   static String goshenRetreatEventMaterialDelete(
           String eventId, String materialId) =>
       BASEURL +

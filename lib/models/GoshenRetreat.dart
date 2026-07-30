@@ -1534,6 +1534,7 @@ class GoshenRetreatMaterial {
       id: int.tryParse('${json['id'] ?? json['material_id'] ?? 0}') ?? 0,
       label: _stringValue(json, const ['label', 'title', 'name']),
       fileName: _stringValue(json, const [
+        'filename',
         'file_name',
         'fileName',
         'original_name',
@@ -1541,9 +1542,9 @@ class GoshenRetreatMaterial {
       ]),
       mimeType: _stringValue(json, const ['mime_type', 'mimeType', 'type']),
       fileSize: _intValueFromKeys(json, const [
+        'size',
         'file_size',
         'fileSize',
-        'size',
       ]),
       isPublished: _bool(json['is_published'] ?? json['published']),
       createdAt: _date(json['created_at'] ?? json['createdAt']),

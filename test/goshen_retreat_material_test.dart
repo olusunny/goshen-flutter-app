@@ -6,9 +6,9 @@ void main() {
     final material = GoshenRetreatMaterial.fromJson({
       'id': 12,
       'label': 'Retreat handbook',
-      'file_name': 'handbook.pdf',
+      'filename': 'handbook.pdf',
       'mime_type': 'application/pdf',
-      'file_size': 1536,
+      'size': 1536,
       'is_published': true,
     });
 

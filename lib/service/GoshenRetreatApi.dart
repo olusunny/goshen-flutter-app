@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -1132,15 +1131,13 @@ class GoshenRetreatApi {
     GoshenRetreatMaterial? material,
   }) async {
     final formData = FormData();
-    formData.fields.add(MapEntry(
-      'data',
-      jsonEncode({
-        'email': user.email,
-        'api_token': user.apiToken,
-        'label': label.trim(),
-        'is_published': isPublished,
-      }),
-    ));
+    formData.fields.addAll([
+      MapEntry('data[email]', user.email ?? ''),
+      MapEntry('data[api_token]', user.apiToken ?? ''),
+      MapEntry('data[label]', label.trim()),
+      MapEntry('data[is_published]', isPublished ? '1' : '0'),
+      if (material != null) MapEntry('data[id]', '${material.id}'),
+    ]);
     final path = file?.path;
     if (file != null && path != null && path.trim().isNotEmpty) {
       formData.files.add(MapEntry(
@@ -1150,9 +1147,7 @@ class GoshenRetreatApi {
     }
 
     final response = await _dio.post(
-      material == null
-          ? ApiUrl.goshenRetreatEventMaterials(event.publicId)
-          : ApiUrl.goshenRetreatEventMaterial(event.publicId, '${material.id}'),
+      ApiUrl.goshenRetreatEventMaterialsSave(event.publicId),
       options: _mobileOptions(user),
       data: formData,
     );
