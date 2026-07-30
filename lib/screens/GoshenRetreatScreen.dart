@@ -1059,6 +1059,7 @@ class _MyGoshenRegistrationsState extends State<_MyGoshenRegistrations> {
     setState(() => _convertingReferral = true);
     try {
       final data = await GoshenRetreatApi().convertReferralPointsToWallet(user);
+      final materials = await GoshenRetreatApi().fetchMyMaterials(user);
       if (!mounted) return;
       final next = _RegistrationSnapshot(
         user: user,
@@ -1067,7 +1068,7 @@ class _MyGoshenRegistrationsState extends State<_MyGoshenRegistrations> {
         givingHistory: data.givingHistory,
         referralSummary: data.referralSummary,
         referralPoints: data.referralPoints,
-        materials: data.materials,
+        materials: materials,
       );
       setState(() {
         _future = Future.value(next);
