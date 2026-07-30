@@ -1497,6 +1497,60 @@ class GoshenVoucherUsage {
       createdAt == null ? 'Date unavailable' : _formatDate(createdAt!);
 }
 
+class GoshenRetreatMaterial {
+  const GoshenRetreatMaterial({
+    required this.id,
+    required this.label,
+    required this.fileName,
+    required this.mimeType,
+    required this.fileSize,
+    required this.isPublished,
+    required this.createdAt,
+  });
+
+  final int id;
+  final String label;
+  final String fileName;
+  final String mimeType;
+  final int fileSize;
+  final bool isPublished;
+  final DateTime? createdAt;
+
+  bool get isPdf =>
+      mimeType.toLowerCase().contains('pdf') ||
+      fileName.toLowerCase().endsWith('.pdf');
+
+  String get fileTypeLabel => isPdf ? 'PDF' : 'Image';
+
+  String get sizeLabel {
+    if (fileSize < 1024) return '$fileSize B';
+    if (fileSize < 1024 * 1024)
+      return '${(fileSize / 1024).toStringAsFixed(1)} KB';
+    return '${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  factory GoshenRetreatMaterial.fromJson(Map<String, dynamic> json) {
+    return GoshenRetreatMaterial(
+      id: int.tryParse('${json['id'] ?? json['material_id'] ?? 0}') ?? 0,
+      label: _stringValue(json, const ['label', 'title', 'name']),
+      fileName: _stringValue(json, const [
+        'file_name',
+        'fileName',
+        'original_name',
+        'originalName',
+      ]),
+      mimeType: _stringValue(json, const ['mime_type', 'mimeType', 'type']),
+      fileSize: _intValueFromKeys(json, const [
+        'file_size',
+        'fileSize',
+        'size',
+      ]),
+      isPublished: _bool(json['is_published'] ?? json['published']),
+      createdAt: _date(json['created_at'] ?? json['createdAt']),
+    );
+  }
+}
+
 class GoshenTicket {
   const GoshenTicket({
     required this.publicId,

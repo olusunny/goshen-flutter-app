@@ -25,6 +25,7 @@ import '../prayers/prayer_point_management_screen.dart';
 import 'ChurchEventManagementScreen.dart';
 import 'DynamicFormManagementScreen.dart';
 import 'GoshenRetreatScreen.dart';
+import 'GoshenRetreatMaterialsManagementScreen.dart';
 import 'GoshenScannerManagerScreen.dart';
 import 'VerseOfDayManagementScreen.dart';
 
@@ -255,6 +256,30 @@ class _GoshenManagementHubScreenState extends State<GoshenManagementHubScreen> {
                               context,
                               MaterialPageRoute(
                                 builder: (_) => GoshenRetreatSetupScreen(
+                                  user: widget.user,
+                                  initialEvent: initialEvent,
+                                  events: events,
+                                ),
+                              ),
+                            ),
+                  ),
+                  const SizedBox(height: 12),
+                  _HubActionCard(
+                    colors: colors,
+                    title: 'Retreat materials',
+                    subtitle:
+                        'Upload PDFs and images for ticket holders, then publish or hide them when needed.',
+                    icon: Icons.folder_copy_outlined,
+                    accent: colors.teal,
+                    enabled: initialEvent != null,
+                    disabledSubtitle: 'No retreat event is available yet.',
+                    onTap: initialEvent == null
+                        ? null
+                        : () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    GoshenRetreatMaterialsManagementScreen(
                                   user: widget.user,
                                   initialEvent: initialEvent,
                                   events: events,

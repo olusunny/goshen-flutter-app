@@ -735,6 +735,7 @@ class _MyGoshenRegistrationsState extends State<_MyGoshenRegistrations> {
     }
 
     final data = await GoshenRetreatApi().fetchMyRetreatData(user);
+    final materials = await GoshenRetreatApi().fetchMyMaterials(user);
     return _RegistrationSnapshot(
       user: user,
       registrations: data.registrations,
@@ -742,6 +743,7 @@ class _MyGoshenRegistrationsState extends State<_MyGoshenRegistrations> {
       givingHistory: data.givingHistory,
       referralSummary: data.referralSummary,
       referralPoints: data.referralPoints,
+      materials: materials,
     );
   }
 
@@ -762,6 +764,7 @@ class _MyGoshenRegistrationsState extends State<_MyGoshenRegistrations> {
       givingHistory: data.givingHistory,
       referralSummary: data.referralSummary,
       referralPoints: data.referralPoints,
+      materials: const [],
     );
   }
 
@@ -781,6 +784,38 @@ class _MyGoshenRegistrationsState extends State<_MyGoshenRegistrations> {
       }
     } catch (_) {
       if (!silent) rethrow;
+    }
+  }
+
+  Future<void> _openMaterial(
+    Userdata user,
+    GoshenRetreatMaterial material,
+  ) async {
+    try {
+      final file = await GoshenRetreatApi().downloadMaterial(
+        user: user,
+        material: material,
+      );
+      if (!mounted) return;
+      final opened = await launchUrl(
+        Uri.file(file.path),
+        mode: LaunchMode.externalApplication,
+      );
+      if (!opened && mounted) {
+        await Share.shareXFiles(
+          [XFile(file.path, mimeType: material.mimeType)],
+          text: material.label,
+        );
+      }
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
     }
   }
 
@@ -832,7 +867,8 @@ class _MyGoshenRegistrationsState extends State<_MyGoshenRegistrations> {
             data.accommodationAllocations.isNotEmpty ||
             data.givingHistory.isNotEmpty ||
             data.referralSummary.hasContent ||
-            data.referralPoints.isNotEmpty;
+            data.referralPoints.isNotEmpty ||
+            data.materials.isNotEmpty;
         if (data.user == null) {
           return widget.showEmptyState
               ? _stateCard(
@@ -937,6 +973,24 @@ class _MyGoshenRegistrationsState extends State<_MyGoshenRegistrations> {
                     ),
                   ),
                 ],
+                if (data.materials.isNotEmpty) ...[
+                  _HistoryGroupHeader(
+                    icon: Icons.folder_copy_outlined,
+                    title: 'Retreat materials',
+                    colors: colors,
+                  ),
+                  const SizedBox(height: 8),
+                  ...data.materials.map(
+                    (material) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _MemberMaterialCard(
+                        material: material,
+                        colors: colors,
+                        onOpen: () => _openMaterial(data.user!, material),
+                      ),
+                    ),
+                  ),
+                ],
                 if (data.registrations.isNotEmpty) ...[
                   _HistoryGroupHeader(
                     icon: Icons.receipt_long_rounded,
@@ -1013,6 +1067,7 @@ class _MyGoshenRegistrationsState extends State<_MyGoshenRegistrations> {
         givingHistory: data.givingHistory,
         referralSummary: data.referralSummary,
         referralPoints: data.referralPoints,
+        materials: data.materials,
       );
       setState(() {
         _future = Future.value(next);
@@ -1111,6 +1166,7 @@ class _RegistrationSnapshot {
     required this.givingHistory,
     required this.referralSummary,
     required this.referralPoints,
+    required this.materials,
   });
 
   const _RegistrationSnapshot.signedOut()
@@ -1119,7 +1175,8 @@ class _RegistrationSnapshot {
         accommodationAllocations = const [],
         givingHistory = const [],
         referralSummary = const GoshenReferralSummary.empty(),
-        referralPoints = const [];
+        referralPoints = const [],
+        materials = const [];
 
   final Userdata? user;
   final List<GoshenRegistration> registrations;
@@ -1127,6 +1184,7 @@ class _RegistrationSnapshot {
   final List<GoshenGivingRecord> givingHistory;
   final GoshenReferralSummary referralSummary;
   final List<GoshenReferralPointEntry> referralPoints;
+  final List<GoshenRetreatMaterial> materials;
 }
 
 class _MemberRetreatOverview extends StatelessWidget {
@@ -1781,6 +1839,92 @@ class _HistoryGroupHeader extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _MemberMaterialCard extends StatelessWidget {
+  const _MemberMaterialCard({
+    required this.material,
+    required this.colors,
+    required this.onOpen,
+  });
+
+  final GoshenRetreatMaterial material;
+  final _GoshenPalette colors;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final isPdf = material.isPdf;
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onOpen,
+        child: Ink(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: colors.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: colors.border),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: (isPdf
+                          ? const Color(0xFFE1A63B)
+                          : const Color(0xFF2C9B88))
+                      .withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  isPdf ? Icons.picture_as_pdf_outlined : Icons.image_outlined,
+                  color:
+                      isPdf ? const Color(0xFFE1A63B) : const Color(0xFF2C9B88),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      material.label.isEmpty
+                          ? 'Retreat material'
+                          : material.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors.text,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${material.fileTypeLabel} · ${material.sizeLabel}',
+                      style: TextStyle(
+                        color: colors.muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: 'Download and open',
+                onPressed: onOpen,
+                icon: const Icon(Icons.download_rounded),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -1,4 +1,9 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../models/GoshenRetreat.dart';
 import '../models/Userdata.dart';
@@ -1077,6 +1082,163 @@ class GoshenRetreatApi {
         .map((item) =>
             GoshenVoucherUsage.fromJson(Map<String, dynamic>.from(item)))
         .toList();
+  }
+
+  Future<List<GoshenRetreatMaterial>> fetchMyMaterials(Userdata user) async {
+    final response = await _dio.post(
+      ApiUrl.GOSHEN_RETREAT_MATERIALS,
+      options: _mobileOptions(user),
+      data: {
+        'data': {
+          'email': user.email,
+          'api_token': user.apiToken,
+        },
+      },
+    );
+
+    return _materialsFromResponse(
+      response.data,
+      'Unable to load retreat materials.',
+    );
+  }
+
+  Future<List<GoshenRetreatMaterial>> fetchEventMaterials({
+    required Userdata user,
+    required GoshenRetreatEvent event,
+  }) async {
+    final response = await _dio.post(
+      ApiUrl.goshenRetreatEventMaterials(event.publicId),
+      options: _mobileOptions(user),
+      data: {
+        'data': {
+          'email': user.email,
+          'api_token': user.apiToken,
+        },
+      },
+    );
+
+    return _materialsFromResponse(
+      response.data,
+      'Unable to load retreat materials.',
+    );
+  }
+
+  Future<GoshenRetreatMaterial> saveEventMaterial({
+    required Userdata user,
+    required GoshenRetreatEvent event,
+    required String label,
+    required bool isPublished,
+    PlatformFile? file,
+    GoshenRetreatMaterial? material,
+  }) async {
+    final formData = FormData();
+    formData.fields.add(MapEntry(
+      'data',
+      jsonEncode({
+        'email': user.email,
+        'api_token': user.apiToken,
+        'label': label.trim(),
+        'is_published': isPublished,
+      }),
+    ));
+    final path = file?.path;
+    if (file != null && path != null && path.trim().isNotEmpty) {
+      formData.files.add(MapEntry(
+        'file',
+        await MultipartFile.fromFile(path, filename: file.name),
+      ));
+    }
+
+    final response = await _dio.post(
+      material == null
+          ? ApiUrl.goshenRetreatEventMaterials(event.publicId)
+          : ApiUrl.goshenRetreatEventMaterial(event.publicId, '${material.id}'),
+      options: _mobileOptions(user),
+      data: formData,
+    );
+
+    final data = Map<String, dynamic>.from(decodeApiResponse(response.data));
+    if (data['status'] != 'ok') {
+      throw Exception(data['message'] ?? 'Unable to save retreat material.');
+    }
+    final wrapper = Map<String, dynamic>.from(data['data'] as Map? ?? {});
+    final raw = wrapper['material'] ?? data['material'] ?? wrapper;
+    return GoshenRetreatMaterial.fromJson(
+      Map<String, dynamic>.from(raw as Map? ?? {}),
+    );
+  }
+
+  Future<void> deleteEventMaterial({
+    required Userdata user,
+    required GoshenRetreatEvent event,
+    required GoshenRetreatMaterial material,
+  }) async {
+    final response = await _dio.post(
+      ApiUrl.goshenRetreatEventMaterialDelete(event.publicId, '${material.id}'),
+      options: _mobileOptions(user),
+      data: {
+        'data': {
+          'email': user.email,
+          'api_token': user.apiToken,
+        },
+      },
+    );
+    final data = Map<String, dynamic>.from(decodeApiResponse(response.data));
+    if (data['status'] != 'ok') {
+      throw Exception(data['message'] ?? 'Unable to delete retreat material.');
+    }
+  }
+
+  Future<File> downloadMaterial({
+    required Userdata user,
+    required GoshenRetreatMaterial material,
+  }) async {
+    final response = await _dio.post<List<int>>(
+      ApiUrl.goshenRetreatMaterialDownload('${material.id}'),
+      options: _mobileOptions(user).copyWith(responseType: ResponseType.bytes),
+      data: {
+        'data': {
+          'email': user.email,
+          'api_token': user.apiToken,
+        },
+      },
+    );
+    if (response.statusCode != 200 || response.data == null) {
+      throw Exception('The retreat material could not be downloaded.');
+    }
+
+    final directory = await getExternalStorageDirectory() ??
+        await getApplicationDocumentsDirectory();
+    final fallback = material.fileName.isEmpty
+        ? 'retreat-material-${material.id}'
+        : material.fileName;
+    final file = File('${directory.path}/${_safeMaterialFileName(fallback)}');
+    await file.writeAsBytes(response.data!, flush: true);
+    return file;
+  }
+
+  List<GoshenRetreatMaterial> _materialsFromResponse(
+    dynamic response,
+    String fallback,
+  ) {
+    final data = Map<String, dynamic>.from(decodeApiResponse(response));
+    if (data['status'] != 'ok') {
+      throw Exception(data['message'] ?? fallback);
+    }
+    final wrapper = data['data'] is Map
+        ? Map<String, dynamic>.from(data['data'] as Map)
+        : <String, dynamic>{};
+    final materials = wrapper['materials'] ?? data['materials'] ?? data['data'];
+    return ((materials as List?) ?? const [])
+        .whereType<Map>()
+        .map((item) =>
+            GoshenRetreatMaterial.fromJson(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
+  String _safeMaterialFileName(String value) {
+    final cleaned = value.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+    return cleaned.isEmpty ? 'retreat-material' : cleaned;
   }
 
   Future<GoshenRegistration> cancelBooking({

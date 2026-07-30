@@ -142,6 +142,18 @@ class ApiUrl {
           String eventId, String fieldId) =>
       BASEURL +
       "api/goshen-retreat/events/$eventId/setup/registration-fields/$fieldId/delete";
+  static const String GOSHEN_RETREAT_MATERIALS =
+      BASEURL + "api/goshen-retreat/materials";
+  static String goshenRetreatMaterialDownload(String materialId) =>
+      BASEURL + "api/goshen-retreat/materials/$materialId/download";
+  static String goshenRetreatEventMaterials(String eventId) =>
+      BASEURL + "api/goshen-retreat/events/$eventId/materials";
+  static String goshenRetreatEventMaterial(String eventId, String materialId) =>
+      BASEURL + "api/goshen-retreat/events/$eventId/materials/$materialId";
+  static String goshenRetreatEventMaterialDelete(
+          String eventId, String materialId) =>
+      BASEURL +
+      "api/goshen-retreat/events/$eventId/materials/$materialId/delete";
   static String goshenRetreatAccommodationManagement(String eventId) =>
       BASEURL + "api/goshen-retreat/events/$eventId/accommodation-management";
   static const String GOSHEN_ACCOMMODATION_ALLOCATIONS =
