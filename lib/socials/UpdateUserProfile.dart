@@ -9,7 +9,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../i18n/strings.g.dart';
 import '../models/ChurchGroup.dart';
-import '../models/ScreenArguements.dart';
 import '../models/Userdata.dart';
 import '../providers/AppStateManager.dart';
 import '../socials/UserProfileScreen.dart';
@@ -293,10 +292,14 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
       Provider.of<AppStateManager>(context, listen: false)
           .setUserData(updatedUser);
 
-      Navigator.pushReplacementNamed(
+      Navigator.pushReplacement(
         context,
-        UserProfileScreen.routeName,
-        arguments: ScreenArguements(items: updatedUser),
+        MaterialPageRoute(
+          builder: (_) => UserProfileScreen(
+            user: updatedUser,
+            showProfileUpdated: true,
+          ),
+        ),
       );
     } on DioException catch (e) {
       Navigator.of(context).pop();

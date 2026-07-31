@@ -283,8 +283,6 @@ class ApiUrl {
       "$CHURCH_BIRTHDAY_CELEBRATIONS/hub";
   static const String CHURCH_BIRTHDAY_CELEBRATION_PREFERENCES =
       "$CHURCH_BIRTHDAY_CELEBRATIONS/preferences";
-  static const String CHURCH_BIRTHDAY_CELEBRATION_CORRECTIONS =
-      "$CHURCH_BIRTHDAY_CELEBRATIONS/birthday-correction-requests";
   static String churchBirthdayCelebration(String celebrationId) =>
       "$CHURCH_BIRTHDAY_CELEBRATIONS/celebrations/${Uri.encodeComponent(celebrationId)}";
   static String churchBirthdayCelebrationCard(String celebrationId,

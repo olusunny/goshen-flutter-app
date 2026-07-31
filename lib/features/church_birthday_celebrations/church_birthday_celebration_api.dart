@@ -160,23 +160,6 @@ class ChurchBirthdayCelebrationApi {
         body: {'reason': reason.trim()},
       );
 
-  Future<void> requestCorrection(
-    Userdata user, {
-    required int month,
-    required int day,
-    String? reason,
-  }) =>
-      _request(
-        user,
-        'post',
-        ApiUrl.CHURCH_BIRTHDAY_CELEBRATION_CORRECTIONS,
-        body: {
-          'birthday_month': month,
-          'birthday_day': day,
-          'reason': reason?.trim() ?? '',
-        },
-      );
-
   Future<Uint8List> card(Userdata user, String id,
       {String variant = 'portrait'}) async {
     final response = await _dio.get<List<int>>(

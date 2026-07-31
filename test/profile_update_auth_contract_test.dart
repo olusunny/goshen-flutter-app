@@ -14,4 +14,17 @@ void main() {
     expect(source, contains('response.statusCode == 401'));
     expect(source, contains('Your session has expired. Please sign in again'));
   });
+
+  test('profile save requests a destination-owned success snackbar', () async {
+    final updateSource =
+        await File('lib/socials/UpdateUserProfile.dart').readAsString();
+    final profileSource =
+        await File('lib/socials/UserProfileScreen.dart').readAsString();
+
+    expect(updateSource, contains('showProfileUpdated: true'));
+    expect(profileSource,
+        contains('WidgetsBinding.instance.addPostFrameCallback'));
+    expect(
+        profileSource, contains('Your profile has been updated successfully.'));
+  });
 }

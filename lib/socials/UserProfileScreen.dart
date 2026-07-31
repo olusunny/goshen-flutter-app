@@ -15,17 +15,41 @@ import '../utils/my_colors.dart';
 import '../utils/member_profile_presentation.dart';
 import '../widgets/country_selector.dart';
 
-class UserProfileScreen extends StatelessWidget {
+class UserProfileScreen extends StatefulWidget {
   static String routeName = "/userprofile";
 
-  const UserProfileScreen({Key? key, this.user}) : super(key: key);
+  const UserProfileScreen(
+      {Key? key, this.user, this.showProfileUpdated = false})
+      : super(key: key);
 
   final Userdata? user;
+  final bool showProfileUpdated;
+
+  @override
+  State<UserProfileScreen> createState() => _UserProfileScreenState();
+}
+
+class _UserProfileScreenState extends State<UserProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.showProfileUpdated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Your profile has been updated successfully.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final appUser = Provider.of<AppStateManager>(context).userdata;
-    final profile = user ?? appUser;
+    final profile = widget.user ?? appUser;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final background =
         isDark ? const Color(0xFF071720) : const Color(0xFFF5F8FA);

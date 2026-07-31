@@ -236,8 +236,6 @@ void main() {
         endsWith('/preferences'));
     expect(ApiUrl.churchBirthdayCelebrationCard('cb_123'),
         contains('/card?variant=portrait'));
-    expect(ApiUrl.CHURCH_BIRTHDAY_CELEBRATION_CORRECTIONS,
-        endsWith('/birthday-correction-requests'));
 
     final manifest =
         await File('android/app/src/main/AndroidManifest.xml').readAsString();
@@ -261,10 +259,8 @@ void main() {
     expect(files, contains("mimeType: 'image/png'"));
   });
 
-  test('preferences send approved presentation choices and corrections',
-      () async {
+  test('preferences send approved presentation choices', () async {
     Map<String, dynamic>? preferencesBody;
-    Map<String, dynamic>? correctionBody;
     final dio = Dio();
     dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
@@ -288,12 +284,7 @@ void main() {
             },
           ));
         }
-        correctionBody = Map<String, dynamic>.from(options.data as Map);
-        return handler.resolve(Response(
-          requestOptions: options,
-          statusCode: 200,
-          data: const {'status': 'ok', 'data': {}},
-        ));
+        return handler.next(options);
       },
     ));
     final api = ChurchBirthdayCelebrationApi(dio: dio);
@@ -308,18 +299,22 @@ void main() {
         verseId: 7,
       ),
     );
-    await api.requestCorrection(member,
-        month: 2, day: 29, reason: 'Please fix');
-
     expect(preferencesBody?['template_id'], 3);
     expect(preferencesBody?['verse_id'], 7);
     expect(result.templates.single.id, 3);
     expect(result.verses.single.id, 7);
-    expect(correctionBody, {
-      'birthday_month': 2,
-      'birthday_day': 29,
-      'reason': 'Please fix',
-    });
+  });
+
+  test('birthday preferences send birthday changes to the normal profile form',
+      () async {
+    final source = await File(
+      'lib/features/church_birthday_celebrations/church_birthday_celebration_preferences_screen.dart',
+    ).readAsString();
+
+    expect(source, contains('Saved birthday'));
+    expect(source, contains('UpdateUserProfile.routeName'));
+    expect(source, isNot(contains('_requestCorrection')));
+    expect(source, isNot(contains('requestCorrection')));
   });
 
   test('birthday inputs keep the server 280 character boundary', () async {
