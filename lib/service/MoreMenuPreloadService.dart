@@ -5,6 +5,8 @@ import 'package:dio/dio.dart';
 import '../features/fundraising/fundraising_api.dart';
 import '../features/prayer_session_attendance/prayer_session_attendance_availability.dart';
 import '../features/prayer_session_attendance/prayer_session_attendance_models.dart';
+import '../features/church_birthday_celebrations/church_birthday_celebration_availability.dart';
+import '../features/church_birthday_celebrations/church_birthday_celebration_models.dart';
 import '../models/GoshenRetreat.dart';
 import '../models/Userdata.dart';
 import '../prayers/prayer_api_client.dart';
@@ -31,6 +33,7 @@ class MoreMenuPreloadSnapshot {
     required this.scannerManagerEnabled,
     required this.scannerConsoleEnabled,
     required this.prayerAttendanceCapability,
+    required this.churchBirthdayCapability,
     required this.warmedAt,
   });
 
@@ -48,6 +51,7 @@ class MoreMenuPreloadSnapshot {
   final bool scannerManagerEnabled;
   final bool scannerConsoleEnabled;
   final PrayerAttendanceCapability prayerAttendanceCapability;
+  final ChurchBirthdayCapability churchBirthdayCapability;
   final DateTime warmedAt;
 
   bool get isFresh =>
@@ -64,6 +68,8 @@ class MoreMenuPreloadService {
   int _warmCycle = 0;
   final PrayerSessionAttendanceAvailability _prayerAttendance =
       PrayerSessionAttendanceAvailability();
+  final ChurchBirthdayCelebrationAvailability _churchBirthday =
+      ChurchBirthdayCelebrationAvailability();
 
   MoreMenuPreloadSnapshot? get snapshot => _snapshot;
 
@@ -145,6 +151,8 @@ class MoreMenuPreloadService {
     var scannerConsoleEnabled = _snapshot?.scannerConsoleEnabled ?? false;
     var prayerAttendanceCapability =
         const PrayerAttendanceCapability(active: false);
+    var churchBirthdayCapability =
+        const ChurchBirthdayCapability(active: false);
 
     final testimonyApi = TestimonyApiClient(dio: dio);
     final retreatApi = GoshenRetreatApi(dio: dio);
@@ -183,6 +191,7 @@ class MoreMenuPreloadService {
 
     if (user != null && (user.apiToken ?? '').trim().isNotEmpty) {
       prayerAttendanceCapability = await _prayerAttendance.check(user);
+      churchBirthdayCapability = await _churchBirthday.check(user);
     }
 
     final warmers = <Future<void>>[
@@ -242,6 +251,7 @@ class MoreMenuPreloadService {
       scannerManagerEnabled: scannerManagerEnabled,
       scannerConsoleEnabled: scannerConsoleEnabled,
       prayerAttendanceCapability: prayerAttendanceCapability,
+      churchBirthdayCapability: churchBirthdayCapability,
       warmedAt: DateTime.now(),
     );
     return next;

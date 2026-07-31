@@ -275,6 +275,33 @@ class ApiUrl {
       BASEURL + "api/v1/mobile/capabilities";
   static const String PRAYER_SESSION_ATTENDANCE =
       BASEURL + "api/v1/prayer-session-attendance";
+  static const String CHURCH_BIRTHDAY_CELEBRATIONS =
+      BASEURL + "api/v1/church-birthday-celebrations";
+  static const String CHURCH_BIRTHDAY_CELEBRATION_CONTEXT =
+      "$CHURCH_BIRTHDAY_CELEBRATIONS/context";
+  static const String CHURCH_BIRTHDAY_CELEBRATION_HUB =
+      "$CHURCH_BIRTHDAY_CELEBRATIONS/hub";
+  static const String CHURCH_BIRTHDAY_CELEBRATION_PREFERENCES =
+      "$CHURCH_BIRTHDAY_CELEBRATIONS/preferences";
+  static const String CHURCH_BIRTHDAY_CELEBRATION_CORRECTIONS =
+      "$CHURCH_BIRTHDAY_CELEBRATIONS/birthday-correction-requests";
+  static String churchBirthdayCelebration(String celebrationId) =>
+      "$CHURCH_BIRTHDAY_CELEBRATIONS/celebrations/${Uri.encodeComponent(celebrationId)}";
+  static String churchBirthdayCelebrationCard(String celebrationId,
+          {String variant = 'portrait'}) =>
+      "${churchBirthdayCelebration(celebrationId)}/card?variant=${Uri.encodeQueryComponent(variant)}";
+  static String churchBirthdayCelebrationReaction(String celebrationId) =>
+      "${churchBirthdayCelebration(celebrationId)}/reaction";
+  static String churchBirthdayCelebrationGreeting(String celebrationId) =>
+      "${churchBirthdayCelebration(celebrationId)}/greeting";
+  static String churchBirthdayCelebrationGreetingById(
+          String celebrationId, int greetingId) =>
+      "${churchBirthdayCelebration(celebrationId)}/greetings/$greetingId";
+  static String churchBirthdayCelebrationThankYou(String celebrationId) =>
+      "${churchBirthdayCelebration(celebrationId)}/thank-you";
+  static String churchBirthdayCelebrationGreetingReport(
+          String celebrationId, int greetingId) =>
+      "${churchBirthdayCelebrationGreetingById(celebrationId, greetingId)}/report";
   static const String PRAYER_SESSION_ATTENDANCE_ACTIVE_SESSIONS =
       "$PRAYER_SESSION_ATTENDANCE/sessions/active";
   static const String PRAYER_SESSION_ATTENDANCE_SELF_CONFIRMATIONS =
@@ -287,14 +314,14 @@ class ApiUrl {
       "$PRAYER_SESSION_ATTENDANCE/staff/sync";
   static String prayerSessionAttendanceSessionQr(String sessionId) =>
       "$PRAYER_SESSION_ATTENDANCE/sessions/$sessionId/qr";
-    static String prayerSessionAttendanceControlSessionAction(
-            String sessionId, String action) =>
-        "$PRAYER_SESSION_ATTENDANCE/control/sessions/$sessionId/$action";
-    static String prayerSessionAttendanceStaffTicket(
-            String sessionId, String identifier) =>
-        "$PRAYER_SESSION_ATTENDANCE/sessions/$sessionId/staff/tickets/${Uri.encodeComponent(identifier)}";
-    static String prayerSessionAttendanceReport(String sessionId) =>
-        "$PRAYER_SESSION_ATTENDANCE/control/sessions/$sessionId/report";
+  static String prayerSessionAttendanceControlSessionAction(
+          String sessionId, String action) =>
+      "$PRAYER_SESSION_ATTENDANCE/control/sessions/$sessionId/$action";
+  static String prayerSessionAttendanceStaffTicket(
+          String sessionId, String identifier) =>
+      "$PRAYER_SESSION_ATTENDANCE/sessions/$sessionId/staff/tickets/${Uri.encodeComponent(identifier)}";
+  static String prayerSessionAttendanceReport(String sessionId) =>
+      "$PRAYER_SESSION_ATTENDANCE/control/sessions/$sessionId/report";
   static const String INBOX = BASEURL + "fetch_inbox";
   static const String DELETE_INBOX = BASEURL + "delete_inbox";
   static const String HYMNS = BASEURL + "fetch_hymns";

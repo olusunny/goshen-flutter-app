@@ -17,6 +17,7 @@ import '../utils/my_colors.dart';
 import '../providers/events.dart';
 import '../models/UserEvents.dart';
 import '../features/prayer_session_attendance/prayer_session_attendance_link.dart';
+import '../features/church_birthday_celebrations/church_birthday_celebration_link.dart';
 
 var flutterLocalNotificationsPlugin = new FlutterLocalNotificationsPlugin();
 const AndroidNotificationChannel _defaultNotificationChannel =
@@ -43,6 +44,7 @@ class Firebase {
   late Function navigateEvents;
   late Function navigateDevotional;
   late Function navigatePrayerSessionAttendance;
+  late Function navigateChurchBirthdayCelebrations;
   static String appState = "idle";
 
   Firebase(
@@ -52,6 +54,7 @@ class Firebase {
     Function navigateEvents,
     Function navigateDevotional,
     Function navigatePrayerSessionAttendance,
+    Function navigateChurchBirthdayCelebrations,
   ) {
     this.navigateMedia = navigateMedia;
     this.navigateLivestreams = navigateLivestreams;
@@ -59,6 +62,8 @@ class Firebase {
     this.navigateEvents = navigateEvents;
     this.navigateDevotional = navigateDevotional;
     this.navigatePrayerSessionAttendance = navigatePrayerSessionAttendance;
+    this.navigateChurchBirthdayCelebrations =
+        navigateChurchBirthdayCelebrations;
   }
 
   //updated myBackgroundMessageHandler
@@ -341,6 +346,14 @@ class Firebase {
 
     if (isPrayerSessionAttendanceNotification(data)) {
       navigatePrayerSessionAttendance();
+    }
+    if (isChurchBirthdayCelebrationNotification(data)) {
+      final celebrationId =
+          '${data['celebration_id'] ?? data['birthday_celebration_id'] ?? ''}'
+              .trim();
+      navigateChurchBirthdayCelebrations(
+        celebrationId: celebrationId.isEmpty ? null : celebrationId,
+      );
     }
 
     return null;

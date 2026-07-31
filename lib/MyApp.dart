@@ -95,6 +95,10 @@ import './wallet_security/wallet_security_guard.dart';
 import './utils/goshen_payment_return_link.dart';
 import './features/prayer_session_attendance/prayer_session_attendance_link.dart';
 import './features/prayer_session_attendance/prayer_session_attendance_screen.dart';
+import './features/church_birthday_celebrations/church_birthday_celebration_link.dart';
+import './features/church_birthday_celebrations/church_birthday_celebration_screen.dart';
+import './features/church_birthday_celebrations/church_birthday_celebration_availability.dart';
+import './features/church_birthday_celebrations/church_birthday_celebration_gate.dart';
 
 class MyApp extends StatefulWidget {
   const MyApp({
@@ -200,6 +204,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       navigateEvents,
       navigateDevotional,
       navigatePrayerSessionAttendance,
+      navigateChurchBirthdayCelebrations,
     ).init();
     super.initState();
     WidgetsBinding.instance.addObserver(this);
@@ -244,6 +249,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       navigatePrayerSessionAttendance();
       return;
     }
+    final birthdayLink = parseChurchBirthdayCelebrationLink(uri);
+    if (birthdayLink != null) {
+      navigateChurchBirthdayCelebrations(
+        celebrationId: birthdayLink.celebrationId,
+      );
+      return;
+    }
     final paymentReturn = parseGoshenPaymentReturnLink(uri);
     if (paymentReturn == null) return;
 
@@ -277,6 +289,23 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       if (user == null || user.activated != 0 || !mounted) return;
       navigatorKey.currentState?.push(MaterialPageRoute(
         builder: (_) => PrayerSessionAttendanceScreen(user: user),
+      ));
+    });
+  }
+
+  Future<void> navigateChurchBirthdayCelebrations(
+      {String? celebrationId}) async {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final user = await appStateManager.ensureUserDataLoaded();
+      if (user == null || !mounted) return;
+      final capability =
+          await ChurchBirthdayCelebrationAvailability().check(user);
+      if (!capability.canOpenMemberExperience || !mounted) return;
+      navigatorKey.currentState?.push(MaterialPageRoute(
+        builder: (_) => ChurchBirthdayCelebrationGate(
+          user: user,
+          celebrationId: celebrationId,
+        ),
       ));
     });
   }
@@ -710,6 +739,22 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               builder: (context) {
                 return const MoreMenuScreen();
               },
+            );
+          }
+
+          if (settings.name == ChurchBirthdayCelebrationScreen.routeName) {
+            final user = appStateManager.userdata;
+            if (user == null) {
+              return MaterialPageRoute(builder: (_) => const MoreMenuScreen());
+            }
+            final celebrationId = settings.arguments is String
+                ? settings.arguments as String
+                : null;
+            return MaterialPageRoute(
+              builder: (_) => ChurchBirthdayCelebrationGate(
+                user: user,
+                celebrationId: celebrationId,
+              ),
             );
           }
 

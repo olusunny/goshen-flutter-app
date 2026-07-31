@@ -8,6 +8,8 @@ import '../features/counseling/counseling_screen.dart';
 import '../features/prayer_session_attendance/prayer_session_attendance_models.dart';
 import '../features/prayer_session_attendance/prayer_session_attendance_screen.dart';
 import '../features/prayer_session_attendance/prayer_session_attendance_availability.dart';
+import '../features/church_birthday_celebrations/church_birthday_celebration_models.dart';
+import '../features/church_birthday_celebrations/church_birthday_celebration_screen.dart';
 import '../i18n/strings.g.dart';
 import '../prayers/prayer_community_screen.dart';
 import '../prayers/prayer_guest_prompt.dart';
@@ -64,6 +66,8 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
   bool _scannerConsoleEnabled = false;
   PrayerAttendanceCapability _prayerAttendanceCapability =
       const PrayerAttendanceCapability(active: false);
+  ChurchBirthdayCapability _churchBirthdayCapability =
+      const ChurchBirthdayCapability(active: false);
 
   @override
   void initState() {
@@ -116,7 +120,13 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
                 snapshot
                     .prayerAttendanceCapability.eligibleActiveSessionCount ||
             _prayerAttendanceCapability.eligibilityVerified !=
-                snapshot.prayerAttendanceCapability.eligibilityVerified)) {
+                snapshot.prayerAttendanceCapability.eligibilityVerified ||
+            _churchBirthdayCapability.active !=
+                snapshot.churchBirthdayCapability.active ||
+            _churchBirthdayCapability.eligible !=
+                snapshot.churchBirthdayCapability.eligible ||
+            _churchBirthdayCapability.eligibilityVerified !=
+                snapshot.churchBirthdayCapability.eligibilityVerified)) {
       setState(() {
         _testimoniesEnabled = snapshot.testimoniesEnabled;
         _goshenRetreatEnabled = snapshot.goshenRetreatEnabled;
@@ -132,6 +142,7 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
         _scannerManagerEnabled = snapshot.scannerManagerEnabled;
         _scannerConsoleEnabled = snapshot.scannerConsoleEnabled;
         _prayerAttendanceCapability = snapshot.prayerAttendanceCapability;
+        _churchBirthdayCapability = snapshot.churchBirthdayCapability;
       });
     }
   }
@@ -239,6 +250,16 @@ class _MoreMenuScreenState extends State<MoreMenuScreen> {
             ),
           ),
           accent: const Color(0xFF2C9B88),
+        ),
+      if (_churchBirthdayCapability.canOpenMemberExperience && user != null)
+        _MoreMenuItem(
+          'Birthday Celebrations',
+          Icons.celebration_rounded,
+          () => Navigator.pushNamed(
+            context,
+            ChurchBirthdayCelebrationScreen.routeName,
+          ),
+          accent: const Color(0xFFE1A63B),
         ),
       if (_goshenRetreatEnabled && _goshenQuizEnabled && user != null)
         _MoreMenuItem('Goshen Quiz', Icons.quiz_rounded,
