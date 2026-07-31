@@ -111,6 +111,41 @@ void main() {
     expect(purged.isUnavailable, isTrue);
   });
 
+  test('detail asks for sign-in when the saved session has no token', () async {
+    try {
+      await ChurchBirthdayCelebrationApi(
+        dio: Dio(),
+      ).detail(Userdata(apiToken: ''), 'cb_1');
+    } on BirthdayApiException catch (error) {
+      expect(error.requiresSignIn, isTrue);
+      expect(error.code, 'SESSION_EXPIRED');
+      expect(error.message, contains('sign in again'));
+      return;
+    }
+    throw StateError('Expected a birthday session failure.');
+  });
+
+  test('detail keeps malformed server responses distinct from unavailable',
+      () async {
+    final dio = Dio();
+    dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) => handler.resolve(Response(
+        requestOptions: options,
+        statusCode: 200,
+        data: '<html>Temporary portal page</html>',
+      )),
+    ));
+
+    try {
+      await ChurchBirthdayCelebrationApi(dio: dio).detail(member, 'cb_1');
+    } on BirthdayApiException catch (error) {
+      expect(error.code, 'INVALID_BIRTHDAY_RESPONSE');
+      expect(error.message, contains('web page instead of app data'));
+      return;
+    }
+    throw StateError('Expected a birthday response failure.');
+  });
+
   test('server interaction state wins over a future device-facing close time',
       () {
     final detail = BirthdayCelebrationDetail.fromJson(const {

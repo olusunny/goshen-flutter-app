@@ -17,6 +17,7 @@ class BirthdayApiException implements Exception {
   bool get isUnavailable =>
       statusCode == 403 || statusCode == 404 || statusCode == 410;
   bool get isClosed => statusCode == 409;
+  bool get requiresSignIn => statusCode == 401;
 
   @override
   String toString() => message;
@@ -114,12 +115,27 @@ class ChurchBirthdayCelebrationApi {
     )));
   }
 
-  Future<BirthdayCelebrationDetail> detail(Userdata user, String id) async =>
-      BirthdayCelebrationDetail.fromJson(_data(await _request(
+  Future<BirthdayCelebrationDetail> detail(Userdata user, String id) async {
+    try {
+      return BirthdayCelebrationDetail.fromJson(_data(await _request(
         user,
         'get',
         ApiUrl.churchBirthdayCelebration(id),
       )));
+    } on BirthdayApiException {
+      rethrow;
+    } on FormatException catch (error) {
+      throw BirthdayApiException(
+        error.message.toString(),
+        code: 'INVALID_BIRTHDAY_RESPONSE',
+      );
+    } catch (_) {
+      throw const BirthdayApiException(
+        'We could not read this birthday celebration. Pull down to try again.',
+        code: 'INVALID_BIRTHDAY_RESPONSE',
+      );
+    }
+  }
 
   Future<void> react(Userdata user, String id, String? reaction) => _request(
         user,
@@ -190,20 +206,46 @@ class ChurchBirthdayCelebrationApi {
     String url, {
     Map<String, dynamic>? body,
   }) async {
-    final response = await _dio.request<dynamic>(
-      url,
-      data: body,
-      options: _options(user).copyWith(method: method),
-    );
-    final mapped = _map(response.data, response.statusCode);
-    return mapped;
+    if ((user.apiToken ?? '').trim().isEmpty) {
+      throw const BirthdayApiException(
+        'Your session has expired. Please sign in again to open birthday celebrations.',
+        statusCode: 401,
+        code: 'SESSION_EXPIRED',
+      );
+    }
+    try {
+      final response = await _dio.request<dynamic>(
+        url,
+        data: body,
+        options: _options(user).copyWith(method: method),
+      );
+      return _map(response.data, response.statusCode);
+    } on BirthdayApiException {
+      rethrow;
+    } on DioException catch (error) {
+      throw _fromDio(error);
+    } on FormatException catch (error) {
+      throw BirthdayApiException(
+        error.message.toString(),
+        code: 'INVALID_BIRTHDAY_RESPONSE',
+      );
+    }
   }
 
   Map<String, dynamic> _data(Map<String, dynamic> response) =>
       Map<String, dynamic>.from(response['data'] as Map? ?? const {});
 
   Map<String, dynamic> _map(dynamic value, int? statusCode) {
-    final decoded = decodeApiResponse(value);
+    dynamic decoded;
+    try {
+      decoded = decodeApiResponse(value);
+    } on FormatException catch (error) {
+      throw BirthdayApiException(
+        error.message.toString(),
+        statusCode: statusCode,
+        code: 'INVALID_BIRTHDAY_RESPONSE',
+      );
+    }
     final data = Map<String, dynamic>.from(decoded as Map? ?? const {});
     if ((statusCode ?? 500) >= 400 ||
         (data['status'] != null && data['status'] != 'ok')) {
@@ -214,6 +256,21 @@ class ChurchBirthdayCelebrationApi {
       );
     }
     return data;
+  }
+
+  BirthdayApiException _fromDio(DioException error) {
+    final response = error.response;
+    if (response != null) {
+      try {
+        _map(response.data, response.statusCode);
+      } on BirthdayApiException catch (mapped) {
+        return mapped;
+      }
+    }
+    return const BirthdayApiException(
+      'We could not reach birthday celebrations. Check your connection and try again.',
+      code: 'BIRTHDAY_NETWORK_ERROR',
+    );
   }
 
   Options _options(Userdata user) => Options(

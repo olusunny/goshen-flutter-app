@@ -61,6 +61,12 @@ class MobileSessionService {
           'Unable to verify saved login right now.');
     }
 
-    return Userdata.fromJson(Map<String, dynamic>.from(payload['user'] as Map));
+    final refreshed =
+        Userdata.fromJson(Map<String, dynamic>.from(payload['user'] as Map));
+    // Session sync returns profile data and may intentionally omit the token.
+    refreshed.apiToken = (refreshed.apiToken?.trim().isNotEmpty ?? false)
+        ? refreshed.apiToken
+        : token;
+    return refreshed;
   }
 }

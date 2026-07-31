@@ -1,8 +1,11 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../auth/LoginScreen.dart';
 import '../../models/Userdata.dart';
+import '../../providers/AppStateManager.dart';
 import 'church_birthday_card_file_service.dart';
 import 'church_birthday_celebration_api.dart';
 import 'church_birthday_celebration_models.dart';
@@ -177,10 +180,17 @@ class _ChurchBirthdayCelebrationDetailScreenState
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
-              final message = snapshot.error is BirthdayApiException
-                  ? (snapshot.error as BirthdayApiException).message
-                  : 'This celebration is no longer available.';
-              return _state(Icons.lock_outline_rounded, message);
+              final error = snapshot.error;
+              final birthdayError =
+                  error is BirthdayApiException ? error : null;
+              return _state(
+                birthdayError?.requiresSignIn == true
+                    ? Icons.login_rounded
+                    : Icons.cloud_off_rounded,
+                birthdayError?.message ??
+                    'We could not open this birthday celebration. Pull down to try again.',
+                requiresSignIn: birthdayError?.requiresSignIn == true,
+              );
             }
             final detail = snapshot.requireData;
             return RefreshIndicator(
@@ -409,7 +419,15 @@ class _ChurchBirthdayCelebrationDetailScreenState
         ),
       );
 
-  Widget _state(IconData icon, String message) => RefreshIndicator(
+  Future<void> _signInAgain() async {
+    await context.read<AppStateManager>().unsetUserData();
+    if (!mounted) return;
+    Navigator.of(context)
+        .pushNamedAndRemoveUntil(LoginScreen.routeName, (route) => false);
+  }
+
+  Widget _state(IconData icon, String message, {bool requiresSignIn = false}) =>
+      RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(children: [
           Padding(
@@ -418,6 +436,17 @@ class _ChurchBirthdayCelebrationDetailScreenState
               Icon(icon, size: 48),
               const SizedBox(height: 16),
               Text(message, textAlign: TextAlign.center),
+              const SizedBox(height: 12),
+              if (requiresSignIn)
+                FilledButton(
+                  onPressed: _signInAgain,
+                  child: const Text('Sign in again'),
+                )
+              else
+                OutlinedButton(
+                  onPressed: _refresh,
+                  child: const Text('Try again'),
+                ),
             ]),
           ),
         ]),
