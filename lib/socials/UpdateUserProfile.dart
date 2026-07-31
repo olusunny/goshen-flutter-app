@@ -55,6 +55,7 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
   final middleNameController = TextEditingController();
   final lastNameController = TextEditingController();
   final phoneController = TextEditingController();
+  final stateCountyProvinceController = TextEditingController();
   final addressController = TextEditingController();
   final aboutController = TextEditingController();
 
@@ -89,6 +90,7 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
     groupId = userdata?.groupId;
     countryOfResidence = userdata?.countryOfResidence ?? "";
     stateCountyProvince = userdata?.stateCountyProvince ?? "";
+    stateCountyProvinceController.text = stateCountyProvince;
     firstNameController.text = userdata?.firstName ?? '';
     middleNameController.text = userdata?.middleName ?? '';
     lastNameController.text = userdata?.lastName ?? '';
@@ -170,6 +172,7 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
     middleNameController.dispose();
     lastNameController.dispose();
     phoneController.dispose();
+    stateCountyProvinceController.dispose();
     addressController.dispose();
     aboutController.dispose();
     super.dispose();
@@ -201,6 +204,7 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
     final lastName = lastNameController.text.trim();
     final phone = phoneController.text.trim();
     final address = addressController.text.trim();
+    stateCountyProvince = stateCountyProvinceController.text.trim();
     final about = aboutController.text.trim();
 
     if (firstName.isEmpty ||
@@ -541,17 +545,16 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
                       const SizedBox(height: 14),
                       CountrySelector(
                         value: countryOfResidence,
-                        onChanged: (value) => setState(() {
-                          countryOfResidence = value;
-                          stateCountyProvince = '';
-                        }),
+                        onChanged: (value) =>
+                            setState(() => countryOfResidence = value),
                       ),
                       const SizedBox(height: 14),
-                      StateProvinceSelector(
-                        country: countryOfResidence,
-                        value: stateCountyProvince,
-                        onChanged: (value) =>
-                            setState(() => stateCountyProvince = value),
+                      _ProfileField(
+                        controller: stateCountyProvinceController,
+                        label: 'State / county / province',
+                        icon: Icons.map_rounded,
+                        text: text,
+                        muted: muted,
                       ),
                       const SizedBox(height: 14),
                     ],
