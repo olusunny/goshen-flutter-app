@@ -13,7 +13,6 @@ import '../audio_player/player_page.dart';
 import '../auth/LoginScreen.dart';
 import '../features/counseling/counseling_screen.dart';
 import '../features/church_birthday_celebrations/church_birthday_celebration_api.dart';
-import '../features/church_birthday_celebrations/church_birthday_celebration_availability.dart';
 import '../features/church_birthday_celebrations/church_birthday_celebration_gate.dart';
 import '../features/church_birthday_celebrations/church_birthday_celebration_models.dart';
 import '../models/Events.dart';
@@ -234,10 +233,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         context, PrayerCommunityScreen.routeName);
                   },
                 ),
-              if (user != null &&
-                  user.isVerified &&
-                  (user.apiToken ?? '').trim().isNotEmpty)
-                ChurchBirthdayHomeCard(user: user),
+              ChurchBirthdayHomeCard(user: user),
               HomeSocialLinksSection(home: home),
             ],
           ),
@@ -560,7 +556,7 @@ class PrayerRequestHomeCard extends StatelessWidget {
 class ChurchBirthdayHomeCard extends StatefulWidget {
   const ChurchBirthdayHomeCard({super.key, required this.user});
 
-  final Userdata user;
+  final Userdata? user;
 
   @override
   State<ChurchBirthdayHomeCard> createState() => _ChurchBirthdayHomeCardState();
@@ -568,7 +564,6 @@ class ChurchBirthdayHomeCard extends StatefulWidget {
 
 class _ChurchBirthdayHomeCardState extends State<ChurchBirthdayHomeCard> {
   final _api = ChurchBirthdayCelebrationApi();
-  final _availability = ChurchBirthdayCelebrationAvailability();
   late Future<_BirthdayHomeCardData?> _data;
 
   @override
@@ -578,9 +573,7 @@ class _ChurchBirthdayHomeCardState extends State<ChurchBirthdayHomeCard> {
   }
 
   Future<_BirthdayHomeCardData?> _load() async {
-    final capability = await _availability.check(widget.user);
-    if (!capability.canOpenMemberExperience) return null;
-    final hub = await _api.hub(widget.user);
+    final hub = await _api.publicHub();
     return _BirthdayHomeCardData(
       today: hub.today,
       upcoming: hub.upcomingWithinDays(3),
@@ -588,8 +581,22 @@ class _ChurchBirthdayHomeCardState extends State<ChurchBirthdayHomeCard> {
   }
 
   void _openHub() {
+    final user = widget.user;
+    if (user == null ||
+        !user.isVerified ||
+        (user.apiToken ?? '').trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Birthday wishes are shared by verified church members. Sign in with your member account to join in.',
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
     Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => ChurchBirthdayCelebrationGate(user: widget.user),
+      builder: (_) => ChurchBirthdayCelebrationGate(user: user),
     ));
   }
 

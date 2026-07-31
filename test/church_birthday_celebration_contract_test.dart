@@ -185,7 +185,42 @@ void main() {
     );
   });
 
-  test('home card uses the birthday API, animated gift, and safe previews',
+  test('public birthday hub is unauthenticated and keeps the hub sanitized',
+      () async {
+    RequestOptions? request;
+    final dio = Dio();
+    dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        request = options;
+        handler.resolve(Response(
+          requestOptions: options,
+          statusCode: 200,
+          data: const {
+            'status': 'ok',
+            'data': {
+              'today': [
+                {
+                  'id': 'celebration_1',
+                  'name': 'Ada',
+                  'birthday_month_day': '07-31'
+                },
+              ],
+              'upcoming': [],
+            },
+          },
+        ));
+      },
+    ));
+
+    final hub = await ChurchBirthdayCelebrationApi(dio: dio).publicHub();
+
+    expect(request?.path, ApiUrl.CHURCH_BIRTHDAY_CELEBRATION_HUB);
+    expect(request?.headers['Authorization'], isNull);
+    expect(hub.today.single.displayName, 'Ada');
+  });
+
+  test(
+      'home card uses the public birthday API, animated gift, and safe previews',
       () async {
     final home = await File('lib/screens/Home.dart').readAsString();
     final screen = await File(
@@ -193,6 +228,11 @@ void main() {
     ).readAsString();
 
     expect(home, contains('ChurchBirthdayHomeCard'));
+    expect(home, contains('ChurchBirthdayHomeCard(user: user)'));
+    expect(home, contains('_api.publicHub()'));
+    expect(home, isNot(contains('_availability.check(widget.user)')));
+    expect(home,
+        contains('Birthday wishes are shared by verified church members'));
     expect(home, contains('assets/images/birthday_gift.gif'));
     expect(home, contains('upcomingWithinDays(3)'));
     expect(screen, contains('openDetails: false'));

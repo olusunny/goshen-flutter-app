@@ -103,6 +103,17 @@ class ChurchBirthdayCelebrationApi {
             user, 'get', ApiUrl.CHURCH_BIRTHDAY_CELEBRATION_HUB)),
       );
 
+  Future<BirthdayCelebrationHub> publicHub() async {
+    final response = await _dio.get<dynamic>(
+      ApiUrl.CHURCH_BIRTHDAY_CELEBRATION_HUB,
+      options: _publicOptions(),
+    );
+    return BirthdayCelebrationHub.fromJson(_data(_map(
+      response.data,
+      response.statusCode,
+    )));
+  }
+
   Future<BirthdayCelebrationDetail> detail(Userdata user, String id) async =>
       BirthdayCelebrationDetail.fromJson(_data(await _request(
         user,
@@ -211,6 +222,14 @@ class ChurchBirthdayCelebrationApi {
           'X-Requested-With': 'XMLHttpRequest',
           if ((user.apiToken ?? '').trim().isNotEmpty)
             'Authorization': 'Bearer ${user.apiToken}',
+        },
+        validateStatus: (status) => status != null && status < 500,
+      );
+
+  Options _publicOptions() => Options(
+        headers: const {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
         },
         validateStatus: (status) => status != null && status < 500,
       );
