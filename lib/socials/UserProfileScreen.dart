@@ -314,9 +314,60 @@ class ProfileDetailsScreen extends StatelessWidget {
                   muted: muted,
                   children: [
                     _InfoRow(
+                      icon: Icons.badge_outlined,
+                      label: 'Title',
+                      value: _fallback(profile.profileTitle),
+                    ),
+                    _InfoRow(
+                      icon: Icons.person_outline_rounded,
+                      label: 'First name',
+                      value: _fallback(profile.firstName),
+                    ),
+                    _InfoRow(
+                      icon: Icons.person_pin_outlined,
+                      label: 'Middle name',
+                      value: _fallback(profile.middleName),
+                    ),
+                    _InfoRow(
+                      icon: Icons.badge_outlined,
+                      label: 'Last name',
+                      value: _fallback(profile.lastName),
+                    ),
+                    _InfoRow(
+                      icon: Icons.cake_outlined,
+                      label: 'Birthday',
+                      value: _fallback(formatBirthdayMonthDay(
+                        profile.birthdayMonthDay?.isNotEmpty == true
+                            ? profile.birthdayMonthDay
+                            : profile.dateOfBirth,
+                      )),
+                    ),
+                    _InfoRow(
+                      icon: Icons.verified_user_outlined,
+                      label: '18+ confirmation',
+                      value: profile.isAdultConfirmed
+                          ? 'Confirmed'
+                          : 'Not confirmed',
+                    ),
+                    _InfoRow(
                       icon: Icons.person_outline_rounded,
                       label: t.gender,
                       value: _fallback(profile.gender),
+                    ),
+                    _InfoRow(
+                      icon: Icons.favorite_border_rounded,
+                      label: 'Marital status',
+                      value: _fallback(profile.maritalStatus),
+                    ),
+                    _InfoRow(
+                      icon: Icons.church_outlined,
+                      label: 'Membership status',
+                      value: _fallback(profile.memberType).replaceAll('_', ' '),
+                    ),
+                    _InfoRow(
+                      icon: Icons.groups_2_outlined,
+                      label: 'Church group',
+                      value: _fallback(profile.groupName),
                     ),
                     _InfoRow(
                       icon: Icons.public_rounded,
@@ -339,11 +390,17 @@ class ProfileDetailsScreen extends StatelessWidget {
                       value: _fallback(profile.phone),
                     ),
                     _InfoRow(
+                      icon: Icons.home_work_outlined,
+                      label: 'Address',
+                      value: _fallback(profile.address),
+                      multiline: true,
+                    ),
+                    _InfoRow(
                       icon: Icons.auto_awesome_outlined,
                       label: t.aboutme,
                       value: (profile.aboutMe?.isEmpty ?? true)
                           ? '-----'
-                          : Utility.getBase64DecodedString(profile.aboutMe!),
+                          : Utility.getProfileText(profile.aboutMe!),
                       multiline: true,
                     ),
                   ],

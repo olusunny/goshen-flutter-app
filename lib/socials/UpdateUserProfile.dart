@@ -18,6 +18,7 @@ import '../utils/Utility.dart';
 import '../utils/img.dart';
 import '../utils/member_profile_requirements.dart';
 import '../utils/member_profile_presentation.dart';
+import '../utils/profile_update_feedback.dart';
 import '../utils/my_colors.dart';
 import '../widgets/country_selector.dart';
 import '../widgets/birthday_month_day_field.dart';
@@ -48,6 +49,8 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
   bool groupsLoading = true;
   String avatar = "";
   String coverPhoto = "";
+  bool _refreshingProfile = false;
+  String? _refreshMessage;
   final firstNameController = TextEditingController();
   final middleNameController = TextEditingController();
   final lastNameController = TextEditingController();
@@ -59,6 +62,13 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
   void initState() {
     super.initState();
     userdata = Provider.of<AppStateManager>(context, listen: false).userdata;
+    _applyUserdata(userdata);
+    loadGroups();
+    _refreshUserdata();
+  }
+
+  void _applyUserdata(Userdata? value) {
+    userdata = value;
     profileTitle = (userdata?.profileTitle?.isNotEmpty ?? false)
         ? userdata!.profileTitle!
         : '';
@@ -75,6 +85,7 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
           ? userdata?.birthdayMonthDay
           : userdata?.dateOfBirth,
     );
+    adultConfirmation = userdata?.isAdultConfirmed ?? false;
     groupId = userdata?.groupId;
     countryOfResidence = userdata?.countryOfResidence ?? "";
     stateCountyProvince = userdata?.stateCountyProvince ?? "";
@@ -96,8 +107,30 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
     addressController.text = userdata?.address ?? '';
     aboutController.text = (userdata?.aboutMe?.isEmpty ?? true)
         ? ''
-        : Utility.getBase64DecodedString(userdata!.aboutMe!);
-    loadGroups();
+        : Utility.getProfileText(userdata!.aboutMe!);
+  }
+
+  Future<void> _refreshUserdata() async {
+    if (userdata == null) return;
+    setState(() => _refreshingProfile = true);
+    try {
+      final refreshed =
+          await Provider.of<AppStateManager>(context, listen: false)
+              .refreshUserData();
+      if (!mounted || refreshed == null) return;
+      setState(() {
+        _applyUserdata(refreshed);
+        _refreshMessage = null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _refreshMessage =
+            'We could not refresh your latest profile details. Your saved details are still available.';
+      });
+    } finally {
+      if (mounted) setState(() => _refreshingProfile = false);
+    }
   }
 
   Future<void> loadGroups() async {
@@ -230,7 +263,7 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
       "gender": gender,
       "member_type": memberType,
       "adult_confirmation": adultConfirmation,
-      "about_me": Utility.getBase64EncodedString(aboutme),
+      "about_me": aboutme,
       "notify_token": token,
     };
     if (!isVisitorMemberType(memberType)) {
@@ -272,24 +305,23 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
       final res = response.data is Map
           ? Map<String, dynamic>.from(response.data)
           : json.decode(response.data);
-      if (response.statusCode == 401) {
+      if (response.statusCode != 200 ||
+          res["status"] != "ok" ||
+          res["user"] is! Map) {
         Alerts.show(
           context,
           t.error,
-          'Your session has expired. Please sign in again, then save your profile.',
+          profileUpdateErrorMessage(res, statusCode: response.statusCode),
         );
         return;
       }
-      if (res["status"] == "error") {
-        Alerts.show(context, t.error, res["msg"] ?? res["message"] ?? t.error);
-        return;
-      }
 
-      final updatedUser = Userdata.fromJsonActivated(res["user"]);
+      final updatedUser =
+          Userdata.fromJsonActivated(Map<String, dynamic>.from(res["user"]));
       if ((updatedUser.birthdayMonthDay ?? '').trim().isEmpty) {
         updatedUser.birthdayMonthDay = birthdayMonthDay;
       }
-      Provider.of<AppStateManager>(context, listen: false)
+      await Provider.of<AppStateManager>(context, listen: false)
           .setUserData(updatedUser);
 
       Navigator.pushReplacement(
@@ -303,8 +335,14 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
       );
     } on DioException catch (e) {
       Navigator.of(context).pop();
-      Alerts.show(
-          context, t.error, e.message ?? 'Unable to update profile right now.');
+      final data = e.response?.data;
+      final message = data is Map
+          ? profileUpdateErrorMessage(
+              Map<String, dynamic>.from(data),
+              statusCode: e.response?.statusCode,
+            )
+          : 'We could not reach the server. Check your internet connection and try again.';
+      Alerts.show(context, t.error, message);
     }
   }
 
@@ -368,6 +406,21 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
                 ),
                 child: Column(
                   children: [
+                    if (_refreshingProfile || _refreshMessage != null) ...[
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          _refreshingProfile
+                              ? 'Refreshing your latest profile details...'
+                              : _refreshMessage!,
+                          style: TextStyle(
+                            color: muted,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
                     Row(
                       children: [
                         Expanded(

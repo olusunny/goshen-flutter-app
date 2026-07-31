@@ -20,6 +20,14 @@ class Utility {
     return stringToBase64.decode(text.trim());
   }
 
+  static String getProfileText(String text) {
+    try {
+      return getBase64DecodedString(text);
+    } catch (_) {
+      return text;
+    }
+  }
+
   static String getFileExtension(String link) {
     String ext = "mp4";
     if (link.contains(".")) {

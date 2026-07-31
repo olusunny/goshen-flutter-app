@@ -11,8 +11,11 @@ void main() {
 
     expect(source, contains('"api_token": apiToken'));
     expect(source, contains("'Authorization': 'Bearer \$apiToken'"));
-    expect(source, contains('response.statusCode == 401'));
-    expect(source, contains('Your session has expired. Please sign in again'));
+    expect(source, contains("'Authorization': 'Bearer \$apiToken'"));
+    expect(source, contains('response.statusCode != 200'));
+    expect(source, contains('profileUpdateErrorMessage'));
+    expect(source, contains('"about_me": aboutme'));
+    expect(source, contains('await Provider.of<AppStateManager>'));
   });
 
   test('profile save requests a destination-owned success snackbar', () async {

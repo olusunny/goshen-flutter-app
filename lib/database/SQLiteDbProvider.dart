@@ -285,6 +285,7 @@ class SQLiteDbProvider {
           "canManageCounseling INTEGER,"
           "canManagePropheticDecree INTEGER,"
           "canSendAdminMessages INTEGER,"
+          "isAdultConfirmed INTEGER,"
           "activated INTEGER"
           ")");
     });
@@ -346,6 +347,8 @@ class SQLiteDbProvider {
         db, Userdata.TABLE, 'canManagePropheticDecree', 'INTEGER');
     await _addColumnIfMissing(
         db, Userdata.TABLE, 'canSendAdminMessages', 'INTEGER');
+    await _addColumnIfMissing(
+        db, Userdata.TABLE, 'isAdultConfirmed', 'INTEGER');
   }
 
   //userdata crud

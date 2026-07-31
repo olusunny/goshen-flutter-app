@@ -41,6 +41,7 @@ class Userdata {
   bool canManageCounseling = false;
   bool hasPropheticDecreePermission = false;
   bool canSendAdminMessages = false;
+  bool isAdultConfirmed = false;
   bool following = false;
 
   static const String TABLE = "userdata";
@@ -91,6 +92,7 @@ class Userdata {
     "canManageCounseling",
     "canManagePropheticDecree",
     "canSendAdminMessages",
+    "isAdultConfirmed",
     "activated"
   ];
 
@@ -142,6 +144,7 @@ class Userdata {
     this.canManageCounseling = false,
     this.hasPropheticDecreePermission = false,
     this.canSendAdminMessages = false,
+    this.isAdultConfirmed = false,
     this.following = false,
   }) : roles = roles ?? [];
 
@@ -251,6 +254,9 @@ class Userdata {
         canSendAdminMessages: _readBool(
           json['can_send_admin_messages'] ?? json['canSendAdminMessages'],
         ),
+        isAdultConfirmed: _readBool(
+          json['is_adult_confirmed'] ?? json['isAdultConfirmed'],
+        ),
         activated: activated);
   }
 
@@ -336,6 +342,9 @@ class Userdata {
       ),
       canSendAdminMessages: _readBool(
         json['can_send_admin_messages'] ?? json['canSendAdminMessages'],
+      ),
+      isAdultConfirmed: _readBool(
+        json['is_adult_confirmed'] ?? json['isAdultConfirmed'],
       ),
       activated: 0,
     );
@@ -425,6 +434,9 @@ class Userdata {
         canSendAdminMessages: _readBool(
           json['can_send_admin_messages'] ?? json['canSendAdminMessages'],
         ),
+        isAdultConfirmed: _readBool(
+          json['is_adult_confirmed'] ?? json['isAdultConfirmed'],
+        ),
         activated: 0);
   }
 
@@ -510,6 +522,9 @@ class Userdata {
       canSendAdminMessages: _readBool(
         json['can_send_admin_messages'] ?? json['canSendAdminMessages'],
       ),
+      isAdultConfirmed: _readBool(
+        json['is_adult_confirmed'] ?? json['isAdultConfirmed'],
+      ),
       activated: 0,
       following: following == 0,
     );
@@ -565,6 +580,7 @@ class Userdata {
       canManageCounseling: _readBool(data['canManageCounseling']),
       hasPropheticDecreePermission: _readBool(data['canManagePropheticDecree']),
       canSendAdminMessages: _readBool(data['canSendAdminMessages']),
+      isAdultConfirmed: _readBool(data['isAdultConfirmed']),
       activated: _readActivationState(data['activated']),
     );
   }
@@ -616,6 +632,7 @@ class Userdata {
         "canManageCounseling": canManageCounseling ? 1 : 0,
         "canManagePropheticDecree": hasPropheticDecreePermission ? 1 : 0,
         "canSendAdminMessages": canSendAdminMessages ? 1 : 0,
+        "isAdultConfirmed": isAdultConfirmed ? 1 : 0,
         "activated": activated,
       };
 

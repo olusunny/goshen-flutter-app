@@ -175,6 +175,17 @@ class AppStateManager with ChangeNotifier {
     return getUserData();
   }
 
+  Future<Userdata?> refreshUserData() async {
+    final cachedUser = userdata ?? await ensureUserDataLoaded();
+    if (cachedUser == null || (cachedUser.apiToken?.trim().isEmpty ?? true)) {
+      return cachedUser;
+    }
+
+    final refreshedUser = await MobileSessionService().sync(cachedUser);
+    await _replaceUserData(refreshedUser);
+    return refreshedUser;
+  }
+
   Future<Userdata?> _loadUserData() async {
     userdata = await SQLiteDbProvider.db.getUserData();
     isUserDataHydrated = true;
