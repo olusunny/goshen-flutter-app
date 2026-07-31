@@ -134,11 +134,18 @@ class _ChurchBirthdayCelebrationScreenState
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 24),
-                  _section('Today\'s Birthdays', screen.hub.today,
-                      empty: 'No birthdays are being celebrated today.'),
+                  _section(
+                    'Today\'s Birthdays',
+                    screen.hub.today,
+                    empty: 'No birthdays are being celebrated today.',
+                  ),
                   const SizedBox(height: 24),
-                  _section('Upcoming Birthdays', screen.hub.upcoming,
-                      empty: 'No upcoming birthdays to share right now.'),
+                  _section(
+                    'Upcoming Birthdays',
+                    screen.hub.upcomingWithinDays(3),
+                    empty: 'No birthdays are coming up in the next 3 days.',
+                    openDetails: false,
+                  ),
                 ],
               ),
             );
@@ -161,8 +168,12 @@ class _ChurchBirthdayCelebrationScreenState
         ]),
       );
 
-  Widget _section(String title, List<BirthdayCelebrationMember> members,
-          {required String empty}) =>
+  Widget _section(
+    String title,
+    List<BirthdayCelebrationMember> members, {
+    required String empty,
+    bool openDetails = true,
+  }) =>
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(title, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 10),
@@ -175,8 +186,10 @@ class _ChurchBirthdayCelebrationScreenState
                       child: Icon(Icons.celebration_outlined)),
                   title: Text(member.displayName),
                   subtitle: Text(member.dayMonth),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => _openDetail(member.id),
+                  trailing: openDetails
+                      ? const Icon(Icons.chevron_right_rounded)
+                      : const Text('Coming soon'),
+                  onTap: openDetails ? () => _openDetail(member.id) : null,
                 ),
               )),
       ]);

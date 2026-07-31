@@ -149,6 +149,7 @@ void main() {
           'id': 'celebration_1',
           'name': 'Ada',
           'birthday_month_day': '07-30',
+          'avatar_url': 'https://portal.goshenretreat.uk/storage/ada.jpg',
           'date_of_birth': '1992-07-30',
           'age': 34,
         },
@@ -158,7 +159,44 @@ void main() {
 
     expect(hub.today.single.displayName, 'Ada');
     expect(hub.today.single.dayMonth, '07-30');
+    expect(
+      hub.today.single.avatarUrl,
+      'https://portal.goshenretreat.uk/storage/ada.jpg',
+    );
     expect(hub.today.single.state, isEmpty);
+  });
+
+  test('home preview includes only birthdays coming up within three days', () {
+    final hub = BirthdayCelebrationHub.fromJson(const {
+      'today': [],
+      'upcoming': [
+        {'id': 'tomorrow', 'name': 'Tomi', 'birthday_month_day': '08-01'},
+        {'id': 'third-day', 'name': 'Ada', 'birthday_month_day': '08-03'},
+        {'id': 'fourth-day', 'name': 'John', 'birthday_month_day': '08-04'},
+        {'id': 'invalid', 'name': 'Unknown', 'birthday_month_day': '13-45'},
+      ],
+    });
+
+    expect(
+      hub
+          .upcomingWithinDays(3, now: DateTime(2026, 7, 31))
+          .map((member) => member.id),
+      ['tomorrow', 'third-day'],
+    );
+  });
+
+  test('home card uses the birthday API, animated gift, and safe previews',
+      () async {
+    final home = await File('lib/screens/Home.dart').readAsString();
+    final screen = await File(
+      'lib/features/church_birthday_celebrations/church_birthday_celebration_screen.dart',
+    ).readAsString();
+
+    expect(home, contains('ChurchBirthdayHomeCard'));
+    expect(home, contains('assets/images/birthday_gift.gif'));
+    expect(home, contains('upcomingWithinDays(3)'));
+    expect(screen, contains('openDetails: false'));
+    expect(screen, contains('Coming soon'));
   });
 
   test('birthday links and notifications are narrowly routed', () {

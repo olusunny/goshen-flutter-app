@@ -207,12 +207,22 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
       String address,
       String aboutme,
       String? token) async {
+    final apiToken = (userdata?.apiToken ?? '').trim();
+    if (apiToken.isEmpty) {
+      Alerts.show(
+        context,
+        t.error,
+        'Your session has expired. Please sign in again, then save your profile.',
+      );
+      return;
+    }
     Alerts.showProgressDialog(context, t.processingpleasewait);
     final fullName = [firstName, middleName, lastName]
         .where((part) => part.trim().isNotEmpty)
         .join(' ');
     final fields = <String, dynamic>{
       "email": userdata!.email,
+      "api_token": apiToken,
       "fullname": fullName,
       "first_name": firstName,
       "middle_name": middleName,
@@ -251,12 +261,26 @@ class UpdateUserProfileState extends State<UpdateUserProfile> {
     }
 
     try {
-      final response =
-          await Dio().post(ApiUrl.BASEURL + "updateProfile", data: formData);
+      final response = await Dio().post(
+        ApiUrl.BASEURL + "updateProfile",
+        data: formData,
+        options: Options(
+          headers: {'Authorization': 'Bearer $apiToken'},
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
       Navigator.of(context).pop();
       final res = response.data is Map
           ? Map<String, dynamic>.from(response.data)
           : json.decode(response.data);
+      if (response.statusCode == 401) {
+        Alerts.show(
+          context,
+          t.error,
+          'Your session has expired. Please sign in again, then save your profile.',
+        );
+        return;
+      }
       if (res["status"] == "error") {
         Alerts.show(context, t.error, res["msg"] ?? res["message"] ?? t.error);
         return;

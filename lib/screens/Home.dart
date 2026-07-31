@@ -12,6 +12,10 @@ import '../audio_player/miniPlayer.dart';
 import '../audio_player/player_page.dart';
 import '../auth/LoginScreen.dart';
 import '../features/counseling/counseling_screen.dart';
+import '../features/church_birthday_celebrations/church_birthday_celebration_api.dart';
+import '../features/church_birthday_celebrations/church_birthday_celebration_availability.dart';
+import '../features/church_birthday_celebrations/church_birthday_celebration_gate.dart';
+import '../features/church_birthday_celebrations/church_birthday_celebration_models.dart';
 import '../models/Events.dart';
 import '../models/Media.dart';
 import '../models/ScreenArguements.dart';
@@ -230,6 +234,10 @@ class _MyHomePageState extends State<MyHomePage> {
                         context, PrayerCommunityScreen.routeName);
                   },
                 ),
+              if (user != null &&
+                  user.isVerified &&
+                  (user.apiToken ?? '').trim().isNotEmpty)
+                ChurchBirthdayHomeCard(user: user),
               HomeSocialLinksSection(home: home),
             ],
           ),
@@ -544,6 +552,323 @@ class PrayerRequestHomeCard extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class ChurchBirthdayHomeCard extends StatefulWidget {
+  const ChurchBirthdayHomeCard({super.key, required this.user});
+
+  final Userdata user;
+
+  @override
+  State<ChurchBirthdayHomeCard> createState() => _ChurchBirthdayHomeCardState();
+}
+
+class _ChurchBirthdayHomeCardState extends State<ChurchBirthdayHomeCard> {
+  final _api = ChurchBirthdayCelebrationApi();
+  final _availability = ChurchBirthdayCelebrationAvailability();
+  late Future<_BirthdayHomeCardData?> _data;
+
+  @override
+  void initState() {
+    super.initState();
+    _data = _load();
+  }
+
+  Future<_BirthdayHomeCardData?> _load() async {
+    final capability = await _availability.check(widget.user);
+    if (!capability.canOpenMemberExperience) return null;
+    final hub = await _api.hub(widget.user);
+    return _BirthdayHomeCardData(
+      today: hub.today,
+      upcoming: hub.upcomingWithinDays(3),
+    );
+  }
+
+  void _openHub() {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => ChurchBirthdayCelebrationGate(user: widget.user),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<_BirthdayHomeCardData?>(
+        future: _data,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done ||
+              snapshot.hasError ||
+              snapshot.data == null) {
+            return const SizedBox.shrink();
+          }
+          return _BirthdayHomeCardContent(
+            data: snapshot.data!,
+            onTap: _openHub,
+          );
+        },
+      );
+}
+
+class _BirthdayHomeCardData {
+  const _BirthdayHomeCardData({required this.today, required this.upcoming});
+
+  final List<BirthdayCelebrationMember> today;
+  final List<BirthdayCelebrationMember> upcoming;
+}
+
+class _BirthdayHomeCardContent extends StatelessWidget {
+  const _BirthdayHomeCardContent({required this.data, required this.onTap});
+
+  final _BirthdayHomeCardData data;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = _HomePalette.of(context);
+    final celebrating = data.today.isNotEmpty;
+    final names = _names(celebrating ? data.today : data.upcoming);
+    final message = celebrating
+        ? 'Celebrate $names today with a warm birthday wish.'
+        : data.upcoming.isNotEmpty
+            ? '$names celebrate within the next 3 days. Wishes open on the day.'
+            : 'No birthdays are being celebrated today. We will bring the celebration here when it is time.';
+    final label = celebrating
+        ? 'Birthday celebrations. $names are celebrating today. Open celebrations.'
+        : data.upcoming.isNotEmpty
+            ? 'Birthday celebrations. $names are coming up in the next 3 days. Open celebrations.'
+            : 'Birthday celebrations. No birthdays are being celebrated today. Open celebrations.';
+    final members = celebrating ? data.today : data.upcoming;
+
+    return Container(
+      color: colors.background,
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+      child: Semantics(
+        button: true,
+        label: label,
+        child: Material(
+          color: const Color(0xFF10313A),
+          borderRadius: BorderRadius.circular(20),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: onTap,
+            child: Container(
+              width: double.infinity,
+              constraints: const BoxConstraints(minHeight: 164),
+              padding: const EdgeInsets.fromLTRB(18, 18, 16, 18),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: const Color(0xFFFFC857).withValues(alpha: 0.42),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.18),
+                    blurRadius: 18,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Stack(
+                children: [
+                  Positioned(
+                    right: 0,
+                    top: 20,
+                    child: ExcludeSemantics(
+                      child: MediaQuery.disableAnimationsOf(context)
+                          ? const Icon(
+                              Icons.card_giftcard_rounded,
+                              color: Color(0xFFFFC857),
+                              size: 76,
+                            )
+                          : Image.asset(
+                              'assets/images/birthday_gift.gif',
+                              width: 86,
+                              height: 86,
+                              fit: BoxFit.contain,
+                            ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 90),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFC857)
+                                    .withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: const Icon(
+                                Icons.celebration_rounded,
+                                color: Color(0xFFFFC857),
+                                size: 23,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            const Expanded(
+                              child: Text(
+                                'Birthday Celebrations',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          message,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFFD7E7E4),
+                            fontSize: 13,
+                            height: 1.34,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            if (members.isNotEmpty)
+                              ExcludeSemantics(
+                                child: _BirthdayAvatarStack(members: members),
+                              )
+                            else
+                              const Icon(
+                                Icons.favorite_outline_rounded,
+                                color: Color(0xFFFFC857),
+                                size: 20,
+                              ),
+                            const Spacer(),
+                            const Icon(
+                              Icons.arrow_forward_rounded,
+                              color: Color(0xFFFFC857),
+                              size: 22,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _names(List<BirthdayCelebrationMember> members) {
+    if (members.isEmpty) return 'our church family';
+    if (members.length == 1) return members.first.displayName;
+    if (members.length == 2) {
+      return '${members.first.displayName} and ${members.last.displayName}';
+    }
+    return '${members.first.displayName} and ${members.length - 1} others';
+  }
+}
+
+class _BirthdayAvatarStack extends StatelessWidget {
+  const _BirthdayAvatarStack({required this.members});
+
+  final List<BirthdayCelebrationMember> members;
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = members.take(4).toList();
+    final extra = members.length - visible.length;
+    return SizedBox(
+      width: visible.length * 24.0 + (extra > 0 ? 25 : 8),
+      height: 36,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          for (var index = 0; index < visible.length; index++)
+            Positioned(
+              left: index * 24.0,
+              child: _BirthdayAvatar(member: visible[index]),
+            ),
+          if (extra > 0)
+            Positioned(
+              left: visible.length * 24.0,
+              child: CircleAvatar(
+                radius: 17,
+                backgroundColor: const Color(0xFFFFC857),
+                child: Text(
+                  '+$extra',
+                  style: const TextStyle(
+                    color: Color(0xFF10313A),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BirthdayAvatar extends StatelessWidget {
+  const _BirthdayAvatar({required this.member});
+
+  final BirthdayCelebrationMember member;
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = member.displayName.trim().isEmpty
+        ? 'C'
+        : member.displayName.trim().substring(0, 1).toUpperCase();
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: const BoxDecoration(
+        color: Color(0xFF10313A),
+        shape: BoxShape.circle,
+      ),
+      padding: const EdgeInsets.all(2),
+      child: ClipOval(
+        child: member.avatarUrl.isEmpty
+            ? ColoredBox(
+                color: const Color(0xFFFFC857),
+                child: Center(
+                  child: Text(
+                    initial,
+                    style: const TextStyle(
+                      color: Color(0xFF10313A),
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              )
+            : CachedNetworkImage(
+                imageUrl: member.avatarUrl,
+                fit: BoxFit.cover,
+                errorWidget: (_, __, ___) => ColoredBox(
+                  color: const Color(0xFFFFC857),
+                  child: Center(
+                    child: Text(
+                      initial,
+                      style: const TextStyle(
+                        color: Color(0xFF10313A),
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
       ),
     );
   }

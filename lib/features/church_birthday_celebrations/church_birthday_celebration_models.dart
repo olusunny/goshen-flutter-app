@@ -121,12 +121,14 @@ class BirthdayCelebrationMember {
     required this.displayName,
     required this.dayMonth,
     required this.state,
+    required this.avatarUrl,
   });
 
   final String id;
   final String displayName;
   final String dayMonth;
   final String state;
+  final String avatarUrl;
 
   factory BirthdayCelebrationMember.fromJson(Map<String, dynamic> json) =>
       BirthdayCelebrationMember(
@@ -135,6 +137,7 @@ class BirthdayCelebrationMember {
             '${json['name'] ?? json['display_name'] ?? 'Church member'}',
         dayMonth: '${json['birthday_month_day'] ?? json['day_month'] ?? ''}',
         state: '${json['status'] ?? json['state'] ?? ''}',
+        avatarUrl: '${json['avatar_url'] ?? json['avatar'] ?? ''}'.trim(),
       );
 }
 
@@ -154,6 +157,31 @@ class BirthdayCelebrationHub {
         .toList();
     return BirthdayCelebrationHub(
         today: rows('today'), upcoming: rows('upcoming'));
+  }
+
+  List<BirthdayCelebrationMember> upcomingWithinDays(int days,
+      {DateTime? now}) {
+    final today = now ?? DateTime.now();
+    final start = DateTime(today.year, today.month, today.day);
+
+    return upcoming.where((member) {
+      final parts = member.dayMonth.split('-');
+      if (parts.length != 2) return false;
+      final month = int.tryParse(parts[0]);
+      final day = int.tryParse(parts[1]);
+      if (month == null || day == null) return false;
+
+      DateTime date;
+      try {
+        date = DateTime(start.year, month, day);
+      } catch (_) {
+        return false;
+      }
+      if (date.month != month || date.day != day) return false;
+      if (date.isBefore(start)) date = DateTime(start.year + 1, month, day);
+      final difference = date.difference(start).inDays;
+      return difference >= 1 && difference <= days;
+    }).toList();
   }
 }
 
@@ -185,6 +213,7 @@ class BirthdayCelebrationDetail extends BirthdayCelebrationMember {
     required super.displayName,
     required super.dayMonth,
     required super.state,
+    required super.avatarUrl,
     required this.isCelebrant,
     required this.reactions,
     required this.greetings,
@@ -210,6 +239,7 @@ class BirthdayCelebrationDetail extends BirthdayCelebrationMember {
       displayName: '${json['name'] ?? json['display_name'] ?? 'Church member'}',
       dayMonth: '${json['birthday_month_day'] ?? json['day_month'] ?? ''}',
       state: '${json['status'] ?? ''}',
+      avatarUrl: '${json['avatar_url'] ?? json['avatar'] ?? ''}'.trim(),
       isCelebrant: _readBool(json['is_celebrant']),
       isInteractive: _readBool(json['is_interactive']),
       myGreetingId: _readId(json['my_greeting_id']),
